@@ -14,7 +14,8 @@ import events from './routes/events.js';
 import findings from './routes/findings.js';
 import reports from './routes/reports.js';
 import screenshots from './routes/screenshots.js';
-import { syncYamlToDatabase } from './sync.js';
+// YAML sync removed - personas now managed 100% via DB and frontend
+// import { syncYamlToDatabase } from './sync.js';
 
 // ============================================================================
 // App Setup
@@ -58,9 +59,6 @@ async function main() {
   // Initialize database
   await initializeDb();
   console.log('Database initialized');
-
-  // Auto-sync YAML files to database
-  await syncYamlToDatabase();
 
   // Start server
   console.log(`TestFarm API running on http://localhost:${PORT}`);

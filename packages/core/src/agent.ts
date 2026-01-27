@@ -24,8 +24,12 @@ import type {
 import { LLMClient } from './llm/client.js';
 import { BrowserController, createBrowser } from './browser/controller.js';
 import { extractDOM } from './vision/dom-extractor.js';
+import { readPage } from './vision/read-page.js';
 import { checkAndDeduplicateFinding, generateFingerprint } from './findings/index.js';
 import { saveScreenshot } from './utils/screenshot-storage.js';
+
+// Initial wait time for page to fully load (ms)
+const INITIAL_LOAD_WAIT = 3000;
 
 // ============================================================================
 // Types
@@ -184,6 +188,15 @@ ${persona.context}`;
 
     const page = this.browser.getPage();
     const dom = await extractDOM(page);
+
+    // Also extract elements with read_page for ref-based actions
+    try {
+      const readPageResult = await readPage(page, { filter: 'interactive' });
+      this.browser.registerElements(readPageResult.elements);
+      console.log(`[Agent] Registered ${readPageResult.elements.length} elements for ref-based actions`);
+    } catch (err) {
+      console.warn('[Agent] Failed to register elements from read_page:', err);
+    }
 
     return {
       persona: this.buildPersonaContext(),
@@ -363,6 +376,11 @@ ${persona.context}`;
         throw new Error(`Failed to navigate to ${this.config.targetUrl}: ${navResult.error}`);
       }
       console.log('[Agent] Navigation successful');
+
+      // Wait for initial page load (apps often have loading spinners)
+      console.log(`[Agent] Waiting ${INITIAL_LOAD_WAIT}ms for initial page load...`);
+      await new Promise((resolve) => setTimeout(resolve, INITIAL_LOAD_WAIT));
+      console.log('[Agent] Initial load wait complete');
 
       // Main loop
       while (!this.shouldStop && this.actionCount < this.config.maxActions) {

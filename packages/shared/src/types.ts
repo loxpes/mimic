@@ -71,7 +71,50 @@ export interface ObjectiveContext {
 }
 
 // ============================================================================
-// DOM & Vision Types
+// DOM & Vision Types (CDP-based read_page)
+// ============================================================================
+
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+}
+
+export interface PageElement {
+  /** Reference ID for this element (ref_1, ref_2, etc.) */
+  ref: string;
+  /** ARIA role (button, textbox, link, etc.) */
+  role: string;
+  /** Accessible name (from text, aria-label, alt, title) */
+  name: string;
+  /** Current value for inputs */
+  value?: string;
+  /** Backend node ID for CDP operations */
+  backendNodeId: number;
+  /** Bounding box with center coordinates */
+  bbox: BoundingBox;
+  /** Element state */
+  state: {
+    focused: boolean;
+    disabled: boolean;
+    expanded?: boolean;
+    checked?: boolean;
+  };
+}
+
+export interface ReadPageResult {
+  elements: PageElement[];
+  /** Total elements found before filtering */
+  totalNodes: number;
+  /** Viewport dimensions */
+  viewport: { width: number; height: number };
+}
+
+// ============================================================================
+// DOM & Vision Types (Legacy)
 // ============================================================================
 
 export type ElementType =
@@ -166,6 +209,7 @@ export interface AgentAction {
     elementId: string;
     description: string;
   };
+  // ref and coordinate removed - using legacy target system
   value?: string;           // For type, select
   duration?: number;        // For wait (ms)
   direction?: 'up' | 'down'; // For scroll

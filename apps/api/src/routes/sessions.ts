@@ -12,6 +12,8 @@ import { broadcastSessionEvent } from './events.js';
 
 // Store running agents to allow cancellation
 const runningAgents = new Map<string, ReturnType<typeof createAgent>>();
+// Track cancelled sessions to prevent onComplete from overwriting
+const cancelledSessions = new Set<string>();
 
 const app = new Hono();
 
@@ -302,6 +304,14 @@ app.post('/:id/start', async (c) => {
     },
 
     onComplete: async (result) => {
+      // Check if session was cancelled - don't overwrite cancelled status
+      if (cancelledSessions.has(id)) {
+        console.log(`[Session ${id}] Ignoring onComplete - session was cancelled`);
+        cancelledSessions.delete(id);
+        runningAgents.delete(id);
+        return;
+      }
+
       // Map agent outcome to database outcome type
       const outcomeMap: Record<string, 'completed' | 'pursuing' | 'blocked' | 'abandoned'> = {
         completed: 'completed',
@@ -375,6 +385,14 @@ app.post('/:id/start', async (c) => {
     },
 
     onError: async (error) => {
+      // Check if session was cancelled - don't overwrite cancelled status
+      if (cancelledSessions.has(id)) {
+        console.log(`[Session ${id}] Ignoring onError - session was cancelled`);
+        cancelledSessions.delete(id);
+        runningAgents.delete(id);
+        return;
+      }
+
       // Update session with error
       const progress = Math.min(eventSequence / maxActions, 1);
       await db.update(sessions).set({
@@ -439,6 +457,9 @@ app.post('/:id/cancel', async (c) => {
   if (!session) {
     return c.json({ error: 'Session not found' }, 404);
   }
+
+  // Mark as cancelled BEFORE stopping (to prevent race condition)
+  cancelledSessions.add(id);
 
   // Stop the running agent
   const agent = runningAgents.get(id);

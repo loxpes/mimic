@@ -3,3 +3,4 @@
  */
 
 export * from './dom-extractor.js';
+export * from './read-page.js';

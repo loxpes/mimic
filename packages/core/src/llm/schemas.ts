@@ -26,6 +26,9 @@ export const ActionTargetSchema = z.object({
   description: z.string().describe('Human-readable description of the element')
 });
 
+// CoordinateSchema removed - using legacy target system for now
+// export const CoordinateSchema = z.tuple([z.number(), z.number()]).describe('Click coordinate [x, y]');
+
 export const FormFieldSchema = z.object({
   elementId: z.string().describe('Element ID of the form field (e.g., "e2")'),
   value: z.string().describe('Value to enter in the field'),
@@ -34,6 +37,7 @@ export const FormFieldSchema = z.object({
 export const AgentActionSchema = z.object({
   type: ActionTypeSchema.describe('The type of action to perform'),
   target: ActionTargetSchema.optional().describe('Target element for the action'),
+  // ref and coordinate removed - using legacy target system for now
   value: z.string().optional().describe('Value for type/select actions'),
   duration: z.number().optional().describe('Duration in ms for wait actions'),
   direction: z.enum(['up', 'down']).optional().describe('Direction for scroll actions'),

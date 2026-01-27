@@ -162,10 +162,11 @@ export async function readPage(
             centerY: Math.round(y + height / 2),
           },
           state: {
-            focused: node.focused === true,
-            disabled: node.disabled === true,
-            expanded: node.expanded as boolean | undefined,
-            checked: node.checked as boolean | undefined,
+            // CDP AXNode properties - cast to any since they're not in Playwright types
+            focused: (node as any).focused === true,
+            disabled: (node as any).disabled === true,
+            expanded: (node as any).expanded as boolean | undefined,
+            checked: (node as any).checked as boolean | undefined,
           },
         };
 

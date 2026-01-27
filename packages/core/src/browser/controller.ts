@@ -3,7 +3,7 @@
  */
 
 import { chromium, firefox, webkit, Browser, BrowserContext, Page } from 'playwright';
-import type { AgentAction } from '@testfarm/shared';
+import type { AgentAction, PageElement } from '@testfarm/shared';
 
 // ============================================================================
 // Types
@@ -36,6 +36,8 @@ export class BrowserController {
   private context: BrowserContext | null = null;
   private page: Page | null = null;
   private options: BrowserOptions;
+  /** Map of refs to PageElements from read_page */
+  private refMap: Map<string, PageElement> = new Map();
 
   constructor(options: BrowserOptions = {}) {
     this.options = {
@@ -242,6 +244,106 @@ export class BrowserController {
   }
 
   // ============================================================================
+  // Ref-based Actions (from read_page)
+  // ============================================================================
+
+  /**
+   * Register elements from read_page result
+   */
+  registerElements(elements: PageElement[]): void {
+    this.refMap.clear();
+    for (const el of elements) {
+      this.refMap.set(el.ref, el);
+    }
+  }
+
+  /**
+   * Get a registered element by ref
+   */
+  getElementByRef(ref: string): PageElement | undefined {
+    return this.refMap.get(ref);
+  }
+
+  /**
+   * Click by ref (uses center coordinates from read_page)
+   */
+  async clickByRef(ref: string): Promise<ActionResult> {
+    const start = Date.now();
+    const element = this.refMap.get(ref);
+
+    if (!element) {
+      return {
+        success: false,
+        error: `Ref ${ref} not found. Call registerElements first.`,
+        duration: Date.now() - start,
+      };
+    }
+
+    try {
+      const { centerX, centerY } = element.bbox;
+      await this.getPage().mouse.click(centerX, centerY);
+      // Wait for potential navigation or UI update
+      await this.getPage().waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+      return { success: true, duration: Date.now() - start };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Click by ref failed',
+        duration: Date.now() - start,
+      };
+    }
+  }
+
+  /**
+   * Click by coordinate [x, y]
+   */
+  async clickByCoordinate(x: number, y: number): Promise<ActionResult> {
+    const start = Date.now();
+    try {
+      await this.getPage().mouse.click(x, y);
+      // Wait for potential navigation or UI update
+      await this.getPage().waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+      return { success: true, duration: Date.now() - start };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Click by coordinate failed',
+        duration: Date.now() - start,
+      };
+    }
+  }
+
+  /**
+   * Form input by ref - click to focus then type
+   */
+  async formInputByRef(ref: string, value: string): Promise<ActionResult> {
+    const start = Date.now();
+    const element = this.refMap.get(ref);
+
+    if (!element) {
+      return {
+        success: false,
+        error: `Ref ${ref} not found. Call registerElements first.`,
+        duration: Date.now() - start,
+      };
+    }
+
+    try {
+      const { centerX, centerY } = element.bbox;
+      // Triple-click to select all existing text, then type to replace
+      await this.getPage().mouse.click(centerX, centerY, { clickCount: 3 });
+      await this.getPage().keyboard.type(value);
+      return { success: true, duration: Date.now() - start };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Form input by ref failed',
+        duration: Date.now() - start,
+      };
+    }
+  }
+
+  // ============================================================================
   // Selector Support
   // ============================================================================
 
@@ -294,6 +396,7 @@ export class BrowserController {
   async executeAction(action: AgentAction, elements: Map<string, string>): Promise<ActionResult> {
     switch (action.type) {
       case 'click': {
+        // Use target.elementId with selector map
         if (!action.target) {
           return { success: false, error: 'No target specified for click', duration: 0 };
         }
