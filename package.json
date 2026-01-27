@@ -1,0 +1,29 @@
+{
+  "name": "testfarm-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered browser testing agent farm",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "dev:api": "pnpm --filter @testfarm/api dev",
+    "dev:web": "pnpm --filter @testfarm/web dev",
+    "cli": "pnpm --filter @testfarm/cli start",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "db:generate": "pnpm --filter @testfarm/db generate",
+    "db:migrate": "pnpm --filter @testfarm/db migrate",
+    "db:studio": "pnpm --filter @testfarm/db studio"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

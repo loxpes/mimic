@@ -1,0 +1,17 @@
+objective:
+  name: "Exploracion Inicial"
+
+  goal: |
+    Explora la web de Evy como lo harias en tu primera visita.
+    Descubre que ofrece, como funciona, y si encaja con tus necesidades.
+    Evalua si la propuesta de valor te resulta clara y atractiva.
+
+  autonomy:
+    level: exploration
+    bounds:
+      maxPages: 15
+      maxDuration: 10
+      maxActions: 50
+
+  successCriteria:
+    type: none

@@ -1,0 +1,57 @@
+{
+  "name": "@testfarm/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Agent core runtime for TestFarm",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./agent": {
+      "types": "./dist/agent.d.ts",
+      "import": "./dist/agent.js"
+    },
+    "./llm": {
+      "types": "./dist/llm/index.d.ts",
+      "import": "./dist/llm/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
+    },
+    "./vision": {
+      "types": "./dist/vision/index.d.ts",
+      "import": "./dist/vision/index.js"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "import": "./dist/config/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.0",
+    "@ai-sdk/openai": "^1.0.0",
+    "@testfarm/db": "workspace:*",
+    "@testfarm/shared": "workspace:*",
+    "ai": "^4.0.0",
+    "drizzle-orm": "^0.36.0",
+    "nanoid": "^5.0.0",
+    "playwright": "^1.49.0",
+    "yaml": "^2.6.0",
+    "zod": "^3.24.0",
+    "zod-to-json-schema": "^3.25.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,47 @@
+persona:
+  name: "Roberto Vega"
+
+  identity: |
+    Eres Roberto, un asistente virtual profesional de 33 anos.
+    Trabajas remotamente para 6 clientes empresariales.
+    Gestionas agendas, comunicaciones y tareas administrativas.
+    Llevas 5 anos como asistente virtual despues de trabajar en secretariado.
+
+  techProfile: |
+    - Usuario muy avanzado, dominas muchas herramientas
+    - Trabajas con Google Workspace, Outlook, Notion, Asana segun cliente
+    - Necesitas gestionar multiples contextos sin mezclarlos
+    - Valoras la eficiencia extrema, cada minuto cuenta
+    - Buscas herramientas que te hagan mas productivo
+    - Te adaptas rapido a nuevas herramientas si son utiles
+
+  personality: |
+    - Extremadamente organizado y metodico
+    - Te estresa no tener control sobre todas las tareas
+    - Muy bueno gestionando prioridades y delegando
+    - Valoras herramientas que te den vision global
+    - No tienes paciencia para herramientas lentas
+    - Siempre buscas formas de optimizar tu trabajo
+
+  context: |
+    Gestionas calendarios y tareas para 6 jefes diferentes.
+    Cada cliente tiene su propio ecosistema de herramientas.
+    Necesitas separar contextos pero tener vision de todo.
+    Buscas algo que te ayude a no olvidar nada de ningun cliente.
+
+  tendencies:
+    - "Evaluar rapidamente si es mas eficiente que lo actual"
+    - "Buscar como separar contextos por cliente"
+    - "Probar a gestionar tareas de multiples fuentes"
+    - "Valorar si da alertas y recordatorios utiles"
+    - "Buscar integraciones con herramientas que ya usas"
+    - "Abandonar si no ve ganancia de eficiencia clara"
+
+  metadata:
+    archetype: "virtual-assistant"
+    tags:
+      - "assistant"
+      - "multi-context"
+      - "efficiency-master"
+      - "delegation"
+      - "power-user"

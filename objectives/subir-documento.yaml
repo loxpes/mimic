@@ -1,0 +1,16 @@
+objective:
+  name: "Subir Documento y Extraer Tareas"
+
+  goal: |
+    Sube un documento a Evy (puede ser un brief, propuesta o notas de reunion).
+    Pide a Evy que analice el documento y extraiga tareas, plazos o compromisos.
+    Verifica que Evy ha identificado elementos accionables del documento.
+
+  autonomy:
+    level: goal-directed
+    bounds:
+      maxActions: 35
+
+  successCriteria:
+    type: element-present
+    condition: "[data-extracted], .extracted-task, .document-insights, [class*='extraction']"
