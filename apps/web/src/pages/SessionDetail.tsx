@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,12 +24,32 @@ import {
   Brain,
   ImageIcon,
   X,
+  Code2,
+  Copy,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
+
+interface DOMElement {
+  id: string;
+  name: string;
+  type: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  source: string;
+  selector?: string;
+  disabled?: boolean;
+  role?: string;
+}
 
 export function SessionDetail() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
+  const [selectedElements, setSelectedElements] = useState<DOMElement[] | null>(null);
 
   const { data: session, isLoading: sessionLoading } = useQuery({
     queryKey: ['session', id],
@@ -70,6 +90,15 @@ export function SessionDetail() {
     mutationFn: sessionsApi.cancel,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['session', id] });
+    },
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: sessionsApi.retry,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      // Navigate to the new session
+      navigate(`/sessions/${data.newSession.id}`);
     },
   });
 
@@ -163,6 +192,16 @@ export function SessionDetail() {
               Cancel
             </Button>
           )}
+          {['completed', 'failed', 'cancelled'].includes(session.state.status) && (
+            <Button
+              variant="outline"
+              onClick={() => retryMutation.mutate(session.id)}
+              disabled={retryMutation.isPending}
+            >
+              <RotateCcw className="mr-1 h-4 w-4" />
+              {retryMutation.isPending ? 'Cloning...' : 'Retry'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -249,6 +288,7 @@ export function SessionDetail() {
                       key={event.id}
                       event={event}
                       onScreenshotClick={setSelectedScreenshot}
+                      onElementsClick={setSelectedElements}
                     />
                   ))}
                 </div>
@@ -306,17 +346,43 @@ export function SessionDetail() {
           </div>
         </div>
       )}
+
+      {/* DOM Elements Modal */}
+      {selectedElements && (
+        <DOMElementsModal
+          elements={selectedElements}
+          onClose={() => setSelectedElements(null)}
+        />
+      )}
     </div>
   );
 }
 
-function EventCard({ event, onScreenshotClick }: { event: SessionEvent; onScreenshotClick?: (url: string) => void }) {
+function EventCard({
+  event,
+  onScreenshotClick,
+  onElementsClick,
+}: {
+  event: SessionEvent;
+  onScreenshotClick?: (url: string) => void;
+  onElementsClick?: (elements: DOMElement[]) => void;
+}) {
   const decision = event.decision as {
-    action?: { type: string; target?: { description: string }; value?: string; duration?: number };
+    action?: {
+      type: string;
+      target?: {
+        description: string;
+        elementId?: string;
+        coordinates?: { x: number; y: number };
+      };
+      value?: string;
+      duration?: number;
+    };
     reasoning?: { observation: string; thought: string; confidence: number };
     progress?: { objectiveStatus: string; completionEstimate: number };
   };
   const outcome = event.outcome as { success: boolean; error?: string; duration?: number };
+  const context = event.context as { url: string; elementCount: number; elements?: DOMElement[] };
 
   const actionIcons: Record<string, typeof MousePointer> = {
     click: MousePointer,
@@ -361,12 +427,36 @@ function EventCard({ event, onScreenshotClick }: { event: SessionEvent; onScreen
           <div className="font-medium capitalize flex items-center gap-2">
             {decision.action?.type}
             {decision.action?.target && (
-              <span className="text-sm text-muted-foreground font-normal">
-                on "{decision.action.target.description}"
-              </span>
+              <>
+                <span className="text-sm text-muted-foreground font-normal">
+                  on "{decision.action.target.description}"
+                </span>
+                {decision.action.target.elementId && (
+                  <Badge variant="outline" className="text-xs font-mono">
+                    {decision.action.target.elementId}
+                  </Badge>
+                )}
+                {decision.action.target.coordinates && (
+                  <Badge variant="secondary" className="text-xs font-mono">
+                    ({decision.action.target.coordinates.x}, {decision.action.target.coordinates.y})
+                  </Badge>
+                )}
+              </>
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Ver DOM button */}
+            {context.elements && context.elements.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => onElementsClick?.(context.elements!)}
+              >
+                <Code2 className="h-3 w-3 mr-1" />
+                Ver DOM ({context.elements.length})
+              </Button>
+            )}
             {outcome.success ? (
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             ) : (
@@ -467,4 +557,175 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
+}
+
+function DOMElementsModal({
+  elements,
+  onClose,
+}: {
+  elements: DOMElement[];
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [filter, setFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+
+  const filteredElements = elements.filter((el) => {
+    const matchesText =
+      filter === '' ||
+      el.name.toLowerCase().includes(filter.toLowerCase()) ||
+      el.id.toLowerCase().includes(filter.toLowerCase()) ||
+      el.selector?.toLowerCase().includes(filter.toLowerCase());
+
+    const matchesType = typeFilter === 'all' || el.type === typeFilter;
+
+    return matchesText && matchesType;
+  });
+
+  const copyToClipboard = () => {
+    const text = JSON.stringify(elements, null, 2);
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const uniqueTypes = [...new Set(elements.map((el) => el.type))];
+
+  const sourceIcon = (source: string) => {
+    if (source === 'both') return '🔀';
+    if (source === 'dom') return '📄';
+    if (source === 'vision') return '👁️';
+    return '❓';
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-2">
+            <Code2 className="h-5 w-5" />
+            <h2 className="text-lg font-semibold">DOM Elements ({elements.length})</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={copyToClipboard}>
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 mr-1" />
+                  Copiado
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copiar JSON
+                </>
+              )}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="p-4 border-b flex gap-4">
+          <input
+            type="text"
+            placeholder="Buscar por nombre, ID o selector..."
+            className="flex-1 px-3 py-2 border rounded-md text-sm"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+          <select
+            className="px-3 py-2 border rounded-md text-sm"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+          >
+            <option value="all">Todos los tipos</option>
+            {uniqueTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Element List */}
+        <div className="flex-1 overflow-auto p-4">
+          <div className="space-y-2">
+            {filteredElements.map((el) => (
+              <div
+                key={el.id}
+                className={`p-3 rounded-lg border text-sm ${
+                  el.disabled ? 'opacity-50 bg-muted' : 'hover:bg-accent/50'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs bg-primary/10 px-1.5 py-0.5 rounded">
+                        {el.id}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {el.type}
+                      </Badge>
+                      {el.role && el.role !== el.type && (
+                        <Badge variant="secondary" className="text-xs">
+                          {el.role}
+                        </Badge>
+                      )}
+                      <span title={`Source: ${el.source}`}>{sourceIcon(el.source)}</span>
+                      {el.disabled && (
+                        <Badge variant="destructive" className="text-xs">
+                          disabled
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="font-medium mt-1 truncate" title={el.name}>
+                      {el.name || <span className="text-muted-foreground italic">(sin nombre)</span>}
+                    </p>
+                    {el.selector && (
+                      <p
+                        className="text-xs text-muted-foreground font-mono truncate mt-1"
+                        title={el.selector}
+                      >
+                        {el.selector}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                    <div>({el.x}, {el.y})</div>
+                    <div>{el.width}x{el.height}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {filteredElements.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No se encontraron elementos
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer stats */}
+        <div className="p-3 border-t text-xs text-muted-foreground flex justify-between">
+          <span>
+            Mostrando {filteredElements.length} de {elements.length} elementos
+          </span>
+          <span>
+            DOM: {elements.filter((e) => e.source === 'dom').length} |
+            Vision: {elements.filter((e) => e.source === 'vision').length} |
+            Both: {elements.filter((e) => e.source === 'both').length}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }

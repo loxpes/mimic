@@ -131,11 +131,36 @@ export const events = sqliteTable('events', {
     url: string;
     pageTitle: string;
     elementCount: number;
+    /** DOM elements extracted at this action (for debugging) */
+    elements?: Array<{
+      id: string;
+      name: string;
+      type: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      source: string;
+      selector?: string;
+      disabled?: boolean;
+      role?: string;
+      attributes?: {
+        id?: string;
+        className?: string;
+        dataTestId?: string;
+        type?: string;
+        tagName?: string;
+      };
+    }>;
   }>(),
   decision: text('decision', { mode: 'json' }).notNull().$type<{
     action: {
       type: string;
-      target?: { elementId: string; description: string };
+      target?: {
+        elementId?: string;
+        description: string;
+        coordinates?: { x: number; y: number };
+      };
       value?: string;
       duration?: number;
       direction?: string;

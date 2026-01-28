@@ -199,6 +199,10 @@ export const sessionsApi = {
     request<{ message: string }>(`/sessions/${id}/cancel`, {
       method: 'POST',
     }),
+  retry: (id: string) =>
+    request<{ message: string; newSession: Session }>(`/sessions/${id}/retry`, {
+      method: 'POST',
+    }),
   delete: (id: string) =>
     request<{ message: string }>(`/sessions/${id}`, {
       method: 'DELETE',

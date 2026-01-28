@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { sessionsApi, personasApi, objectivesApi, type CreateSessionInput, type CreateBatchSessionInput } from '@/lib/api';
-import { PlayCircle, Plus, ExternalLink, Play, XCircle, Trash2, Eye } from 'lucide-react';
+import { PlayCircle, Plus, ExternalLink, Play, XCircle, Trash2, Eye, RotateCcw } from 'lucide-react';
 
 export function Sessions() {
   const queryClient = useQueryClient();
@@ -69,6 +69,13 @@ export function Sessions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
       setSelectedIds(new Set());
+    },
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: sessionsApi.retry,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
   });
 
@@ -243,6 +250,17 @@ export function Sessions() {
                         title="Cancel"
                       >
                         <XCircle className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                    {['completed', 'failed', 'cancelled'].includes(session.state.status) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => retryMutation.mutate(session.id)}
+                        disabled={retryMutation.isPending}
+                        title="Retry (clone and start fresh)"
+                      >
+                        <RotateCcw className="h-4 w-4 text-blue-500" />
                       </Button>
                     )}
                     <Button size="sm" variant="ghost" asChild title="View Details">

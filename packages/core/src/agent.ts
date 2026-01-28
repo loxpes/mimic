@@ -20,11 +20,15 @@ import type {
   ExistingFindingsContext,
   DeduplicationResult,
   AuthCredentials,
+  UnifiedElement,
 } from '@testfarm/shared';
 import { LLMClient } from './llm/client.js';
 import { BrowserController, createBrowser } from './browser/controller.js';
 import { extractDOM } from './vision/dom-extractor.js';
 import { readPage } from './vision/read-page.js';
+import { analyzeWithVision } from './vision/image-analyzer.js';
+import { mergeElements, pageElementToUnified } from './vision/merge-elements.js';
+import { findElement } from './vision/find-element.js';
 import { checkAndDeduplicateFinding, generateFingerprint } from './findings/index.js';
 import { saveScreenshot } from './utils/screenshot-storage.js';
 
@@ -35,12 +39,25 @@ const INITIAL_LOAD_WAIT = 3000;
 // Types
 // ============================================================================
 
+export interface HybridVisionConfig {
+  /** Enable hybrid DOM + Vision system (default: false) */
+  enabled: boolean;
+  /** Model for vision analysis (default: claude-haiku-4-5-20251001) */
+  model?: string;
+  /** Timeout for vision analysis in ms (default: 30000) */
+  timeout?: number;
+  /** Pixel threshold for merge deduplication (default: 30) */
+  mergeThreshold?: number;
+}
+
 export interface AgentConfig {
   persona: Persona;
   objective: Objective;
   targetUrl: string;
   llm: LLMConfig;
   vision: VisionConfig;
+  /** Hybrid DOM + Vision configuration */
+  hybridVision?: HybridVisionConfig;
   maxActions: number;
   timeout: number; // ms
   sessionId?: string; // For deduplication
@@ -48,7 +65,7 @@ export interface AgentConfig {
 }
 
 export interface AgentEvents {
-  onAction?: (action: ActionHistory, decision: AgentDecision, screenshotPath?: string) => void;
+  onAction?: (action: ActionHistory, decision: AgentDecision, screenshotPath?: string, elements?: UnifiedElement[]) => void;
   onScreenshot?: (screenshot: string, screenshotPath?: string) => void;
   onFinding?: (finding: Finding, deduplication?: DeduplicationResult) => void;
   onProgress?: (progress: { actionCount: number; status: string; url: string }) => void;
@@ -84,6 +101,8 @@ export class Agent {
   private metrics: SessionMetrics;
   private isRunning: boolean = false;
   private shouldStop: boolean = false;
+  /** Current unified elements from hybrid DOM + Vision extraction */
+  private unifiedElements: UnifiedElement[] = [];
 
   constructor(config: AgentConfig, events: AgentEvents = {}) {
     this.config = config;
@@ -181,7 +200,7 @@ ${persona.context}`;
     };
   }
 
-  private async buildContext(): Promise<AgentContext> {
+  private async buildContext(screenshotPath?: string): Promise<AgentContext> {
     if (!this.browser) {
       throw new Error('Browser not initialized');
     }
@@ -189,13 +208,54 @@ ${persona.context}`;
     const page = this.browser.getPage();
     const dom = await extractDOM(page);
 
-    // Also extract elements with read_page for ref-based actions
+    // Extract elements with read_page for ref-based actions
+    let domElements: UnifiedElement[] = [];
     try {
       const readPageResult = await readPage(page, { filter: 'interactive' });
       this.browser.registerElements(readPageResult.elements);
+
+      // Convert to UnifiedElements for hybrid system
+      domElements = readPageResult.elements.map(el => pageElementToUnified(el));
+
       console.log(`[Agent] Registered ${readPageResult.elements.length} elements for ref-based actions`);
     } catch (err) {
       console.warn('[Agent] Failed to register elements from read_page:', err);
+    }
+
+    // Hybrid DOM + Vision system
+    if (this.config.hybridVision?.enabled && screenshotPath) {
+      try {
+        console.log('[Agent] Running hybrid vision analysis...');
+
+        const visionResult = await analyzeWithVision(screenshotPath, {
+          model: this.config.hybridVision.model,
+          timeout: this.config.hybridVision.timeout,
+        });
+
+        // Merge DOM and vision elements
+        const mergeResult = mergeElements(
+          domElements,
+          visionResult.elements,
+          { threshold: this.config.hybridVision.mergeThreshold }
+        );
+
+        this.unifiedElements = mergeResult.elements;
+
+        console.log(`[Agent] Hybrid merge: ${mergeResult.stats.domOnly} DOM-only, ` +
+          `${mergeResult.stats.visionOnly} vision-only, ${mergeResult.stats.merged} merged ` +
+          `= ${mergeResult.stats.total} total elements`);
+
+        if (visionResult.usage) {
+          console.log(`[Agent] Vision cost: $${visionResult.usage.costUsd.toFixed(4)} ` +
+            `(${visionResult.usage.inputTokens} in, ${visionResult.usage.outputTokens} out)`);
+        }
+      } catch (err) {
+        console.warn('[Agent] Hybrid vision analysis failed, using DOM only:', err);
+        this.unifiedElements = domElements;
+      }
+    } else {
+      // Use DOM elements only
+      this.unifiedElements = domElements;
     }
 
     return {
@@ -223,9 +283,35 @@ ${persona.context}`;
 
     const { action } = decision;
 
-    // Execute the action using the element map from when the LLM made its decision
-    // IMPORTANT: Do NOT re-extract DOM here - the element IDs must match what the LLM saw
-    const result = await this.browser.executeAction(action, elementMap);
+    // Try unified element action first if hybrid vision is enabled and we have unified elements
+    let result;
+    if (this.config.hybridVision?.enabled && this.unifiedElements.length > 0) {
+      // Check if action target uses query or unified element ID (el_*)
+      const targetId = action.target?.elementId;
+      const targetQuery = (action.target as { query?: string })?.query;
+
+      if (targetQuery || (targetId && targetId.startsWith('el_'))) {
+        result = await this.browser.executeUnifiedAction(
+          {
+            type: action.type,
+            elementId: targetId,
+            query: targetQuery,
+            value: action.value,
+            direction: action.direction,
+            duration: action.duration,
+          },
+          this.unifiedElements,
+          findElement
+        );
+      }
+    }
+
+    // Fallback to legacy action execution if unified action wasn't used or failed
+    if (!result) {
+      // Execute the action using the element map from when the LLM made its decision
+      // IMPORTANT: Do NOT re-extract DOM here - the element IDs must match what the LLM saw
+      result = await this.browser.executeAction(action, elementMap);
+    }
 
     // Build action history entry
     const historyEntry: ActionHistory = {
@@ -391,12 +477,8 @@ ${persona.context}`;
           break;
         }
 
-        // Build context
-        const context = await this.buildContext();
-
         // ALWAYS take a screenshot before each action to see what the agent sees
         const screenshot = await this.browser.takeScreenshot();
-        context.currentState.screenshot = screenshot;
         this.metrics.screenshotsTaken++;
 
         // Save screenshot to disk if sessionId is provided
@@ -409,12 +491,15 @@ ${persona.context}`;
               screenshot
             );
             console.log(`[Agent] Screenshot saved: ${screenshotPath}`);
-            // Pass screenshot path to context for Claude CLI vision
-            context.currentState.screenshotPath = screenshotPath;
           } catch (err) {
             console.warn('[Agent] Failed to save screenshot:', err);
           }
         }
+
+        // Build context (pass screenshotPath for hybrid vision)
+        const context = await this.buildContext(screenshotPath);
+        context.currentState.screenshot = screenshot;
+        context.currentState.screenshotPath = screenshotPath;
 
         // Emit screenshot event
         this.events.onScreenshot?.(screenshot, screenshotPath);
@@ -431,12 +516,19 @@ ${persona.context}`;
           elementMap.set(el.id, el.selector);
         }
 
+        // Also add unified elements to the map (hybrid system)
+        for (const el of this.unifiedElements) {
+          if (el.selector) {
+            elementMap.set(el.id, el.selector);
+          }
+        }
+
         // Execute action
         const actionHistory = await this.executeAction(decision, elementMap);
         this.actionCount++;
 
-        // Emit events with screenshot path
-        this.events.onAction?.(actionHistory, decision, screenshotPath);
+        // Emit events with screenshot path and elements for debugging
+        this.events.onAction?.(actionHistory, decision, screenshotPath, this.unifiedElements);
         this.events.onProgress?.({
           actionCount: this.actionCount,
           status: decision.progress.objectiveStatus,

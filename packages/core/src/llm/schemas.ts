@@ -22,12 +22,13 @@ export const ActionTypeSchema = z.enum([
 ]);
 
 export const ActionTargetSchema = z.object({
-  elementId: z.string().describe('The element ID from the DOM snapshot (e.g., "e15")'),
-  description: z.string().describe('Human-readable description of the element')
+  elementId: z.string().optional().describe('The element ID if known (e.g., "ref_5"). Optional if using coordinates.'),
+  description: z.string().describe('Human-readable description of the element'),
+  coordinates: z.object({
+    x: z.number().describe('X coordinate (pixels from left)'),
+    y: z.number().describe('Y coordinate (pixels from top)'),
+  }).optional().describe('Click coordinates. Use this for visual elements like icon buttons.'),
 });
-
-// CoordinateSchema removed - using legacy target system for now
-// export const CoordinateSchema = z.tuple([z.number(), z.number()]).describe('Click coordinate [x, y]');
 
 export const FormFieldSchema = z.object({
   elementId: z.string().describe('Element ID of the form field (e.g., "e2")'),

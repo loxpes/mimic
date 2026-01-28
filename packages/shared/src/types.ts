@@ -114,6 +114,51 @@ export interface ReadPageResult {
 }
 
 // ============================================================================
+// Unified Element Types (Hybrid DOM + Vision)
+// ============================================================================
+
+export type UnifiedElementType =
+  | 'button'
+  | 'link'
+  | 'input'
+  | 'checkbox'
+  | 'select'
+  | 'textarea'
+  | 'radio'
+  | 'other';
+
+export type UnifiedElementSource = 'dom' | 'vision' | 'both';
+
+export interface UnifiedElement {
+  /** Unique ID for this element (el_1, el_2, etc.) */
+  id: string;
+  /** Human-readable name (e.g., "Enviar", "Perfil", "Campo email") */
+  name: string;
+  /** Element type */
+  type: UnifiedElementType;
+  /** Center X coordinate */
+  x: number;
+  /** Center Y coordinate */
+  y: number;
+  /** Element width */
+  width: number;
+  /** Element height */
+  height: number;
+  /** Origin of this element */
+  source: UnifiedElementSource;
+  /** CSS selector (only if from DOM) */
+  selector?: string;
+  /** Current value (for inputs) */
+  value?: string;
+  /** Whether element is disabled */
+  disabled?: boolean;
+  /** ARIA role from DOM */
+  role?: string;
+  /** Backend node ID for CDP operations */
+  backendNodeId?: number;
+}
+
+// ============================================================================
 // DOM & Vision Types (Legacy)
 // ============================================================================
 
@@ -206,10 +251,13 @@ export interface FormField {
 export interface AgentAction {
   type: ActionType;
   target?: {
-    elementId: string;
+    elementId?: string;      // Element ref ID (e.g., "ref_9")
     description: string;
+    coordinates?: {          // Click coordinates for visual targeting
+      x: number;
+      y: number;
+    };
   };
-  // ref and coordinate removed - using legacy target system
   value?: string;           // For type, select
   duration?: number;        // For wait (ms)
   direction?: 'up' | 'down'; // For scroll

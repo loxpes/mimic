@@ -41,6 +41,14 @@ export interface PageElement {
     expanded?: boolean;
     checked?: boolean;
   };
+  /** Additional HTML attributes for identification */
+  attributes?: {
+    id?: string;
+    className?: string;
+    dataTestId?: string;
+    type?: string;
+    tagName?: string;
+  };
 }
 
 export interface ReadPageOptions {
@@ -79,6 +87,17 @@ const INTERACTIVE_ROLES = new Set([
   'slider',
   'switch',
   'treeitem',
+]);
+
+// Roles that are important even without accessible name (icon buttons, etc.)
+const INCLUDE_WITHOUT_NAME = new Set([
+  'button',
+  'link',
+  'checkbox',
+  'radio',
+  'switch',
+  'tab',
+  'menuitem',
 ]);
 
 /**
@@ -123,8 +142,12 @@ export async function readPage(
         continue;
       }
 
-      // Skip elements without accessible name (usually not useful)
-      if (!name || !name.trim()) continue;
+      // For most elements, skip if no name
+      // But for buttons/links/etc, include even without name (icon buttons)
+      const hasName = name && name.trim();
+      if (!hasName && !INCLUDE_WITHOUT_NAME.has(role)) {
+        continue;
+      }
 
       // Get bounding box using CDP
       try {
@@ -144,13 +167,80 @@ export async function readPage(
         // Skip elements with no visible size
         if (width <= 0 || height <= 0) continue;
 
+        // Get HTML attributes for unnamed elements or for additional context
+        let attributes: PageElement['attributes'] | undefined;
+        let generatedName = hasName ? name!.trim() : '';
+
+        if (!hasName || role === 'button' || role === 'link') {
+          try {
+            // Get node details including attributes
+            const { node: domNode } = await client.send('DOM.describeNode', {
+              backendNodeId: nodeId,
+            });
+
+            if (domNode) {
+              const attrs: Record<string, string> = {};
+              const nodeAttrs = domNode.attributes || [];
+              for (let i = 0; i < nodeAttrs.length; i += 2) {
+                attrs[nodeAttrs[i]] = nodeAttrs[i + 1];
+              }
+
+              attributes = {
+                id: attrs['id'],
+                className: attrs['class'],
+                dataTestId: attrs['data-testid'] || attrs['data-test-id'],
+                type: attrs['type'],
+                tagName: domNode.nodeName?.toLowerCase(),
+              };
+
+              // Generate name for unnamed elements
+              if (!generatedName) {
+                // Try various sources for a name
+                if (attrs['aria-label']) {
+                  generatedName = attrs['aria-label'];
+                } else if (attrs['title']) {
+                  generatedName = attrs['title'];
+                } else if (attrs['alt']) {
+                  generatedName = attrs['alt'];
+                } else if (attrs['placeholder']) {
+                  generatedName = attrs['placeholder'];
+                } else if (attrs['data-testid']) {
+                  // Convert data-testid to readable name: "send-button" -> "send button"
+                  generatedName = `[${attrs['data-testid'].replace(/[-_]/g, ' ')}]`;
+                } else if (attrs['id']) {
+                  // Convert id to readable name
+                  generatedName = `[#${attrs['id'].replace(/[-_]/g, ' ')}]`;
+                } else if (attrs['class']) {
+                  // Use first meaningful class
+                  const classes = attrs['class'].split(' ').filter(c =>
+                    c && !c.startsWith('css-') && !c.match(/^[a-z]{1,2}\d/) // Skip CSS-in-JS classes
+                  );
+                  if (classes.length > 0) {
+                    generatedName = `[.${classes[0].replace(/[-_]/g, ' ')}]`;
+                  }
+                }
+
+                // Fallback: describe by role and position
+                if (!generatedName) {
+                  generatedName = `(${role} sin nombre)`;
+                }
+              }
+            }
+          } catch {
+            // Failed to get attributes, use fallback name
+            if (!generatedName) {
+              generatedName = `(${role} sin nombre)`;
+            }
+          }
+        }
+
         refCounter++;
         const ref = `ref_${refCounter}`;
 
         const element: PageElement = {
           ref,
           role,
-          name: name.trim().slice(0, 200), // Limit name length
+          name: generatedName.slice(0, 200), // Limit name length
           value: node.value?.value as string | undefined,
           backendNodeId: nodeId,
           bbox: {
@@ -168,6 +258,7 @@ export async function readPage(
             expanded: (node as any).expanded as boolean | undefined,
             checked: (node as any).checked as boolean | undefined,
           },
+          attributes,
         };
 
         elements.push(element);
@@ -214,7 +305,24 @@ export function formatElementsForLLM(result: ReadPageResult): string {
     const valueStr = el.value ? ` value="${el.value}"` : '';
     const bboxStr = `(${el.bbox.x},${el.bbox.y} ${el.bbox.width}x${el.bbox.height})`;
 
-    lines.push(`${el.ref}: [${el.role}] "${el.name}"${valueStr}${stateStr} ${bboxStr}`);
+    // Include attributes info if available
+    let attrStr = '';
+    if (el.attributes) {
+      const parts = [];
+      if (el.attributes.dataTestId) parts.push(`data-testid="${el.attributes.dataTestId}"`);
+      if (el.attributes.id) parts.push(`#${el.attributes.id}`);
+      if (el.attributes.className) {
+        const firstClass = el.attributes.className.split(' ')[0];
+        if (firstClass && !firstClass.startsWith('css-')) {
+          parts.push(`.${firstClass}`);
+        }
+      }
+      if (parts.length > 0) {
+        attrStr = ` {${parts.join(' ')}}`;
+      }
+    }
+
+    lines.push(`${el.ref}: [${el.role}] "${el.name}"${valueStr}${stateStr}${attrStr} ${bboxStr}`);
   }
 
   return lines.join('\n');

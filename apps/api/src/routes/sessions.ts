@@ -237,8 +237,8 @@ app.post('/:id/start', async (c) => {
 
   // Create agent with event handlers
   const agent = createAgent(agentConfig, {
-    onAction: async (action, decision, screenshotPath) => {
-      // Save event to database with screenshot path
+    onAction: async (action, decision, screenshotPath, elements) => {
+      // Save event to database with screenshot path and elements for debugging
       await db.insert(events).values({
         id: crypto.randomUUID(),
         sessionId: id,
@@ -246,7 +246,21 @@ app.post('/:id/start', async (c) => {
         context: {
           url: action.url,
           pageTitle: '',
-          elementCount: 0,
+          elementCount: elements?.length || 0,
+          // Store elements for debugging (limited to avoid huge payloads)
+          elements: elements?.slice(0, 100).map(el => ({
+            id: el.id,
+            name: el.name,
+            type: el.type,
+            x: el.x,
+            y: el.y,
+            width: el.width,
+            height: el.height,
+            source: el.source,
+            selector: el.selector,
+            disabled: el.disabled,
+            role: el.role,
+          })),
         },
         decision: {
           action: action.action,
@@ -446,6 +460,43 @@ app.post('/:id/start', async (c) => {
     });
 
   return c.json({ message: 'Session started', sessionId: id });
+});
+
+// POST /api/sessions/:id/retry - Clone and start a fresh session
+app.post('/:id/retry', async (c) => {
+  const id = c.req.param('id');
+  const db = getDb();
+
+  // Get original session
+  const original = await db.select().from(sessions).where(eq(sessions.id, id)).get();
+  if (!original) {
+    return c.json({ error: 'Session not found' }, 404);
+  }
+
+  // Create a clone with fresh state
+  const newSession = {
+    id: crypto.randomUUID(),
+    personaId: original.personaId,
+    objectiveId: original.objectiveId,
+    targetUrl: original.targetUrl,
+    llmConfig: original.llmConfig,
+    visionConfig: original.visionConfig,
+    state: {
+      status: 'pending' as const,
+      actionCount: 0,
+      progress: 0,
+      currentUrl: original.targetUrl,
+    },
+    results: null,
+  };
+
+  await db.insert(sessions).values(newSession);
+
+  return c.json({
+    message: 'Session cloned successfully',
+    originalId: id,
+    newSession,
+  }, 201);
 });
 
 // POST /api/sessions/:id/cancel - Cancel a running session

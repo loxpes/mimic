@@ -3,7 +3,7 @@
  */
 
 import { chromium, firefox, webkit, Browser, BrowserContext, Page } from 'playwright';
-import type { AgentAction, PageElement } from '@testfarm/shared';
+import type { AgentAction, PageElement, UnifiedElement } from '@testfarm/shared';
 
 // ============================================================================
 // Types
@@ -396,15 +396,30 @@ export class BrowserController {
   async executeAction(action: AgentAction, elements: Map<string, string>): Promise<ActionResult> {
     switch (action.type) {
       case 'click': {
-        // Use target.elementId with selector map
         if (!action.target) {
           return { success: false, error: 'No target specified for click', duration: 0 };
         }
-        const selector = elements.get(action.target.elementId);
-        if (!selector) {
+
+        // Priority 1: Use coordinates if provided (most reliable for visual elements)
+        if (action.target.coordinates) {
+          const { x, y } = action.target.coordinates;
+          console.log(`[BrowserController] Click by coordinates: (${x}, ${y}) - "${action.target.description}"`);
+          return this.clickByCoordinate(x, y);
+        }
+
+        // Priority 2: Use elementId with selector map
+        if (action.target.elementId) {
+          const selector = elements.get(action.target.elementId);
+          if (selector) {
+            console.log(`[BrowserController] Click by selector: ${selector} - "${action.target.description}"`);
+            return this.click(selector);
+          }
+          // Element ID not found in map, but maybe it has coordinates from unified elements
+          console.warn(`[BrowserController] Element ${action.target.elementId} not found in selector map`);
           return { success: false, error: `Element ${action.target.elementId} not found`, duration: 0 };
         }
-        return this.click(selector);
+
+        return { success: false, error: 'No elementId or coordinates specified for click', duration: 0 };
       }
 
       case 'type': {
@@ -414,22 +429,58 @@ export class BrowserController {
         if (!action.value) {
           return { success: false, error: 'No value specified for type', duration: 0 };
         }
-        const selector = elements.get(action.target.elementId);
-        if (!selector) {
-          return { success: false, error: `Element ${action.target.elementId} not found`, duration: 0 };
+
+        // Priority 1: Use coordinates if provided
+        if (action.target.coordinates) {
+          const { x, y } = action.target.coordinates;
+          console.log(`[BrowserController] Type by coordinates: (${x}, ${y})`);
+          try {
+            await this.getPage().mouse.click(x, y, { clickCount: 3 }); // Triple click to select all
+            await this.getPage().keyboard.type(action.value);
+            return { success: true, duration: 0 };
+          } catch (error) {
+            return { success: false, error: error instanceof Error ? error.message : 'Type failed', duration: 0 };
+          }
         }
-        return this.type(selector, action.value);
+
+        // Priority 2: Use elementId with selector map
+        if (action.target.elementId) {
+          const selector = elements.get(action.target.elementId);
+          if (!selector) {
+            return { success: false, error: `Element ${action.target.elementId} not found`, duration: 0 };
+          }
+          return this.type(selector, action.value);
+        }
+
+        return { success: false, error: 'No elementId or coordinates specified for type', duration: 0 };
       }
 
       case 'hover': {
         if (!action.target) {
           return { success: false, error: 'No target specified for hover', duration: 0 };
         }
-        const selector = elements.get(action.target.elementId);
-        if (!selector) {
-          return { success: false, error: `Element ${action.target.elementId} not found`, duration: 0 };
+
+        // Priority 1: Use coordinates
+        if (action.target.coordinates) {
+          const { x, y } = action.target.coordinates;
+          try {
+            await this.getPage().mouse.move(x, y);
+            return { success: true, duration: 0 };
+          } catch (error) {
+            return { success: false, error: error instanceof Error ? error.message : 'Hover failed', duration: 0 };
+          }
         }
-        return this.hover(selector);
+
+        // Priority 2: Use elementId
+        if (action.target.elementId) {
+          const selector = elements.get(action.target.elementId);
+          if (!selector) {
+            return { success: false, error: `Element ${action.target.elementId} not found`, duration: 0 };
+          }
+          return this.hover(selector);
+        }
+
+        return { success: false, error: 'No elementId or coordinates specified for hover', duration: 0 };
       }
 
       case 'select': {
@@ -438,6 +489,9 @@ export class BrowserController {
         }
         if (!action.value) {
           return { success: false, error: 'No value specified for select', duration: 0 };
+        }
+        if (!action.target.elementId) {
+          return { success: false, error: 'Select requires elementId (coordinates not supported)', duration: 0 };
         }
         const selector = elements.get(action.target.elementId);
         if (!selector) {
@@ -507,6 +561,134 @@ export class BrowserController {
       error: errors.length > 0 ? errors.join(', ') : undefined,
       duration: Date.now() - start,
     };
+  }
+
+  // ============================================================================
+  // Unified Element Actions
+  // ============================================================================
+
+  /**
+   * Execute an action using the unified element system
+   * Supports both elementId lookup and natural language query
+   */
+  async executeUnifiedAction(
+    action: {
+      type: string;
+      elementId?: string;
+      query?: string;
+      value?: string;
+      direction?: 'up' | 'down';
+      duration?: number;
+    },
+    elements: UnifiedElement[],
+    findElement?: (elements: UnifiedElement[], query: string) => { element: UnifiedElement | null }
+  ): Promise<ActionResult> {
+    const start = Date.now();
+
+    // Handle non-targeted actions first
+    if (action.type === 'scroll') {
+      return this.scroll(action.direction || 'down');
+    }
+    if (action.type === 'wait') {
+      return this.wait(action.duration || 1000);
+    }
+    if (action.type === 'back') {
+      return this.goBack();
+    }
+    if (action.type === 'navigate' && action.value) {
+      return this.navigate(action.value);
+    }
+    if (action.type === 'abandon') {
+      return { success: true, duration: 0 };
+    }
+
+    // Find target element
+    let target: UnifiedElement | null = null;
+
+    // Try by elementId first
+    if (action.elementId) {
+      target = elements.find(e => e.id === action.elementId) || null;
+    }
+
+    // Try by query if elementId not found and findElement function provided
+    if (!target && action.query && findElement) {
+      const result = findElement(elements, action.query);
+      target = result.element;
+    }
+
+    if (!target) {
+      return {
+        success: false,
+        error: `Element not found: ${action.elementId || action.query || 'no target specified'}`,
+        duration: Date.now() - start,
+      };
+    }
+
+    // Execute the action
+    switch (action.type) {
+      case 'click':
+        // Prefer selector if available, fallback to coordinates
+        if (target.selector) {
+          return this.click(target.selector);
+        }
+        return this.clickByCoordinate(target.x, target.y);
+
+      case 'type':
+        if (!action.value) {
+          return { success: false, error: 'No value specified for type', duration: Date.now() - start };
+        }
+        // Prefer selector if available
+        if (target.selector) {
+          return this.type(target.selector, action.value);
+        }
+        // Fallback to click + keyboard.type
+        try {
+          await this.getPage().mouse.click(target.x, target.y, { clickCount: 3 });
+          await this.getPage().keyboard.type(action.value);
+          return { success: true, duration: Date.now() - start };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Type by coordinate failed',
+            duration: Date.now() - start,
+          };
+        }
+
+      case 'hover':
+        if (target.selector) {
+          return this.hover(target.selector);
+        }
+        try {
+          await this.getPage().mouse.move(target.x, target.y);
+          return { success: true, duration: Date.now() - start };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Hover by coordinate failed',
+            duration: Date.now() - start,
+          };
+        }
+
+      case 'select':
+        if (!action.value) {
+          return { success: false, error: 'No value specified for select', duration: Date.now() - start };
+        }
+        if (target.selector) {
+          return this.select(target.selector, action.value);
+        }
+        return {
+          success: false,
+          error: 'Select requires a selector (vision-only elements not supported)',
+          duration: Date.now() - start,
+        };
+
+      default:
+        return {
+          success: false,
+          error: `Unknown action type: ${action.type}`,
+          duration: Date.now() - start,
+        };
+    }
   }
 
   // ============================================================================
