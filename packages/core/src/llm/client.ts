@@ -6,9 +6,9 @@
 import { generateObject } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { AgentDecisionSchema } from './schemas.js';
+import { AgentDecisionSchema, PersonalAssessmentSchema } from './schemas.js';
 import { executeClaudeCliStructured, executeClaudeCliText } from './claude-cli.js';
-import type { LLMConfig, AgentContext, AgentDecision } from '@testfarm/shared';
+import type { LLMConfig, AgentContext, AgentDecision, PersonalAssessment } from '@testfarm/shared';
 
 // ============================================================================
 // Provider Factory
@@ -91,88 +91,43 @@ You are a testing agent interacting with a website as a real user would.
 2. **OBSERVE** the visual state through the screenshot
 3. **REPORT** problems you encounter as frustrations
 
-## HOW TO USE SCREENSHOTS
+## RESPONSE STYLE - BE CONCISE
 
-When a screenshot path is provided, READ the image file to:
-- See what elements are actually visible on screen
-- Evaluate the design and visual style
-- Detect UX/UI problems
-- Understand the current page state
+Your responses must be SHORT and FACTUAL:
+- **state**: 1 sentence max (e.g., "Login form with email/password fields, submit enabled")
+- **action_reason**: 1 sentence max (e.g., "Click submit to authenticate")
+- **confidence**: high/medium/low only
+- NO roleplay language ("As María, I feel...") - just facts
 
-## VISUAL AND STYLE FEEDBACK
+## VISUAL ISSUES TO REPORT (in memoryUpdates.addFrustration)
 
-While navigating, EVALUATE and REPORT visual issues in memoryUpdates.addFrustration:
+Report as frustrations: low contrast, tiny text, unclear buttons, confusing errors, accessibility issues.
 
-### Design Problems:
-- Colors with low contrast or hard to read
-- Text too small or too large
-- Inconsistent spacing or misaligned elements
-- Blurry, stretched, or poorly cropped images
-- Confusing or unclear icons
+## ACTIONS
 
-### UX Problems:
-- Buttons that don't look clickable
-- Links that don't stand out from regular text
-- Confusing forms or unclear fields
-- Error messages that are hard to understand
-- Loading states that don't indicate progress
+| Action | Description |
+|--------|-------------|
+| click | Click element by ref_ID or {x,y} coordinates |
+| fillForm | Fill multiple fields: [{elementId, value}, ...] - USE for login/forms! |
+| type | Single field input |
+| scroll | up/down |
+| navigate | Go to URL |
+| back | Previous page |
+| select | Dropdown option |
+| abandon | Give up (last resort) |
 
-### Visual Accessibility Problems:
-- Insufficient contrast
-- Text over images without background
-- Interactive elements that are too small
-- Missing focus indicators
+**For forms**: ALWAYS use fillForm with all fields, not multiple type actions.
 
-EXAMPLE frustration report:
-memoryUpdates: {
-  addFrustration: "The 'Submit' button has very low contrast - light gray on white background, barely visible"
-}
+## CLICKING ELEMENTS
 
-## ACTION GUIDELINES
+- By ID: target = {elementId: "ref_9", description: "Submit"}
+- By coords: target = {coordinates: {x: 500, y: 300}, description: "Icon button"} - use for icon buttons
 
-- **click**: Click on buttons, links, or other clickable elements
-  - You can specify the element by ID (e.g., "ref_9") OR by coordinates {x, y}
-  - For icon buttons without clear names, USE COORDINATES from the screenshot
-- **type**: Enter text into a SINGLE input field
-- **fillForm**: Fill MULTIPLE form fields in ONE action - USE THIS for forms with 2+ fields!
-  - Provide an array of {elementId, value} for each field
-  - Example: fillForm with fields: [{elementId: "ref_2", value: "Juan"}, {elementId: "ref_3", value: "juan@email.com"}]
-  - IMPORTANT: Use the credentials from the Authentication section if available
-  - This is MORE EFFICIENT than using type multiple times
-- **scroll**: Scroll up or down to see more content
-- **wait**: Pause to simulate reading or thinking (duration in ms)
-- **navigate**: Go directly to a URL
-- **back**: Go back to the previous page
-- **hover**: Hover over an element
-- **select**: Select an option from a dropdown
-- **abandon**: Give up on the current objective (use sparingly)
+## RULES
 
-**IMPORTANT**: When you see a form with multiple input fields (login, registration, contact, etc.), ALWAYS use fillForm instead of multiple type actions. This is more efficient and natural.
-
-## HOW TO CLICK ELEMENTS
-
-You have TWO options for clicking:
-
-1. **By Element ID**: Use the ref ID from the element list (e.g., "ref_9")
-   - Example target: { elementId: "ref_9", description: "Enviar button" }
-
-2. **By Coordinates**: Look at the screenshot and specify exact pixel coordinates
-   - Example target: { coordinates: { x: 1027, y: 345 }, description: "Send icon button" }
-   - USE THIS for icon buttons, visual elements, or when element IDs are ambiguous
-
-**CRITICAL**: Before clicking, VERIFY in the screenshot that you are clicking the RIGHT element:
-- Look at the element's POSITION on screen
-- Check the coordinates match what you see visually
-- For chat interfaces, the SEND button is usually to the RIGHT of the input field
-
-## IMPORTANT RULES
-
-1. Reference elements by their ref ID from the list (e.g., "ref_1", "ref_9") NOT "e0" or "e5"
-2. For icon buttons without text, USE COORDINATES from the screenshot
-3. ALWAYS verify visually: check the screenshot to confirm you're clicking the right element
-4. Stay in character - your actions should reflect the persona's behavior
-5. If stuck, try alternative approaches before abandoning
-6. Update memory with discoveries, frustrations, and decisions
+1. Use ref_X IDs (not e0, e5)
+2. Verify click target in screenshot before clicking
+3. Report issues as frustrations
 
 ## Memory
 
@@ -459,6 +414,84 @@ export class LLMClient {
     }
 
     return result.text;
+  }
+
+  /**
+   * Generate a personal assessment of the session experience
+   */
+  async assess(sessionContext: {
+    personaName: string;
+    targetUrl: string;
+    actionCount: number;
+    findingsCount: number;
+    frustrations: string[];
+    discoveries: string[];
+    outcome: string;
+  }): Promise<PersonalAssessment> {
+    const systemPrompt = `You are ${sessionContext.personaName}, a user who just finished testing a website.
+Rate your experience HONESTLY and CONCISELY.
+
+Rules:
+- overallScore: 1-10 (1=terrible, 10=excellent)
+- difficulty: very_easy, easy, moderate, difficult, very_difficult
+- wouldRecommend: true/false
+- positives: up to 3 SHORT phrases (max 50 chars each)
+- negatives: up to 3 SHORT phrases (max 50 chars each)
+- summary: 1-2 sentences (max 200 chars total)`;
+
+    const userPrompt = `Session completed:
+- URL: ${sessionContext.targetUrl}
+- Actions: ${sessionContext.actionCount}
+- Issues found: ${sessionContext.findingsCount}
+- Outcome: ${sessionContext.outcome}
+- Frustrations: ${sessionContext.frustrations.length > 0 ? sessionContext.frustrations.join('; ') : 'None'}
+- Discoveries: ${sessionContext.discoveries.length > 0 ? sessionContext.discoveries.join('; ') : 'None'}
+
+Rate this experience:`;
+
+    try {
+      if (this.config.provider === 'claude-cli') {
+        const result = await executeClaudeCliStructured<PersonalAssessment>({
+          systemPrompt,
+          userPrompt,
+          schema: PersonalAssessmentSchema,
+          maxTokens: 512,
+        });
+
+        if (this.onTokenUsage) {
+          this.onTokenUsage({
+            prompt: result.usage.promptTokens,
+            completion: result.usage.completionTokens,
+          });
+        }
+
+        return result.object;
+      }
+
+      const provider = createProvider(this.config);
+      const modelId = getModelId(this.config);
+
+      const result = await generateObject({
+        model: provider!(modelId),
+        schema: PersonalAssessmentSchema,
+        system: systemPrompt,
+        prompt: userPrompt,
+        temperature: 0.7,
+        maxTokens: 512,
+      });
+
+      if (this.onTokenUsage && result.usage) {
+        this.onTokenUsage({
+          prompt: result.usage.promptTokens,
+          completion: result.usage.completionTokens,
+        });
+      }
+
+      return result.object as PersonalAssessment;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Personal assessment failed: ${message}`);
+    }
   }
 }
 

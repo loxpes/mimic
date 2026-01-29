@@ -28,6 +28,9 @@ import {
   Copy,
   Check,
   RotateCcw,
+  Star,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
 
 interface DOMElement {
@@ -42,6 +45,15 @@ interface DOMElement {
   selector?: string;
   disabled?: boolean;
   role?: string;
+}
+
+interface PersonalAssessment {
+  overallScore: number;
+  difficulty: string;
+  wouldRecommend: boolean;
+  positives: string[];
+  negatives: string[];
+  summary: string;
 }
 
 export function SessionDetail() {
@@ -297,8 +309,16 @@ export function SessionDetail() {
           </Card>
         </div>
 
-        {/* Findings Sidebar */}
-        <div>
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Personal Assessment */}
+          {(session?.results as { personalAssessment?: PersonalAssessment } | null)?.personalAssessment && (
+            <PersonalAssessmentCard
+              assessment={(session?.results as { personalAssessment: PersonalAssessment }).personalAssessment}
+            />
+          )}
+
+          {/* Findings */}
           <Card>
             <CardHeader>
               <CardTitle>Findings</CardTitle>
@@ -378,7 +398,7 @@ function EventCard({
       value?: string;
       duration?: number;
     };
-    reasoning?: { observation: string; thought: string; confidence: number };
+    reasoning?: { state: string; action_reason: string; confidence: 'high' | 'medium' | 'low' };
     progress?: { objectiveStatus: string; completionEstimate: number };
   };
   const outcome = event.outcome as { success: boolean; error?: string; duration?: number };
@@ -491,15 +511,19 @@ function EventCard({
           <div className="text-sm space-y-1 p-3 bg-muted/50 rounded-md">
             <div className="flex items-start gap-2">
               <Eye className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-              <span className="text-muted-foreground">{decision.reasoning.observation}</span>
+              <span className="text-muted-foreground">{decision.reasoning.state}</span>
             </div>
             <div className="flex items-start gap-2">
               <Brain className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
-              <span className="text-muted-foreground">{decision.reasoning.thought}</span>
+              <span className="text-muted-foreground">{decision.reasoning.action_reason}</span>
             </div>
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">
-                Confidence: {Math.round(decision.reasoning.confidence * 100)}%
+              <span className={`px-2 py-0.5 rounded ${
+                decision.reasoning.confidence === 'high' ? 'bg-green-500/20 text-green-500' :
+                decision.reasoning.confidence === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
+                'bg-red-500/20 text-red-500'
+              }`}>
+                {decision.reasoning.confidence}
               </span>
               {decision.progress && (
                 <>
@@ -727,5 +751,120 @@ function DOMElementsModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function PersonalAssessmentCard({ assessment }: { assessment: PersonalAssessment }) {
+  const difficultyLabels: Record<string, string> = {
+    very_easy: 'Very Easy',
+    easy: 'Easy',
+    moderate: 'Moderate',
+    difficult: 'Difficult',
+    very_difficult: 'Very Difficult',
+  };
+
+  const difficultyColors: Record<string, string> = {
+    very_easy: 'text-green-500',
+    easy: 'text-green-400',
+    moderate: 'text-yellow-500',
+    difficult: 'text-orange-500',
+    very_difficult: 'text-red-500',
+  };
+
+  // Render score as stars
+  const renderStars = (score: number) => {
+    const stars = [];
+    for (let i = 1; i <= 10; i++) {
+      stars.push(
+        <Star
+          key={i}
+          className={`h-4 w-4 ${i <= score ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+        />
+      );
+    }
+    return stars;
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+          Personal Assessment
+        </CardTitle>
+        <CardDescription>AI agent's subjective evaluation</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Score */}
+        <div>
+          <div className="flex items-center gap-1 mb-1">
+            {renderStars(assessment.overallScore)}
+          </div>
+          <p className="text-2xl font-bold">{assessment.overallScore}/10</p>
+        </div>
+
+        {/* Difficulty and Recommendation */}
+        <div className="flex items-center gap-4 text-sm">
+          <div>
+            <span className="text-muted-foreground">Difficulty: </span>
+            <span className={difficultyColors[assessment.difficulty] || ''}>
+              {difficultyLabels[assessment.difficulty] || assessment.difficulty}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {assessment.wouldRecommend ? (
+              <>
+                <ThumbsUp className="h-4 w-4 text-green-500" />
+                <span className="text-green-500">Would recommend</span>
+              </>
+            ) : (
+              <>
+                <ThumbsDown className="h-4 w-4 text-red-500" />
+                <span className="text-red-500">Would not recommend</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Positives */}
+        {assessment.positives.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Positives</p>
+            <ul className="space-y-1">
+              {assessment.positives.map((positive, i) => (
+                <li key={i} className="text-sm flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span>{positive}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Negatives */}
+        {assessment.negatives.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Negatives</p>
+            <ul className="space-y-1">
+              {assessment.negatives.map((negative, i) => (
+                <li key={i} className="text-sm flex items-start gap-2">
+                  <XCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>{negative}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Summary */}
+        {assessment.summary && (
+          <div className="pt-2 border-t">
+            <p className="text-sm italic text-muted-foreground">
+              "{assessment.summary}"
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

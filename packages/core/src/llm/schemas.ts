@@ -46,13 +46,15 @@ export const AgentActionSchema = z.object({
 });
 
 // ============================================================================
-// Reasoning Schema
+// Reasoning Schema (Concise format to reduce tokens)
 // ============================================================================
 
+export const ConfidenceLevelSchema = z.enum(['high', 'medium', 'low']);
+
 export const ReasoningSchema = z.object({
-  observation: z.string().describe('What do you observe on the current page?'),
-  thought: z.string().describe('What would the persona think/do in this situation?'),
-  confidence: z.number().min(0).max(1).describe('How confident are you in this decision? (0-1)')
+  state: z.string().describe('Current page state in 1 sentence (e.g., "Login form, 2 fields, submit disabled")'),
+  action_reason: z.string().describe('Why this action in 1 sentence (e.g., "Fill credentials to enable submit")'),
+  confidence: ConfidenceLevelSchema.describe('Confidence level: high, medium, or low')
 });
 
 // ============================================================================
@@ -94,6 +96,27 @@ export const AgentDecisionSchema = z.object({
   requestScreenshot: z.boolean().optional().describe('Request a screenshot for more visual context')
 });
 
+// ============================================================================
+// Personal Assessment Schema (Session End Evaluation)
+// ============================================================================
+
+export const DifficultyLevelSchema = z.enum([
+  'very_easy',
+  'easy',
+  'moderate',
+  'difficult',
+  'very_difficult'
+]);
+
+export const PersonalAssessmentSchema = z.object({
+  overallScore: z.number().min(1).max(10).describe('Overall experience score from 1 (terrible) to 10 (excellent)'),
+  difficulty: DifficultyLevelSchema.describe('How difficult was it to achieve the objective?'),
+  wouldRecommend: z.boolean().describe('Would you recommend this website/app to others?'),
+  positives: z.array(z.string()).max(3).describe('Up to 3 positive aspects (short phrases)'),
+  negatives: z.array(z.string()).max(3).describe('Up to 3 negative aspects (short phrases)'),
+  summary: z.string().describe('1-2 sentence summary of the experience (max 200 chars)')
+});
+
 // Export types derived from schemas
 export type ActionType = z.infer<typeof ActionTypeSchema>;
 export type ActionTarget = z.infer<typeof ActionTargetSchema>;
@@ -103,3 +126,5 @@ export type ObjectiveStatusZ = z.infer<typeof ObjectiveStatusSchema>;
 export type Progress = z.infer<typeof ProgressSchema>;
 export type MemoryUpdates = z.infer<typeof MemoryUpdatesSchema>;
 export type AgentDecisionZ = z.infer<typeof AgentDecisionSchema>;
+export type DifficultyLevel = z.infer<typeof DifficultyLevelSchema>;
+export type PersonalAssessmentZ = z.infer<typeof PersonalAssessmentSchema>;

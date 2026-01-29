@@ -68,11 +68,40 @@ export const objectives = sqliteTable('objectives', {
 });
 
 // ============================================================================
+// Projects Table
+// ============================================================================
+
+export const projects = sqliteTable('projects', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  targetUrl: text('target_url').notNull(),
+  stats: text('stats', { mode: 'json' }).$type<{
+    totalSessions: number;
+    completedSessions: number;
+    failedSessions: number;
+    pendingSessions: number;
+    runningSessions: number;
+    totalFindings: number;
+    findingsBySeverity: Record<string, number>;
+    averageScore: number | null;
+    averageDifficulty: string | null;
+  }>(),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================================
 // Sessions Table
 // ============================================================================
 
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
+  projectId: text('project_id').references(() => projects.id),
   personaId: text('persona_id').notNull().references(() => personas.id),
   objectiveId: text('objective_id').notNull().references(() => objectives.id),
   targetUrl: text('target_url').notNull(),
@@ -109,6 +138,14 @@ export const sessions = sqliteTable('sessions', {
       screenshotsTaken: number;
       llmCalls: number;
       totalTokens: number;
+    };
+    personalAssessment?: {
+      overallScore: number;
+      difficulty: string;
+      wouldRecommend: boolean;
+      positives: string[];
+      negatives: string[];
+      summary: string;
     };
   }>(),
   createdAt: integer('created_at', { mode: 'timestamp' })
@@ -166,9 +203,9 @@ export const events = sqliteTable('events', {
       direction?: string;
     };
     reasoning: {
-      observation: string;
-      thought: string;
-      confidence: number;
+      state: string;
+      action_reason: string;
+      confidence: 'high' | 'medium' | 'low';
     };
     progress: {
       objectiveStatus: string;
@@ -280,6 +317,9 @@ export type NewPersona = typeof personas.$inferInsert;
 
 export type Objective = typeof objectives.$inferSelect;
 export type NewObjective = typeof objectives.$inferInsert;
+
+export type Project = typeof projects.$inferSelect;
+export type NewProject = typeof projects.$inferInsert;
 
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;

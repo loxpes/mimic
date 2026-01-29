@@ -94,11 +94,11 @@ program
           onAction: (action, decision) => {
             const status = action.success ? chalk.green('✓') : chalk.red('✗');
             console.log(
-              `${status} [${decision.reasoning.confidence.toFixed(2)}] ${action.action.type}` +
+              `${status} [${decision.reasoning.confidence}] ${action.action.type}` +
               (action.action.target ? ` → ${action.action.target.description}` : '') +
               (action.action.value ? ` = "${action.action.value}"` : '')
             );
-            console.log(chalk.gray(`   ${decision.reasoning.thought}`));
+            console.log(chalk.gray(`   ${decision.reasoning.action_reason}`));
           },
           onProgress: (progress) => {
             console.log(

@@ -21,6 +21,7 @@ import type {
   DeduplicationResult,
   AuthCredentials,
   UnifiedElement,
+  PersonalAssessment,
 } from '@testfarm/shared';
 import { LLMClient } from './llm/client.js';
 import { BrowserController, createBrowser } from './browser/controller.js';
@@ -82,6 +83,7 @@ export interface AgentResult {
   findings: Finding[];
   metrics: SessionMetrics;
   history: ActionHistory[];
+  personalAssessment?: PersonalAssessment;
 }
 
 // ============================================================================
@@ -507,7 +509,7 @@ ${persona.context}`;
         // Get decision from LLM
         console.log(`[Agent] Requesting decision from LLM (action #${this.actionCount + 1})...`);
         const decision = await this.llmClient.decide(context);
-        console.log(`[Agent] LLM decision: ${decision.action.type} - ${decision.reasoning.thought}`);
+        console.log(`[Agent] LLM decision: ${decision.action.type} - ${decision.reasoning.action_reason}`);
 
         // Build element map from the DOM that the LLM saw (NOT a new extraction!)
         // This ensures element IDs match what the LLM decided to interact with
@@ -579,6 +581,25 @@ ${persona.context}`;
       this.isRunning = false;
     }
 
+    // Generate personal assessment at session end
+    let personalAssessment: PersonalAssessment | undefined;
+    try {
+      console.log('[Agent] Generating personal assessment...');
+      personalAssessment = await this.llmClient.assess({
+        personaName: this.config.persona.name,
+        targetUrl: this.config.targetUrl,
+        actionCount: this.actionCount,
+        findingsCount: this.findings.length,
+        frustrations: this.memory.frustrations,
+        discoveries: this.memory.discoveries,
+        outcome,
+      });
+      console.log(`[Agent] Assessment complete: ${personalAssessment.overallScore}/10`);
+    } catch (error) {
+      console.warn('[Agent] Failed to generate assessment:', error);
+      // Assessment is optional, don't fail the session
+    }
+
     const result: AgentResult = {
       success: outcome === 'completed',
       outcome,
@@ -588,6 +609,7 @@ ${persona.context}`;
       findings: this.findings,
       metrics: this.metrics,
       history: this.history.recentActions,
+      personalAssessment,
     };
 
     this.events.onComplete?.(result);

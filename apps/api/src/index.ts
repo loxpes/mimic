@@ -14,6 +14,7 @@ import events from './routes/events.js';
 import findings from './routes/findings.js';
 import reports from './routes/reports.js';
 import screenshots from './routes/screenshots.js';
+import projects from './routes/projects.js';
 // YAML sync removed - personas now managed 100% via DB and frontend
 // import { syncYamlToDatabase } from './sync.js';
 
@@ -48,6 +49,7 @@ app.route('/api/events', events);
 app.route('/api/findings', findings);
 app.route('/api/reports', reports);
 app.route('/api/screenshots', screenshots);
+app.route('/api/projects', projects);
 
 // ============================================================================
 // Start Server

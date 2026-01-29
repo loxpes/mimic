@@ -272,3 +272,64 @@ export const eventsApi = {
     return new EventSource(`${API_BASE}/events/${sessionId}/stream`);
   },
 };
+
+// Projects
+export interface ProjectStats {
+  totalSessions: number;
+  completedSessions: number;
+  failedSessions: number;
+  pendingSessions: number;
+  runningSessions: number;
+  totalFindings: number;
+  findingsBySeverity: Record<string, number>;
+  averageScore: number | null;
+  averageDifficulty: string | null;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  targetUrl: string;
+  stats: ProjectStats | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectDetail extends Project {
+  sessions: Session[];
+}
+
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  targetUrl: string;
+}
+
+export const projectsApi = {
+  list: () => request<Project[]>('/projects'),
+  get: (id: string) => request<ProjectDetail>(`/projects/${id}`),
+  create: (data: CreateProjectInput) =>
+    request<Project>('/projects', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: { name?: string; description?: string }) =>
+    request<Project>(`/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) =>
+    request<{ message: string }>(`/projects/${id}`, {
+      method: 'DELETE',
+    }),
+  addSessions: (id: string, sessionIds: string[]) =>
+    request<{ message: string; stats: ProjectStats }>(`/projects/${id}/sessions`, {
+      method: 'POST',
+      body: JSON.stringify({ sessionIds }),
+    }),
+  refreshStats: (id: string) =>
+    request<Project>(`/projects/${id}/refresh-stats`, {
+      method: 'POST',
+    }),
+};

@@ -307,10 +307,12 @@ export interface AgentContext {
 
 export type ObjectiveStatus = 'pursuing' | 'blocked' | 'completed' | 'abandoned';
 
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
+
 export interface AgentReasoning {
-  observation: string;      // "I see a search bar at the top"
-  thought: string;          // "María would search for gardening"
-  confidence: number;       // 0-1
+  state: string;           // "Login form, 2 fields, submit disabled"
+  action_reason: string;   // "Fill credentials to enable submit"
+  confidence: ConfidenceLevel;
 }
 
 export interface AgentProgress {
@@ -379,6 +381,7 @@ export interface SessionResults {
   duration: number;         // ms
   findings: Finding[];
   metrics: SessionMetrics;
+  personalAssessment?: PersonalAssessment;
 }
 
 export interface SessionMetrics {
@@ -389,6 +392,21 @@ export interface SessionMetrics {
   screenshotsTaken: number;
   llmCalls: number;
   totalTokens: number;
+}
+
+// ============================================================================
+// Personal Assessment Types
+// ============================================================================
+
+export type DifficultyLevel = 'very_easy' | 'easy' | 'moderate' | 'difficult' | 'very_difficult';
+
+export interface PersonalAssessment {
+  overallScore: number;        // 1-10
+  difficulty: DifficultyLevel;
+  wouldRecommend: boolean;
+  positives: string[];         // max 3
+  negatives: string[];         // max 3
+  summary: string;             // max 200 chars
 }
 
 // ============================================================================

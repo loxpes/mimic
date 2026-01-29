@@ -34,13 +34,15 @@ export const AgentActionSchema = z.object({
 });
 
 // ============================================================================
-// Reasoning Schema
+// Reasoning Schema (Concise format to reduce tokens)
 // ============================================================================
 
+export const ConfidenceLevelSchema = z.enum(['high', 'medium', 'low']);
+
 export const ReasoningSchema = z.object({
-  observation: z.string().describe('What do you observe on the current page?'),
-  thought: z.string().describe('What would the persona think/do in this situation?'),
-  confidence: z.number().min(0).max(1).describe('How confident are you in this decision? (0-1)')
+  state: z.string().describe('Current page state in 1 sentence (e.g., "Login form, 2 fields, submit disabled")'),
+  action_reason: z.string().describe('Why this action in 1 sentence (e.g., "Fill credentials to enable submit")'),
+  confidence: ConfidenceLevelSchema.describe('Confidence level: high, medium, or low')
 });
 
 // ============================================================================

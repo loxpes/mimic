@@ -195,10 +195,12 @@ export interface AgentContext {
 
 export type ObjectiveStatus = 'pursuing' | 'blocked' | 'completed' | 'abandoned';
 
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
+
 export interface AgentReasoning {
-  observation: string;      // "I see a search bar at the top"
-  thought: string;          // "María would search for gardening"
-  confidence: number;       // 0-1
+  state: string;           // "Login form, 2 fields, submit disabled"
+  action_reason: string;   // "Fill credentials to enable submit"
+  confidence: ConfidenceLevel;
 }
 
 export interface AgentProgress {

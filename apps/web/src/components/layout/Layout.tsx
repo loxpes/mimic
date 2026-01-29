@@ -7,10 +7,12 @@ import {
   Target,
   Settings,
   Sparkles,
+  FolderOpen,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Projects', href: '/projects', icon: FolderOpen },
   { name: 'Sessions', href: '/sessions', icon: PlayCircle },
   { name: 'Personas', href: '/personas', icon: Users },
   { name: 'Objectives', href: '/objectives', icon: Target },

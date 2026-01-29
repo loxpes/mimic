@@ -73,8 +73,19 @@ export async function initializeDb(): Promise<void> {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS projects (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      target_url TEXT NOT NULL,
+      stats TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
+      project_id TEXT REFERENCES projects(id),
       persona_id TEXT NOT NULL REFERENCES personas(id),
       objective_id TEXT NOT NULL REFERENCES objectives(id),
       target_url TEXT NOT NULL,
@@ -144,6 +155,7 @@ export async function initializeDb(): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_sessions_persona ON sessions(persona_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_objective ON sessions(objective_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_id);
     CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
     CREATE INDEX IF NOT EXISTS idx_findings_session ON findings(session_id);
     CREATE INDEX IF NOT EXISTS idx_findings_group ON findings(group_id);
