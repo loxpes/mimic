@@ -8,7 +8,7 @@ goal: |
 autonomy:
   level: goal-directed
   bounds:
-    maxActions: 25
+    maxActions: 30
 
 successCriteria:
   type: element-present

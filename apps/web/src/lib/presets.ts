@@ -316,7 +316,7 @@ export const presetObjectives: ImportObjectiveInput[] = [
     autonomy: {
       level: 'medium',
       bounds: {
-        maxActions: 25,
+        maxActions: 30,
         maxDuration: 180,
       },
     },
@@ -396,7 +396,7 @@ export const presetObjectives: ImportObjectiveInput[] = [
     autonomy: {
       level: 'medium',
       bounds: {
-        maxActions: 25,
+        maxActions: 30,
         maxDuration: 180,
       },
     },

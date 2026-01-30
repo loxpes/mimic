@@ -627,47 +627,64 @@ export class BrowserController {
     // Execute the action
     switch (action.type) {
       case 'click':
-        // Prefer selector if available, fallback to coordinates
+        // Prefer coordinates first (more reliable), fallback to selector
+        if (target.x !== undefined && target.y !== undefined) {
+          console.log(`[BrowserController] Click by coordinates: (${target.x}, ${target.y})`);
+          return this.clickByCoordinate(target.x, target.y);
+        }
         if (target.selector) {
+          console.log(`[BrowserController] Click by selector: ${target.selector}`);
           return this.click(target.selector);
         }
-        return this.clickByCoordinate(target.x, target.y);
+        return { success: false, error: 'No coordinates or selector available', duration: Date.now() - start };
 
       case 'type':
         if (!action.value) {
           return { success: false, error: 'No value specified for type', duration: Date.now() - start };
         }
-        // Prefer selector if available
+        // Prefer coordinates first (more reliable)
+        if (target.x !== undefined && target.y !== undefined) {
+          try {
+            console.log(`[BrowserController] Type by coordinates: (${target.x}, ${target.y})`);
+            await this.getPage().mouse.click(target.x, target.y, { clickCount: 3 });
+            await this.getPage().keyboard.type(action.value);
+            return { success: true, duration: Date.now() - start };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Type by coordinate failed',
+              duration: Date.now() - start,
+            };
+          }
+        }
+        // Fallback to selector
         if (target.selector) {
+          console.log(`[BrowserController] Type by selector: ${target.selector}`);
           return this.type(target.selector, action.value);
         }
-        // Fallback to click + keyboard.type
-        try {
-          await this.getPage().mouse.click(target.x, target.y, { clickCount: 3 });
-          await this.getPage().keyboard.type(action.value);
-          return { success: true, duration: Date.now() - start };
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Type by coordinate failed',
-            duration: Date.now() - start,
-          };
-        }
+        return { success: false, error: 'No coordinates or selector available for type', duration: Date.now() - start };
 
       case 'hover':
+        // Prefer coordinates first (more reliable)
+        if (target.x !== undefined && target.y !== undefined) {
+          try {
+            console.log(`[BrowserController] Hover by coordinates: (${target.x}, ${target.y})`);
+            await this.getPage().mouse.move(target.x, target.y);
+            return { success: true, duration: Date.now() - start };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Hover by coordinate failed',
+              duration: Date.now() - start,
+            };
+          }
+        }
+        // Fallback to selector
         if (target.selector) {
+          console.log(`[BrowserController] Hover by selector: ${target.selector}`);
           return this.hover(target.selector);
         }
-        try {
-          await this.getPage().mouse.move(target.x, target.y);
-          return { success: true, duration: Date.now() - start };
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Hover by coordinate failed',
-            duration: Date.now() - start,
-          };
-        }
+        return { success: false, error: 'No coordinates or selector available for hover', duration: Date.now() - start };
 
       case 'select':
         if (!action.value) {
