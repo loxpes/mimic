@@ -77,6 +77,7 @@ app.post('/', async (c) => {
 
   const newSession = {
     id: crypto.randomUUID(),
+    projectId: body.projectId || null,
     personaId: body.personaId,
     objectiveId: body.objectiveId,
     targetUrl: body.targetUrl,
@@ -101,7 +102,7 @@ app.post('/batch', async (c) => {
   const body = await c.req.json();
   const db = getDb();
 
-  const { targetUrl, personaIds, objectiveIds, llmConfig, visionConfig } = body;
+  const { targetUrl, personaIds, objectiveIds, llmConfig, visionConfig, projectId } = body;
 
   // Create a session for each persona-objective combination
   const sessionsToCreate = [];
@@ -110,6 +111,7 @@ app.post('/batch', async (c) => {
     for (const objectiveId of objectiveIds) {
       sessionsToCreate.push({
         id: crypto.randomUUID(),
+        projectId: projectId || null,
         personaId,
         objectiveId,
         targetUrl,
@@ -352,6 +354,7 @@ app.post('/:id/start', async (c) => {
           actionsTaken: result.actionsTaken,
           duration: result.duration,
           metrics: result.metrics,
+          personalAssessment: result.personalAssessment,
         },
       }).where(eq(sessions.id, id));
 

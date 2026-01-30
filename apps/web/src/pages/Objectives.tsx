@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { ImportDialog } from '@/components/shared/ImportDialog';
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 
 export function Objectives() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data: objectives = [], isLoading } = useQuery({
@@ -103,17 +105,17 @@ export function Objectives() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Objectives</h1>
-          <p className="text-muted-foreground">Testing goals and scenarios for AI agents</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('objectives.title')}</h1>
+          <p className="text-muted-foreground">{t('objectives.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
-            Import YAML
+            {t('objectives.importYaml')}
           </Button>
           <Button onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
-            New Objective
+            {t('objectives.newObjective')}
           </Button>
         </div>
       </div>
@@ -125,11 +127,9 @@ export function Objectives() {
             <Target className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold mb-1">Goal-Directed Testing</h3>
+            <h3 className="font-semibold mb-1">{t('objectives.goalDirected')}</h3>
             <p className="text-sm text-muted-foreground">
-              Objectives define what the AI agent should accomplish. They include goals,
-              constraints, success criteria, and autonomy levels that guide the agent's
-              decision-making process.
+              {t('objectives.goalDirectedDesc')}
             </p>
           </div>
         </CardContent>
@@ -137,23 +137,23 @@ export function Objectives() {
 
       {/* Objectives Grid */}
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading objectives...</div>
+        <div className="text-center py-12 text-muted-foreground">{t('common.loading')}</div>
       ) : objectives.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground">No objectives defined yet</p>
+            <p className="text-muted-foreground">{t('objectives.noObjectives')}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Create a new objective or import from YAML
+              {t('objectives.noObjectivesDesc')}
             </p>
             <div className="flex justify-center gap-2 mt-4">
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" />
-                Import YAML
+                {t('objectives.importYaml')}
               </Button>
               <Button onClick={handleCreate}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Objective
+                {t('objectives.newObjective')}
               </Button>
             </div>
           </CardContent>
@@ -185,7 +185,7 @@ export function Objectives() {
                       </div>
                       <div>
                         <CardTitle>{objective.name}</CardTitle>
-                        <CardDescription>Added {formatDate(objective.createdAt)}</CardDescription>
+                        <CardDescription>{t('objectives.added')} {formatDate(objective.createdAt)}</CardDescription>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -225,7 +225,7 @@ export function Objectives() {
                     <div>
                       <div className="flex items-center gap-2 text-sm font-medium mb-1">
                         <Target className="h-4 w-4 text-green-500" />
-                        Goal
+                        {t('objectives.goal')}
                       </div>
                       <p className="text-sm text-muted-foreground">{definition.goal}</p>
                     </div>
@@ -236,7 +236,7 @@ export function Objectives() {
                     <div>
                       <div className="flex items-center gap-2 text-sm font-medium mb-1">
                         <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                        Success Criteria
+                        {t('objectives.successCriteria')}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         <Badge variant="outline" className="mr-2">{definition.successCriteria.type}</Badge>
@@ -252,7 +252,7 @@ export function Objectives() {
                     <div>
                       <div className="flex items-center gap-2 text-sm font-medium mb-2">
                         <AlertCircle className="h-4 w-4 text-orange-500" />
-                        Constraints
+                        {t('objectives.constraints')}
                       </div>
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {definition.constraints.map((constraint, i) => (
@@ -270,11 +270,11 @@ export function Objectives() {
                     {config.maxActions && (
                       <div className="flex items-center gap-1">
                         <Gauge className="h-4 w-4" />
-                        Max {config.maxActions} actions
+                        {t('objectives.maxActions')} {config.maxActions}
                       </div>
                     )}
                     {config.steps && (
-                      <div>{config.steps.length} guided steps</div>
+                      <div>{config.steps.length} {t('objectives.guidedSteps')}</div>
                     )}
                   </div>
                 </CardContent>
@@ -298,8 +298,8 @@ export function Objectives() {
         onOpenChange={setImportOpen}
         onImport={handleImport}
         parseYaml={parseYamlForImport}
-        title="Import Objectives"
-        description="Upload a YAML file containing objective definitions"
+        title={t('objectives.importYaml')}
+        description={t('objectives.noObjectivesDesc')}
         itemName="objective"
       />
 
@@ -307,8 +307,8 @@ export function Objectives() {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         onConfirm={handleConfirmDelete}
-        title="Delete Objective"
-        description={`Are you sure you want to delete "${selectedObjective?.name}"? This action cannot be undone.`}
+        title={t('common.delete')}
+        description={`${t('common.delete')} "${selectedObjective?.name}"?`}
         isDeleting={deleteMutation.isPending}
       />
     </div>

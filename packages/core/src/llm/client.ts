@@ -54,13 +54,36 @@ function getModelId(config: LLMConfig): string {
 }
 
 // ============================================================================
+// Language Support
+// ============================================================================
+
+function getLanguageInstruction(language?: string): string {
+  const languageMap: Record<string, string> = {
+    'es': 'Spanish (Español)',
+    'en': 'English',
+    'pt': 'Portuguese (Português)',
+    'fr': 'French (Français)',
+    'de': 'German (Deutsch)',
+  };
+
+  // Spanish is default, no instruction needed
+  if (!language || language === 'es') return '';
+
+  const langName = languageMap[language] || language;
+  return `**LANGUAGE REQUIREMENT**: You MUST respond in ${langName}. All your reasoning, discoveries, frustrations, memory updates, and reports should be written in ${langName}.
+
+`;
+}
+
+// ============================================================================
 // Prompt Builder
 // ============================================================================
 
 function buildSystemPrompt(context: AgentContext): string {
-  const { persona, objective } = context;
+  const { persona, objective, language } = context;
+  const languageInstruction = getLanguageInstruction(language);
 
-  return `# Your Identity
+  return `${languageInstruction}# Your Identity
 
 ${persona.systemPrompt}
 

@@ -4,7 +4,7 @@
 
 import { Hono } from 'hono';
 import { eq, desc, inArray } from 'drizzle-orm';
-import { getDb, projects, sessions, findings } from '@testfarm/db';
+import { getDb, projects, sessions, findings, personas, objectives } from '@testfarm/db';
 
 // Simple ID generator
 function generateId(): string {
@@ -143,11 +143,27 @@ app.get('/:id', async (c) => {
     return c.json({ error: 'Project not found' }, 404);
   }
 
-  // Get stats and sessions
+  // Get stats and sessions with persona/objective names
   const stats = await calculateProjectStats(id);
   const projectSessions = await getDb()
-    .select()
+    .select({
+      id: sessions.id,
+      projectId: sessions.projectId,
+      personaId: sessions.personaId,
+      objectiveId: sessions.objectiveId,
+      targetUrl: sessions.targetUrl,
+      llmConfig: sessions.llmConfig,
+      visionConfig: sessions.visionConfig,
+      state: sessions.state,
+      results: sessions.results,
+      createdAt: sessions.createdAt,
+      updatedAt: sessions.updatedAt,
+      personaName: personas.name,
+      objectiveName: objectives.name,
+    })
     .from(sessions)
+    .leftJoin(personas, eq(sessions.personaId, personas.id))
+    .leftJoin(objectives, eq(sessions.objectiveId, objectives.id))
     .where(eq(sessions.projectId, id))
     .orderBy(desc(sessions.createdAt));
 
@@ -266,6 +282,40 @@ app.post('/:id/sessions', async (c) => {
   await getDb().update(projects).set({ stats, updatedAt: new Date() }).where(eq(projects.id, id));
 
   return c.json({ message: `Added ${sessionIds.length} sessions to project`, stats });
+});
+
+// DELETE /api/projects/:id/sessions - Remove sessions from project
+app.delete('/:id/sessions', async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  const { sessionIds } = body;
+
+  if (!Array.isArray(sessionIds) || sessionIds.length === 0) {
+    return c.json({ error: 'sessionIds array is required' }, 400);
+  }
+
+  // Verify project exists
+  const project = await getDb()
+    .select()
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+
+  if (project.length === 0) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
+
+  // Remove sessions from this project (set projectId to null)
+  await getDb()
+    .update(sessions)
+    .set({ projectId: null, updatedAt: new Date() })
+    .where(inArray(sessions.id, sessionIds));
+
+  // Recalculate stats
+  const stats = await calculateProjectStats(id);
+  await getDb().update(projects).set({ stats, updatedAt: new Date() }).where(eq(projects.id, id));
+
+  return c.json({ message: `Removed ${sessionIds.length} sessions from project`, stats });
 });
 
 // POST /api/projects/:id/refresh-stats - Refresh project stats

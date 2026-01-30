@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { formatDate } from '@/lib/utils';
 import { PlayCircle, Users, Target, Activity, Plus, ArrowRight } from 'lucide-react';
 
 export function Dashboard() {
+  const { t } = useTranslation();
   const { data: sessions = [] } = useQuery({
     queryKey: ['sessions'],
     queryFn: sessionsApi.list,
@@ -28,25 +30,25 @@ export function Dashboard() {
 
   const stats = [
     {
-      name: 'Total Sessions',
+      key: 'totalSessions',
       value: sessions.length,
       icon: PlayCircle,
       href: '/sessions',
     },
     {
-      name: 'Active Sessions',
+      key: 'activeSessions',
       value: activeSessions.length,
       icon: Activity,
       color: activeSessions.length > 0 ? 'text-green-500' : undefined,
     },
     {
-      name: 'Personas',
+      key: 'personas',
       value: personas.length,
       icon: Users,
       href: '/personas',
     },
     {
-      name: 'Objectives',
+      key: 'objectives',
       value: objectives.length,
       icon: Target,
       href: '/objectives',
@@ -58,15 +60,15 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
           <p className="text-muted-foreground">
-            Welcome to TestFarm - AI-powered browser testing agent farm
+            {t('dashboard.welcome')}
           </p>
         </div>
         <Button asChild>
           <Link to="/sessions">
             <Plus className="mr-2 h-4 w-4" />
-            New Session
+            {t('sessions.newSession')}
           </Link>
         </Button>
       </div>
@@ -74,9 +76,9 @@ export function Dashboard() {
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.name}>
+          <Card key={stat.key}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.name}</CardTitle>
+              <CardTitle className="text-sm font-medium">{t(`dashboard.${stat.key}`)}</CardTitle>
               <stat.icon className={`h-4 w-4 text-muted-foreground ${stat.color || ''}`} />
             </CardHeader>
             <CardContent>
@@ -86,7 +88,7 @@ export function Dashboard() {
                   to={stat.href}
                   className="text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
-                  View all →
+                  {t('common.view')} →
                 </Link>
               )}
             </CardContent>
@@ -98,12 +100,12 @@ export function Dashboard() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Recent Sessions</CardTitle>
-            <CardDescription>Your latest testing sessions</CardDescription>
+            <CardTitle>{t('dashboard.recentSessions')}</CardTitle>
+            <CardDescription>{t('sessions.subtitle')}</CardDescription>
           </div>
           <Button variant="outline" size="sm" asChild>
             <Link to="/sessions">
-              View all
+              {t('common.view')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -112,8 +114,8 @@ export function Dashboard() {
           {recentSessions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <PlayCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No sessions yet</p>
-              <p className="text-sm">Create your first testing session to get started</p>
+              <p>{t('sessions.noSessions')}</p>
+              <p className="text-sm">{t('sessions.noSessionsDesc')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -130,7 +132,7 @@ export function Dashboard() {
                     <div>
                       <p className="font-medium">{session.targetUrl}</p>
                       <p className="text-sm text-muted-foreground">
-                        {session.state.actionCount} actions • {formatDate(session.createdAt)}
+                        {session.state.actionCount} {t('common.actions').toLowerCase()} • {formatDate(session.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -146,8 +148,8 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Personas</CardTitle>
-            <CardDescription>AI agents with unique personalities</CardDescription>
+            <CardTitle className="text-lg">{t('nav.personas')}</CardTitle>
+            <CardDescription>{t('dashboard.personasDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -160,7 +162,7 @@ export function Dashboard() {
                 </div>
               ))}
               {personas.length === 0 && (
-                <p className="text-sm text-muted-foreground">No personas defined yet</p>
+                <p className="text-sm text-muted-foreground">{t('personas.noPersonas')}</p>
               )}
             </div>
           </CardContent>
@@ -168,8 +170,8 @@ export function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Objectives</CardTitle>
-            <CardDescription>Testing goals and scenarios</CardDescription>
+            <CardTitle className="text-lg">{t('nav.objectives')}</CardTitle>
+            <CardDescription>{t('dashboard.objectivesDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -182,7 +184,7 @@ export function Dashboard() {
                 </div>
               ))}
               {objectives.length === 0 && (
-                <p className="text-sm text-muted-foreground">No objectives defined yet</p>
+                <p className="text-sm text-muted-foreground">{t('objectives.noObjectives')}</p>
               )}
             </div>
           </CardContent>
@@ -193,6 +195,7 @@ export function Dashboard() {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'success' | 'warning'> = {
     pending: 'secondary',
     running: 'default',
@@ -201,5 +204,5 @@ function StatusBadge({ status }: { status: string }) {
     cancelled: 'warning',
   };
 
-  return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
+  return <Badge variant={variants[status] || 'secondary'}>{t(`status.${status}`)}</Badge>;
 }

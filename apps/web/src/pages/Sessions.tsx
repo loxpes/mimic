@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { sessionsApi, personasApi, objectivesApi, type CreateSessionInput, type 
 import { PlayCircle, Plus, ExternalLink, Play, XCircle, Trash2, Eye, RotateCcw } from 'lucide-react';
 
 export function Sessions() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -106,14 +108,14 @@ export function Sessions() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Sessions</h1>
-          <p className="text-muted-foreground">Manage your AI testing sessions</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('sessions.title')}</h1>
+          <p className="text-muted-foreground">{t('sessions.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.size > 0 && (
             <>
               <span className="text-sm text-muted-foreground">
-                {selectedIds.size} selected
+                {selectedIds.size} {t('common.selected')}
               </span>
               <Button
                 size="sm"
@@ -122,16 +124,16 @@ export function Sessions() {
                 disabled={deleteManyMutation.isPending}
               >
                 <Trash2 className="mr-1 h-3 w-3" />
-                Delete
+                {t('common.delete')}
               </Button>
               <Button size="sm" variant="outline" onClick={clearSelection}>
-                Clear
+                {t('common.clear')}
               </Button>
             </>
           )}
           <Button onClick={() => setShowCreate(!showCreate)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Session
+            {t('sessions.newSession')}
           </Button>
         </div>
       </div>
@@ -150,14 +152,14 @@ export function Sessions() {
 
       {/* Sessions List */}
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading sessions...</div>
+        <div className="text-center py-12 text-muted-foreground">{t('common.loading')}</div>
       ) : sessions.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <PlayCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground">No sessions yet</p>
+            <p className="text-muted-foreground">{t('sessions.noSessions')}</p>
             <p className="text-sm text-muted-foreground">
-              Create your first testing session to get started
+              {t('sessions.noSessionsDesc')}
             </p>
           </CardContent>
         </Card>
@@ -172,11 +174,11 @@ export function Sessions() {
               className="h-4 w-4 rounded border-gray-300"
             />
             <div className="flex-1 grid grid-cols-12 gap-2 items-center">
-              <span className="col-span-3">Persona</span>
-              <span className="col-span-3">Objective</span>
-              <span className="col-span-3">URL</span>
-              <span className="col-span-1 text-center">Status</span>
-              <span className="col-span-2 text-right">Actions</span>
+              <span className="col-span-3">{t('sessions.persona')}</span>
+              <span className="col-span-3">{t('sessions.objective')}</span>
+              <span className="col-span-3">{t('common.url')}</span>
+              <span className="col-span-1 text-center">{t('common.status')}</span>
+              <span className="col-span-2 text-right">{t('common.actions')}</span>
             </div>
           </div>
 
@@ -236,7 +238,7 @@ export function Sessions() {
                         variant="ghost"
                         onClick={() => startMutation.mutate(session.id)}
                         disabled={startMutation.isPending}
-                        title="Start"
+                        title={t('common.start')}
                       >
                         <Play className="h-4 w-4" />
                       </Button>
@@ -247,7 +249,7 @@ export function Sessions() {
                         variant="ghost"
                         onClick={() => cancelMutation.mutate(session.id)}
                         disabled={cancelMutation.isPending}
-                        title="Cancel"
+                        title={t('common.cancel')}
                       >
                         <XCircle className="h-4 w-4 text-destructive" />
                       </Button>
@@ -258,12 +260,12 @@ export function Sessions() {
                         variant="ghost"
                         onClick={() => retryMutation.mutate(session.id)}
                         disabled={retryMutation.isPending}
-                        title="Retry (clone and start fresh)"
+                        title={t('common.retry')}
                       >
                         <RotateCcw className="h-4 w-4 text-blue-500" />
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" asChild title="View Details">
+                    <Button size="sm" variant="ghost" asChild title={t('common.view')}>
                       <Link to={`/sessions/${session.id}`}>
                         <Eye className="h-4 w-4" />
                       </Link>
@@ -273,7 +275,7 @@ export function Sessions() {
                       variant="ghost"
                       onClick={() => deleteMutation.mutate(session.id)}
                       disabled={deleteMutation.isPending}
-                      title="Delete"
+                      title={t('common.delete')}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -305,6 +307,7 @@ function CreateSessionForm({
   onCancel,
   isLoading,
 }: CreateSessionFormProps) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<'single' | 'batch'>('single');
   const [targetUrl, setTargetUrl] = useState('');
   const [singlePersonaId, setSinglePersonaId] = useState(personas[0]?.id || '');
@@ -315,14 +318,26 @@ function CreateSessionForm({
   const handleSingleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (targetUrl && singlePersonaId && singleObjectiveId) {
-      onSubmit({ targetUrl, personaId: singlePersonaId, objectiveId: singleObjectiveId });
+      const language = localStorage.getItem('testfarm_language') || 'es';
+      onSubmit({
+        targetUrl,
+        personaId: singlePersonaId,
+        objectiveId: singleObjectiveId,
+        llmConfig: { language },
+      });
     }
   };
 
   const handleBatchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (targetUrl && selectedPersonaIds.length > 0 && selectedObjectiveIds.length > 0) {
-      onBatchSubmit({ targetUrl, personaIds: selectedPersonaIds, objectiveIds: selectedObjectiveIds });
+      const language = localStorage.getItem('testfarm_language') || 'es';
+      onBatchSubmit({
+        targetUrl,
+        personaIds: selectedPersonaIds,
+        objectiveIds: selectedObjectiveIds,
+        llmConfig: { language },
+      });
     }
   };
 
@@ -350,9 +365,9 @@ function CreateSessionForm({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Create New Session</CardTitle>
+            <CardTitle>{t('sessions.createSession')}</CardTitle>
             <CardDescription>
-              {mode === 'single' ? 'Configure a single testing session' : 'Launch multiple agents at once'}
+              {mode === 'single' ? t('sessions.configureSingle') : t('sessions.launchMultiple')}
             </CardDescription>
           </div>
           <div className="flex gap-1 rounded-lg bg-muted p-1">
@@ -361,14 +376,14 @@ function CreateSessionForm({
               variant={mode === 'single' ? 'default' : 'ghost'}
               onClick={() => setMode('single')}
             >
-              Single
+              {t('sessions.single')}
             </Button>
             <Button
               size="sm"
               variant={mode === 'batch' ? 'default' : 'ghost'}
               onClick={() => setMode('batch')}
             >
-              Batch
+              {t('sessions.batch')}
             </Button>
           </div>
         </div>
@@ -378,7 +393,7 @@ function CreateSessionForm({
           <form onSubmit={handleSingleSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Target URL</label>
+                <label className="text-sm font-medium">{t('sessions.targetUrl')}</label>
                 <input
                   type="url"
                   placeholder="https://example.com"
@@ -389,7 +404,7 @@ function CreateSessionForm({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Persona</label>
+                <label className="text-sm font-medium">{t('sessions.persona')}</label>
                 <select
                   value={singlePersonaId}
                   onChange={(e) => setSinglePersonaId(e.target.value)}
@@ -397,7 +412,7 @@ function CreateSessionForm({
                   required
                 >
                   {personas.length === 0 ? (
-                    <option value="">No personas available</option>
+                    <option value="">{t('sessions.noPersonas')}</option>
                   ) : (
                     personas.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
@@ -406,7 +421,7 @@ function CreateSessionForm({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Objective</label>
+                <label className="text-sm font-medium">{t('sessions.objective')}</label>
                 <select
                   value={singleObjectiveId}
                   onChange={(e) => setSingleObjectiveId(e.target.value)}
@@ -414,7 +429,7 @@ function CreateSessionForm({
                   required
                 >
                   {objectives.length === 0 ? (
-                    <option value="">No objectives available</option>
+                    <option value="">{t('sessions.noObjectives')}</option>
                   ) : (
                     objectives.map((o) => (
                       <option key={o.id} value={o.id}>{o.name}</option>
@@ -424,16 +439,16 @@ function CreateSessionForm({
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
               <Button type="submit" disabled={isLoading || !targetUrl}>
-                {isLoading ? 'Creating...' : 'Create Session'}
+                {isLoading ? t('sessions.creating') : t('sessions.createSession')}
               </Button>
             </div>
           </form>
         ) : (
           <form onSubmit={handleBatchSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Target URL</label>
+              <label className="text-sm font-medium">{t('sessions.targetUrl')}</label>
               <input
                 type="url"
                 placeholder="https://example.com"
@@ -449,11 +464,11 @@ function CreateSessionForm({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium">
-                    Personas ({selectedPersonaIds.length}/{personas.length})
+                    {t('nav.personas')} ({selectedPersonaIds.length}/{personas.length})
                   </label>
                   <div className="flex gap-1">
-                    <Button type="button" size="sm" variant="ghost" onClick={selectAllPersonas}>All</Button>
-                    <Button type="button" size="sm" variant="ghost" onClick={clearPersonas}>Clear</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={selectAllPersonas}>{t('common.all')}</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={clearPersonas}>{t('common.clear')}</Button>
                   </div>
                 </div>
                 <div className="border rounded-md max-h-48 overflow-y-auto">
@@ -478,11 +493,11 @@ function CreateSessionForm({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium">
-                    Objectives ({selectedObjectiveIds.length}/{objectives.length})
+                    {t('nav.objectives')} ({selectedObjectiveIds.length}/{objectives.length})
                   </label>
                   <div className="flex gap-1">
-                    <Button type="button" size="sm" variant="ghost" onClick={selectAllObjectives}>All</Button>
-                    <Button type="button" size="sm" variant="ghost" onClick={clearObjectives}>Clear</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={selectAllObjectives}>{t('common.all')}</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={clearObjectives}>{t('common.clear')}</Button>
                   </div>
                 </div>
                 <div className="border rounded-md max-h-48 overflow-y-auto">
@@ -506,18 +521,17 @@ function CreateSessionForm({
 
             {totalBatchSessions > 0 && (
               <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                <strong>{totalBatchSessions}</strong> sessions will be created
-                ({selectedPersonaIds.length} personas × {selectedObjectiveIds.length} objectives)
+                {t('sessions.sessionsWillBeCreated', { count: totalBatchSessions })}
               </div>
             )}
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
               <Button
                 type="submit"
                 disabled={isLoading || !targetUrl || totalBatchSessions === 0}
               >
-                {isLoading ? 'Creating...' : `Create ${totalBatchSessions} Sessions`}
+                {isLoading ? t('sessions.creating') : t('sessions.createSessions', { count: totalBatchSessions })}
               </Button>
             </div>
           </form>
@@ -528,6 +542,7 @@ function CreateSessionForm({
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'success' | 'warning'> = {
     pending: 'secondary',
     running: 'default',
@@ -536,5 +551,5 @@ function StatusBadge({ status }: { status: string }) {
     cancelled: 'warning',
   };
 
-  return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
+  return <Badge variant={variants[status] || 'secondary'}>{t(`status.${status}`)}</Badge>;
 }

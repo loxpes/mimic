@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { sessionsApi, eventsApi, type SessionEvent, type Finding } from '@/lib/api';
+import { sessionsApi, eventsApi, trelloApi, type SessionEvent, type Finding } from '@/lib/api';
 import { formatDate, formatDuration } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -31,6 +32,7 @@ import {
   Star,
   ThumbsUp,
   ThumbsDown,
+  Send,
 } from 'lucide-react';
 
 interface DOMElement {
@@ -57,6 +59,7 @@ interface PersonalAssessment {
 }
 
 export function SessionDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -90,6 +93,18 @@ export function SessionDetail() {
     // Refetch findings periodically when session is running
     refetchInterval: isRunning ? 3000 : false,
   });
+
+  // Get projectId from session (if available)
+  const projectId = (session as { projectId?: string } | undefined)?.projectId;
+
+  // Check Trello integration status
+  const { data: trelloStatus } = useQuery({
+    queryKey: ['trello-status', projectId],
+    queryFn: () => trelloApi.getStatus(projectId!),
+    enabled: !!projectId,
+  });
+
+  const trelloConnected = trelloStatus?.connected && trelloStatus?.integration?.config?.boardId;
 
   const startMutation = useMutation({
     mutationFn: sessionsApi.start,
@@ -182,7 +197,7 @@ export function SessionDetail() {
               </a>
             </h1>
             <p className="text-muted-foreground">
-              Created {formatDate(session.createdAt)}
+              {t('sessionDetail.created')} {formatDate(session.createdAt)}
             </p>
           </div>
         </div>
@@ -191,7 +206,7 @@ export function SessionDetail() {
           {session.state.status === 'pending' && (
             <Button onClick={() => startMutation.mutate(session.id)} disabled={startMutation.isPending}>
               <Play className="mr-1 h-4 w-4" />
-              Start Session
+              {t('sessionDetail.startSession')}
             </Button>
           )}
           {session.state.status === 'running' && (
@@ -201,7 +216,7 @@ export function SessionDetail() {
               disabled={cancelMutation.isPending}
             >
               <XCircle className="mr-1 h-4 w-4" />
-              Cancel
+              {t('common.cancel')}
             </Button>
           )}
           {['completed', 'failed', 'cancelled'].includes(session.state.status) && (
@@ -211,7 +226,7 @@ export function SessionDetail() {
               disabled={retryMutation.isPending}
             >
               <RotateCcw className="mr-1 h-4 w-4" />
-              {retryMutation.isPending ? 'Cloning...' : 'Retry'}
+              {retryMutation.isPending ? t('sessionDetail.cloning') : t('common.retry')}
             </Button>
           )}
         </div>
@@ -225,9 +240,9 @@ export function SessionDetail() {
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <div className="flex-1">
                 <div className="flex justify-between mb-2">
-                  <span className="font-medium">Session in Progress</span>
+                  <span className="font-medium">{t('sessionDetail.sessionInProgress')}</span>
                   <span className="text-sm text-muted-foreground">
-                    {session.state.actionCount} actions • {Math.round((session.state.progress || 0) * 100)}%
+                    {session.state.actionCount} {t('common.actions').toLowerCase()} • {Math.round((session.state.progress || 0) * 100)}%
                   </span>
                 </div>
                 <div className="h-2 bg-primary/20 rounded-full overflow-hidden">
@@ -246,7 +261,7 @@ export function SessionDetail() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Actions</CardDescription>
+            <CardDescription>{t('sessionDetail.totalActions')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{session.state.actionCount}</div>
@@ -254,7 +269,7 @@ export function SessionDetail() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Findings</CardDescription>
+            <CardDescription>{t('sessionDetail.findings')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{findings.length}</div>
@@ -262,7 +277,7 @@ export function SessionDetail() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Progress</CardDescription>
+            <CardDescription>{t('sessionDetail.progress')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Math.round((session.state.progress || 0) * 100)}%</div>
@@ -270,7 +285,7 @@ export function SessionDetail() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Status</CardDescription>
+            <CardDescription>{t('common.status')}</CardDescription>
           </CardHeader>
           <CardContent>
             <StatusBadge status={session.state.status} />
@@ -283,15 +298,15 @@ export function SessionDetail() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Action Timeline</CardTitle>
-              <CardDescription>AI agent decisions and actions</CardDescription>
+              <CardTitle>{t('sessionDetail.actionTimeline')}</CardTitle>
+              <CardDescription>{t('sessionDetail.aiDecisions')}</CardDescription>
             </CardHeader>
             <CardContent>
               {allEvents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No actions yet</p>
-                  <p className="text-sm">Actions will appear here when the session starts</p>
+                  <p>{t('sessionDetail.noActionsYet')}</p>
+                  <p className="text-sm">{t('sessionDetail.actionsWillAppear')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -321,19 +336,24 @@ export function SessionDetail() {
           {/* Findings */}
           <Card>
             <CardHeader>
-              <CardTitle>Findings</CardTitle>
-              <CardDescription>Issues discovered by the AI agent</CardDescription>
+              <CardTitle>{t('sessionDetail.findings')}</CardTitle>
+              <CardDescription>{t('sessionDetail.issuesDiscovered')}</CardDescription>
             </CardHeader>
             <CardContent>
               {findings.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
                   <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No findings yet</p>
+                  <p className="text-sm">{t('sessionDetail.noFindings')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {findings.map((finding) => (
-                    <FindingCard key={finding.id} finding={finding} />
+                    <FindingCard
+                      key={finding.id}
+                      finding={finding}
+                      projectId={projectId}
+                      trelloConnected={!!trelloConnected}
+                    />
                   ))}
                 </div>
               )}
@@ -546,7 +566,43 @@ function EventCard({
   );
 }
 
-function FindingCard({ finding }: { finding: Finding }) {
+function FindingCard({
+  finding,
+  projectId,
+  trelloConnected,
+}: {
+  finding: Finding;
+  projectId?: string;
+  trelloConnected: boolean;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showScreenshot, setShowScreenshot] = useState(false);
+  const [trelloSending, setTrelloSending] = useState(false);
+  const [trelloSent, setTrelloSent] = useState(false);
+  const [trelloCardUrl, setTrelloCardUrl] = useState<string | null>(null);
+
+  const sendToTrello = async () => {
+    if (!projectId) return;
+    setTrelloSending(true);
+    try {
+      const card = await trelloApi.createCard(projectId, {
+        id: finding.id,
+        type: finding.type,
+        severity: finding.severity,
+        description: finding.description,
+        personaPerspective: finding.personaPerspective,
+        url: (finding as { url?: string }).url || '',
+        evidence: finding.evidence,
+      });
+      setTrelloCardUrl(card.shortUrl || card.url);
+      setTrelloSent(true);
+    } catch (error) {
+      console.error('Failed to send to Trello:', error);
+    } finally {
+      setTrelloSending(false);
+    }
+  };
+
   const severityColors: Record<string, string> = {
     critical: 'bg-red-500',
     high: 'bg-orange-500',
@@ -555,23 +611,182 @@ function FindingCard({ finding }: { finding: Finding }) {
     info: 'bg-gray-500',
   };
 
+  const logLevelColors: Record<string, string> = {
+    error: 'text-red-500',
+    warn: 'text-yellow-500',
+    warning: 'text-yellow-500',
+    log: 'text-muted-foreground',
+    info: 'text-blue-500',
+    debug: 'text-gray-400',
+  };
+
+  const evidence = (finding as { evidence?: {
+    screenshotPath?: string;
+    consoleLogs?: Array<{ level: string; message: string; timestamp: number }>;
+    actionContext?: {
+      actionNumber: number;
+      previousActions?: Array<{ type: string; target?: string; success: boolean }>;
+    };
+  } }).evidence;
+
+  const hasEvidence = evidence && (
+    evidence.screenshotPath ||
+    (evidence.consoleLogs && evidence.consoleLogs.length > 0) ||
+    evidence.actionContext
+  );
+
   return (
     <div className="p-3 rounded-lg border space-y-2">
       <div className="flex items-center justify-between">
         <Badge variant="outline" className="text-xs">
           {finding.type}
         </Badge>
-        <div className={`h-2 w-2 rounded-full ${severityColors[finding.severity] || 'bg-gray-500'}`} />
+        <div className="flex items-center gap-2">
+          <div className={`h-2 w-2 rounded-full ${severityColors[finding.severity] || 'bg-gray-500'}`} />
+          {hasEvidence && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              {isExpanded ? 'Hide' : 'Evidence'}
+            </Button>
+          )}
+          {trelloConnected && (
+            trelloSent ? (
+              <a
+                href={trelloCardUrl || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-green-600 hover:underline flex items-center gap-1"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                In Trello
+              </a>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={sendToTrello}
+                disabled={trelloSending}
+              >
+                {trelloSending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-3 w-3 mr-1" />
+                    Trello
+                  </>
+                )}
+              </Button>
+            )
+          )}
+        </div>
       </div>
       <p className="text-sm font-medium">{finding.description}</p>
       {finding.personaPerspective && (
         <p className="text-xs text-muted-foreground italic">"{finding.personaPerspective}"</p>
+      )}
+
+      {/* Evidence Section */}
+      {isExpanded && evidence && (
+        <div className="mt-3 pt-3 border-t space-y-3">
+          {/* Screenshot */}
+          {evidence.screenshotPath && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                <ImageIcon className="h-3 w-3" />
+                Screenshot
+              </div>
+              <div
+                className="relative cursor-pointer"
+                onClick={() => setShowScreenshot(true)}
+              >
+                <img
+                  src={`/screenshots/${evidence.screenshotPath.split('/').slice(-2).join('/')}`}
+                  alt="Finding screenshot"
+                  className="w-full h-32 object-cover rounded border hover:opacity-90 transition-opacity"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors rounded">
+                  <Eye className="h-6 w-6 text-white opacity-0 hover:opacity-100" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Console Logs */}
+          {evidence.consoleLogs && evidence.consoleLogs.length > 0 && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                <Code2 className="h-3 w-3" />
+                Console Logs ({evidence.consoleLogs.length})
+              </div>
+              <div className="bg-gray-900 rounded p-2 text-xs font-mono max-h-32 overflow-y-auto">
+                {evidence.consoleLogs.map((log, i) => (
+                  <div key={i} className={`${logLevelColors[log.level] || 'text-gray-300'}`}>
+                    [{log.level}] {log.message}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action Context */}
+          {evidence.actionContext && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">
+                Action #{evidence.actionContext.actionNumber}
+              </div>
+              {evidence.actionContext.previousActions && evidence.actionContext.previousActions.length > 0 && (
+                <div className="text-xs space-y-1">
+                  {evidence.actionContext.previousActions.map((action, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className={action.success ? 'text-green-500' : 'text-red-500'}>
+                        {action.success ? '✓' : '✗'}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {action.type}: {action.target || 'N/A'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Screenshot Modal */}
+      {showScreenshot && evidence?.screenshotPath && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowScreenshot(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute -top-10 right-0 text-white hover:bg-white/20"
+              onClick={() => setShowScreenshot(false)}
+            >
+              <X className="h-6 w-6" />
+            </Button>
+            <img
+              src={`/screenshots/${evidence.screenshotPath.split('/').slice(-2).join('/')}`}
+              alt="Finding screenshot full"
+              className="max-w-full max-h-[90vh] object-contain rounded"
+            />
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'success' | 'warning'> = {
     pending: 'secondary',
     running: 'default',
@@ -580,7 +795,7 @@ function StatusBadge({ status }: { status: string }) {
     cancelled: 'warning',
   };
 
-  return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
+  return <Badge variant={variants[status] || 'secondary'}>{t(`status.${status}`)}</Badge>;
 }
 
 function DOMElementsModal({
@@ -755,12 +970,14 @@ function DOMElementsModal({
 }
 
 function PersonalAssessmentCard({ assessment }: { assessment: PersonalAssessment }) {
+  const { t } = useTranslation();
+
   const difficultyLabels: Record<string, string> = {
-    very_easy: 'Very Easy',
-    easy: 'Easy',
-    moderate: 'Moderate',
-    difficult: 'Difficult',
-    very_difficult: 'Very Difficult',
+    very_easy: t('projectDetail.veryEasy'),
+    easy: t('projectDetail.easy'),
+    moderate: t('projectDetail.moderate'),
+    difficult: t('projectDetail.difficult'),
+    very_difficult: t('projectDetail.veryDifficult'),
   };
 
   const difficultyColors: Record<string, string> = {
@@ -790,9 +1007,9 @@ function PersonalAssessmentCard({ assessment }: { assessment: PersonalAssessment
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-          Personal Assessment
+          {t('sessionDetail.personalAssessment')}
         </CardTitle>
-        <CardDescription>AI agent's subjective evaluation</CardDescription>
+        <CardDescription>{t('sessionDetail.aiEvaluation')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Score */}
@@ -806,7 +1023,7 @@ function PersonalAssessmentCard({ assessment }: { assessment: PersonalAssessment
         {/* Difficulty and Recommendation */}
         <div className="flex items-center gap-4 text-sm">
           <div>
-            <span className="text-muted-foreground">Difficulty: </span>
+            <span className="text-muted-foreground">{t('sessionDetail.difficulty')}: </span>
             <span className={difficultyColors[assessment.difficulty] || ''}>
               {difficultyLabels[assessment.difficulty] || assessment.difficulty}
             </span>
@@ -815,12 +1032,12 @@ function PersonalAssessmentCard({ assessment }: { assessment: PersonalAssessment
             {assessment.wouldRecommend ? (
               <>
                 <ThumbsUp className="h-4 w-4 text-green-500" />
-                <span className="text-green-500">Would recommend</span>
+                <span className="text-green-500">{t('sessionDetail.wouldRecommend')}</span>
               </>
             ) : (
               <>
                 <ThumbsDown className="h-4 w-4 text-red-500" />
-                <span className="text-red-500">Would not recommend</span>
+                <span className="text-red-500">{t('sessionDetail.wouldNotRecommend')}</span>
               </>
             )}
           </div>
@@ -829,7 +1046,7 @@ function PersonalAssessmentCard({ assessment }: { assessment: PersonalAssessment
         {/* Positives */}
         {assessment.positives.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">Positives</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">{t('sessionDetail.positives')}</p>
             <ul className="space-y-1">
               {assessment.positives.map((positive, i) => (
                 <li key={i} className="text-sm flex items-start gap-2">
@@ -844,7 +1061,7 @@ function PersonalAssessmentCard({ assessment }: { assessment: PersonalAssessment
         {/* Negatives */}
         {assessment.negatives.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">Negatives</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">{t('sessionDetail.negatives')}</p>
             <ul className="space-y-1">
               {assessment.negatives.map((negative, i) => (
                 <li key={i} className="text-sm flex items-start gap-2">

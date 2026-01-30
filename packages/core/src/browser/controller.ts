@@ -31,6 +31,12 @@ export interface ActionResult {
 // Browser Controller Class
 // ============================================================================
 
+export interface ConsoleLogEntry {
+  level: string;
+  message: string;
+  timestamp: number;
+}
+
 export class BrowserController {
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
@@ -38,6 +44,8 @@ export class BrowserController {
   private options: BrowserOptions;
   /** Map of refs to PageElements from read_page */
   private refMap: Map<string, PageElement> = new Map();
+  /** Captured console logs */
+  private consoleLogs: ConsoleLogEntry[] = [];
 
   constructor(options: BrowserOptions = {}) {
     this.options = {
@@ -72,6 +80,28 @@ export class BrowserController {
     });
 
     this.page = await this.context.newPage();
+
+    // Capture console logs
+    this.page.on('console', (msg) => {
+      this.consoleLogs.push({
+        level: msg.type(),
+        message: msg.text(),
+        timestamp: Date.now(),
+      });
+      // Limit to last 100 logs to prevent memory issues
+      if (this.consoleLogs.length > 100) {
+        this.consoleLogs.shift();
+      }
+    });
+
+    // Capture page errors as console logs
+    this.page.on('pageerror', (error) => {
+      this.consoleLogs.push({
+        level: 'error',
+        message: error.message,
+        timestamp: Date.now(),
+      });
+    });
   }
 
   async close(): Promise<void> {
@@ -718,6 +748,31 @@ export class BrowserController {
 
   async getTitle(): Promise<string> {
     return this.getPage().title();
+  }
+
+  // ============================================================================
+  // Console Logs
+  // ============================================================================
+
+  /**
+   * Get all captured console logs
+   */
+  getConsoleLogs(): ConsoleLogEntry[] {
+    return [...this.consoleLogs];
+  }
+
+  /**
+   * Get recent console logs (last N entries)
+   */
+  getRecentConsoleLogs(count: number = 10): ConsoleLogEntry[] {
+    return this.consoleLogs.slice(-count);
+  }
+
+  /**
+   * Clear captured console logs
+   */
+  clearConsoleLogs(): void {
+    this.consoleLogs = [];
   }
 }
 

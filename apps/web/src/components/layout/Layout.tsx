@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -11,12 +12,12 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Projects', href: '/projects', icon: FolderOpen },
-  { name: 'Sessions', href: '/sessions', icon: PlayCircle },
-  { name: 'Personas', href: '/personas', icon: Users },
-  { name: 'Objectives', href: '/objectives', icon: Target },
-  { name: 'Features', href: '/features', icon: Sparkles },
+  { key: 'dashboard', href: '/', icon: LayoutDashboard },
+  { key: 'projects', href: '/projects', icon: FolderOpen },
+  { key: 'sessions', href: '/sessions', icon: PlayCircle },
+  { key: 'personas', href: '/personas', icon: Users },
+  { key: 'objectives', href: '/objectives', icon: Target },
+  { key: 'features', href: '/features', icon: Sparkles },
 ];
 
 interface LayoutProps {
@@ -25,6 +26,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,7 +44,7 @@ export function Layout({ children }: LayoutProps) {
             const isActive = location.pathname === item.href;
             return (
               <Link
-                key={item.name}
+                key={item.key}
                 to={item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
@@ -52,7 +54,7 @@ export function Layout({ children }: LayoutProps) {
                 )}
               >
                 <item.icon className="h-4 w-4" />
-                {item.name}
+                {t(`nav.${item.key}`)}
               </Link>
             );
           })}
@@ -61,10 +63,15 @@ export function Layout({ children }: LayoutProps) {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
           <Link
             to="/settings"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+              location.pathname === '/settings'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            )}
           >
             <Settings className="h-4 w-4" />
-            Settings
+            {t('nav.settings')}
           </Link>
         </div>
       </aside>

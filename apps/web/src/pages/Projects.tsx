@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ import {
 } from 'lucide-react';
 
 export function Projects() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', targetUrl: '', description: '' });
@@ -74,26 +76,26 @@ export function Projects() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground">Group and track testing sessions</p>
+          <h1 className="text-3xl font-bold">{t('projects.title')}</h1>
+          <p className="text-muted-foreground">{t('projects.subtitle')}</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              New Project
+              {t('projects.newProject')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
+              <DialogTitle>{t('projects.createProject')}</DialogTitle>
               <DialogDescription>
-                Create a project to group related testing sessions together.
+                {t('projects.noProjectsDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Project Name</Label>
+                <Label htmlFor="name">{t('projects.projectName')}</Label>
                 <Input
                   id="name"
                   value={newProject.name}
@@ -102,7 +104,7 @@ export function Projects() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="targetUrl">Target URL</Label>
+                <Label htmlFor="targetUrl">{t('projects.targetUrl')}</Label>
                 <Input
                   id="targetUrl"
                   value={newProject.targetUrl}
@@ -111,25 +113,25 @@ export function Projects() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description (optional)</Label>
+                <Label htmlFor="description">{t('common.description')}</Label>
                 <Input
                   id="description"
                   value={newProject.description}
                   onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                  placeholder="Brief description of the project"
+                  placeholder={t('common.description')}
                 />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={handleCreate}
                 disabled={!newProject.name || !newProject.targetUrl || createMutation.isPending}
               >
                 {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Create Project
+                {t('projects.createProject')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -140,13 +142,13 @@ export function Projects() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('projects.noProjects')}</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Create a project to start grouping your testing sessions.
+              {t('projects.noProjectsDesc')}
             </p>
             <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Create First Project
+              {t('projects.createProject')}
             </Button>
           </CardContent>
         </Card>
@@ -166,6 +168,7 @@ export function Projects() {
 }
 
 function ProjectCard({ project, onDelete }: { project: Project; onDelete: () => void }) {
+  const { t } = useTranslation();
   const stats = project.stats;
 
   const getSeverityBadge = (severity: string, count: number) => {
@@ -177,7 +180,7 @@ function ProjectCard({ project, onDelete }: { project: Project; onDelete: () => 
     };
     return (
       <Badge key={severity} variant={variants[severity] || 'secondary'} className="text-xs">
-        {count} {severity}
+        {count} {t(`findings.severities.${severity}`)}
       </Badge>
     );
   };
@@ -206,7 +209,7 @@ function ProjectCard({ project, onDelete }: { project: Project; onDelete: () => 
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-1">
             <span className="font-medium">{stats?.totalSessions || 0}</span>
-            <span className="text-muted-foreground">sessions</span>
+            <span className="text-muted-foreground">{t('nav.sessions').toLowerCase()}</span>
           </div>
           {stats && stats.completedSessions > 0 && (
             <div className="flex items-center gap-1 text-green-500">
@@ -233,7 +236,7 @@ function ProjectCard({ project, onDelete }: { project: Project; onDelete: () => 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{stats.totalFindings} findings</span>
+              <span className="text-sm font-medium">{stats.totalFindings} {t('projects.findings').toLowerCase()}</span>
             </div>
             <div className="flex flex-wrap gap-1">
               {Object.entries(stats.findingsBySeverity)
@@ -260,7 +263,7 @@ function ProjectCard({ project, onDelete }: { project: Project; onDelete: () => 
         <div className="flex items-center gap-2 pt-2 border-t">
           <Link to={`/projects/${project.id}`} className="flex-1">
             <Button variant="outline" className="w-full">
-              View Details
+              {t('common.view')}
             </Button>
           </Link>
           <Button
@@ -275,7 +278,7 @@ function ProjectCard({ project, onDelete }: { project: Project; onDelete: () => 
 
         {/* Created date */}
         <p className="text-xs text-muted-foreground">
-          Created {formatDate(project.createdAt)}
+          {formatDate(project.createdAt)}
         </p>
       </CardContent>
     </Card>

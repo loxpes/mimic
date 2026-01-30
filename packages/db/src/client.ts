@@ -139,6 +139,8 @@ export async function initializeDb(): Promise<void> {
       fingerprint TEXT,
       is_duplicate INTEGER NOT NULL DEFAULT 0,
       evidence TEXT,
+      trello_card_id TEXT,
+      trello_card_url TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
@@ -153,6 +155,17 @@ export async function initializeDb(): Promise<void> {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS integrations (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id),
+      type TEXT NOT NULL,
+      config TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_integrations_project ON integrations(project_id);
+    CREATE INDEX IF NOT EXISTS idx_integrations_type ON integrations(type);
     CREATE INDEX IF NOT EXISTS idx_sessions_persona ON sessions(persona_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_objective ON sessions(objective_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_id);
@@ -166,6 +179,18 @@ export async function initializeDb(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_finding_groups_status ON finding_groups(status);
     CREATE INDEX IF NOT EXISTS idx_session_reports_session ON session_reports(session_id);
   `);
+
+  // Migration: Add Trello fields to existing findings table
+  try {
+    sqlite.exec(`ALTER TABLE findings ADD COLUMN trello_card_id TEXT;`);
+  } catch {
+    // Column already exists, ignore
+  }
+  try {
+    sqlite.exec(`ALTER TABLE findings ADD COLUMN trello_card_url TEXT;`);
+  } catch {
+    // Column already exists, ignore
+  }
 }
 
 // ============================================================================

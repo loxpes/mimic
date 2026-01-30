@@ -303,6 +303,7 @@ export interface AgentContext {
   history: AgentHistory;
   memory: AgentMemory;
   existingFindings?: ExistingFindingsContext;
+  language?: string;        // Response language for the agent
 }
 
 export type ObjectiveStatus = 'pursuing' | 'blocked' | 'completed' | 'abandoned';
@@ -348,6 +349,7 @@ export interface LLMConfig {
   maxTokens?: number;
   baseUrl?: string;         // For custom/ollama
   apiKey?: string;
+  language?: string;        // Response language (es, en, pt, fr, de)
 }
 
 export interface VisionConfig {
@@ -417,6 +419,25 @@ export type FindingType = 'ux-issue' | 'bug' | 'accessibility' | 'performance' |
 export type FindingSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type FindingGroupStatus = 'open' | 'acknowledged' | 'resolved' | 'wont-fix';
 
+export interface ConsoleLogEntry {
+  level: string;
+  message: string;
+  timestamp: number;
+}
+
+export interface FindingEvidence {
+  screenshotPath?: string;
+  consoleLogs?: ConsoleLogEntry[];
+  actionContext?: {
+    actionNumber: number;
+    previousActions?: Array<{
+      type: string;
+      target?: string;
+      success: boolean;
+    }>;
+  };
+}
+
 export interface Finding {
   id: string;
   type: FindingType;
@@ -430,6 +451,7 @@ export interface Finding {
   groupId?: string;
   fingerprint?: string;
   isDuplicate?: boolean;
+  evidence?: FindingEvidence;
 }
 
 export interface KnownIssue {

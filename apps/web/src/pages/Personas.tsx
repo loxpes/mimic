@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { ImportDialog } from '@/components/shared/ImportDialog';
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog';
 
 export function Personas() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data: personas = [], isLoading } = useQuery({
@@ -103,9 +105,9 @@ export function Personas() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Personas</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('personas.title')}</h1>
           <p className="text-muted-foreground">
-            AI agents with unique personalities and behaviors
+            {t('personas.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -115,7 +117,7 @@ export function Personas() {
           </Button>
           <Button onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
-            New Persona
+            {t('common.create')}
           </Button>
         </div>
       </div>
@@ -127,11 +129,9 @@ export function Personas() {
             <Brain className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold mb-1">AI-Powered Personas</h3>
+            <h3 className="font-semibold mb-1">{t('dashboard.personasDesc')}</h3>
             <p className="text-sm text-muted-foreground">
-              Personas are defined in natural language. The AI agent embodies each persona's
-              characteristics, making decisions based on their personality, tech-savviness,
-              and behavioral tendencies.
+              {t('personas.noPersonasDesc')}
             </p>
           </div>
         </CardContent>
@@ -139,14 +139,14 @@ export function Personas() {
 
       {/* Personas Grid */}
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading personas...</div>
+        <div className="text-center py-12 text-muted-foreground">{t('common.loading')}</div>
       ) : personas.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground">No personas defined yet</p>
+            <p className="text-muted-foreground">{t('personas.noPersonas')}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Create a new persona or import from YAML
+              {t('personas.noPersonasDesc')}
             </p>
             <div className="flex justify-center gap-2 mt-4">
               <Button variant="outline" onClick={() => setImportOpen(true)}>
@@ -155,7 +155,7 @@ export function Personas() {
               </Button>
               <Button onClick={handleCreate}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Persona
+                {t('common.create')}
               </Button>
             </div>
           </CardContent>
@@ -184,7 +184,7 @@ export function Personas() {
                       </div>
                       <div>
                         <CardTitle>{persona.name}</CardTitle>
-                        <CardDescription>Added {formatDate(persona.createdAt)}</CardDescription>
+                        <CardDescription>{formatDate(persona.createdAt)}</CardDescription>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -212,7 +212,7 @@ export function Personas() {
                     <div>
                       <div className="flex items-center gap-2 text-sm font-medium mb-1">
                         <Heart className="h-4 w-4 text-pink-500" />
-                        Identity
+                        {t('personas.identity')}
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-3">
                         {definition.identity}
@@ -225,7 +225,7 @@ export function Personas() {
                     <div>
                       <div className="flex items-center gap-2 text-sm font-medium mb-1">
                         <Zap className="h-4 w-4 text-yellow-500" />
-                        Tech Profile
+                        {t('personas.techProfile')}
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {definition.techProfile}
@@ -236,7 +236,7 @@ export function Personas() {
                   {/* Tendencies */}
                   {definition.tendencies && definition.tendencies.length > 0 && (
                     <div>
-                      <div className="text-sm font-medium mb-2">Behavioral Tendencies</div>
+                      <div className="text-sm font-medium mb-2">{t('personas.tendencies')}</div>
                       <div className="flex flex-wrap gap-1">
                         {definition.tendencies.slice(0, 4).map((tendency, i) => (
                           <Badge key={i} variant="secondary" className="text-xs">
@@ -245,7 +245,7 @@ export function Personas() {
                         ))}
                         {definition.tendencies.length > 4 && (
                           <Badge variant="secondary" className="text-xs">
-                            +{definition.tendencies.length - 4} more
+                            +{definition.tendencies.length - 4}
                           </Badge>
                         )}
                       </div>
@@ -284,7 +284,7 @@ export function Personas() {
         onImport={handleImport}
         parseYaml={parseYamlForImport}
         title="Import Personas"
-        description="Upload a YAML file containing persona definitions"
+        description={t('personas.noPersonasDesc')}
         itemName="persona"
       />
 
@@ -292,8 +292,8 @@ export function Personas() {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         onConfirm={handleConfirmDelete}
-        title="Delete Persona"
-        description={`Are you sure you want to delete "${selectedPersona?.name}"? This action cannot be undone.`}
+        title={t('common.delete')}
+        description={`${t('common.delete')} "${selectedPersona?.name}"?`}
         isDeleting={deleteMutation.isPending}
       />
     </div>

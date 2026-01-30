@@ -15,6 +15,7 @@ import type {
   VisionConfig,
   SessionMetrics,
   Finding,
+  FindingEvidence,
   PersonaContext,
   ObjectiveContext,
   ExistingFindingsContext,
@@ -105,6 +106,8 @@ export class Agent {
   private shouldStop: boolean = false;
   /** Current unified elements from hybrid DOM + Vision extraction */
   private unifiedElements: UnifiedElement[] = [];
+  /** Current screenshot path for findings evidence */
+  private currentScreenshotPath: string | undefined;
 
   constructor(config: AgentConfig, events: AgentEvents = {}) {
     this.config = config;
@@ -271,6 +274,7 @@ ${persona.context}`;
       history: this.history,
       memory: this.memory,
       existingFindings: this.config.existingFindings,
+      language: this.config.llm.language,
     };
   }
 
@@ -415,6 +419,20 @@ ${persona.context}`;
       }
     }
 
+    // Build evidence with screenshot, console logs, and action context
+    const evidence: FindingEvidence = {
+      screenshotPath: this.currentScreenshotPath,
+      consoleLogs: this.browser?.getRecentConsoleLogs(10),
+      actionContext: {
+        actionNumber: this.actionCount,
+        previousActions: this.history.recentActions.slice(-3).map(a => ({
+          type: a.action.type,
+          target: a.action.target?.description,
+          success: a.success,
+        })),
+      },
+    };
+
     const finding: Finding = {
       id: nanoid(),
       type,
@@ -427,6 +445,7 @@ ${persona.context}`;
       groupId,
       fingerprint,
       isDuplicate,
+      evidence,
     };
 
     this.findings.push(finding);
@@ -492,6 +511,7 @@ ${persona.context}`;
               this.actionCount + 1,
               screenshot
             );
+            this.currentScreenshotPath = screenshotPath; // Store for findings evidence
             console.log(`[Agent] Screenshot saved: ${screenshotPath}`);
           } catch (err) {
             console.warn('[Agent] Failed to save screenshot:', err);

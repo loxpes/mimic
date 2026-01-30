@@ -70,6 +70,7 @@ export interface CreateSessionInput {
   personaId: string;
   objectiveId: string;
   targetUrl: string;
+  projectId?: string;
   llmConfig?: Record<string, unknown>;
   visionConfig?: Record<string, unknown>;
 }
@@ -78,6 +79,7 @@ export interface CreateBatchSessionInput {
   targetUrl: string;
   personaIds: string[];
   objectiveIds: string[];
+  projectId?: string;
   llmConfig?: Record<string, unknown>;
   visionConfig?: Record<string, unknown>;
 }
@@ -328,8 +330,135 @@ export const projectsApi = {
       method: 'POST',
       body: JSON.stringify({ sessionIds }),
     }),
+  removeSessions: (id: string, sessionIds: string[]) =>
+    request<{ message: string; stats: ProjectStats }>(`/projects/${id}/sessions`, {
+      method: 'DELETE',
+      body: JSON.stringify({ sessionIds }),
+    }),
   refreshStats: (id: string) =>
     request<Project>(`/projects/${id}/refresh-stats`, {
       method: 'POST',
     }),
 };
+
+// Trello Integration
+export interface TrelloBoardStructure {
+  lists: Array<{ id: string; name: string; cardCount?: number }>;
+  labels: Array<{ id: string; name: string; color: string }>;
+  analyzedAt: number;
+  recommendedLists?: Record<string, string>;
+  labelMapping?: Record<string, string>;
+}
+
+export interface TrelloConfig {
+  accessToken: string;
+  tokenSecret?: string;
+  boardId: string;
+  boardName: string;
+  boardStructure?: TrelloBoardStructure;
+}
+
+export interface TrelloIntegration {
+  id: string;
+  projectId: string;
+  type: 'trello';
+  config: TrelloConfig;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TrelloBoard {
+  id: string;
+  name: string;
+  url: string;
+}
+
+export interface TrelloStatus {
+  connected: boolean;
+  integration?: TrelloIntegration;
+  boards?: TrelloBoard[];
+}
+
+export interface TrelloCard {
+  id: string;
+  name: string;
+  url: string;
+  shortUrl: string;
+}
+
+export const trelloApi = {
+  getAuthUrl: async (projectId: string) => {
+    const result = await request<{ authUrl: string; state: string }>(`/integrations/trello/auth/${projectId}`);
+    return result;
+  },
+
+  getStatus: (projectId: string) =>
+    request<TrelloStatus>(`/integrations/trello/${projectId}/status`),
+
+  getBoards: async (projectId: string) => {
+    const result = await request<{ boards: TrelloBoard[] }>(`/integrations/trello/${projectId}/boards`);
+    return result.boards;
+  },
+
+  selectBoard: (projectId: string, boardId: string, boardName: string) =>
+    request<TrelloIntegration>(`/integrations/trello/${projectId}/board`, {
+      method: 'POST',
+      body: JSON.stringify({ boardId, boardName }),
+    }),
+
+  analyzeBoard: (projectId: string) =>
+    request<{ boardStructure: TrelloBoardStructure }>(`/integrations/trello/${projectId}/analyze`, {
+      method: 'POST',
+    }),
+
+  createCard: (projectId: string, finding: { id: string; type: string; severity: string; description: string; personaPerspective: string; url: string; evidence?: Record<string, unknown> }) =>
+    request<TrelloCard>(`/integrations/trello/${projectId}/cards`, {
+      method: 'POST',
+      body: JSON.stringify({ finding }),
+    }),
+
+  disconnect: (projectId: string) =>
+    request<{ message: string }>(`/integrations/trello/${projectId}`, {
+      method: 'DELETE',
+    }),
+
+  getSyncPreview: (projectId: string) =>
+    request<TrelloSyncPreview>(`/integrations/trello/${projectId}/sync-preview`),
+
+  syncFindings: (projectId: string, findingIds: string[]) =>
+    request<TrelloSyncResult>(`/integrations/trello/${projectId}/sync`, {
+      method: 'POST',
+      body: JSON.stringify({ findingIds }),
+    }),
+};
+
+// Types for sync
+export interface TrelloFindingPreview {
+  id: string;
+  type: string;
+  severity: string;
+  description: string;
+  url: string;
+  sessionId: string;
+  targetList: { id: string; name: string } | null;
+  targetLabel?: { id: string; name: string; color: string };
+  alreadySynced: boolean;
+  trelloCardUrl?: string;
+}
+
+export interface TrelloSyncPreview {
+  findings: TrelloFindingPreview[];
+  summary: {
+    total: number;
+    toCreate: number;
+    alreadySynced: number;
+    byList: Record<string, number>;
+  };
+}
+
+export interface TrelloSyncResult {
+  created: number;
+  failed: number;
+  cards: Array<{ findingId: string; cardId: string; cardUrl: string }>;
+  errors: Array<{ findingId: string; error: string }>;
+}

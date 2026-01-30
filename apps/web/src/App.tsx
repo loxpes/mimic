@@ -8,6 +8,8 @@ import { Objectives } from './pages/Objectives';
 import { Features } from './pages/Features';
 import { Projects } from './pages/Projects';
 import { ProjectDetail } from './pages/ProjectDetail';
+import { TrelloCallback } from './pages/TrelloCallback';
+import { Settings } from './pages/Settings';
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
         <Route path="/features" element={<Features />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />
+        <Route path="/integrations/trello/callback" element={<TrelloCallback />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </Layout>
   );

@@ -272,6 +272,8 @@ export const findings = sqliteTable('findings', {
     errorMessage?: string;
     additionalContext?: string;
   }>(),
+  trelloCardId: text('trello_card_id'),
+  trelloCardUrl: text('trello_card_url'),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -304,6 +306,39 @@ export const sessionReports = sqliteTable('session_reports', {
   }>(),
   recommendations: text('recommendations', { mode: 'json' }).$type<string[]>(),
   createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================================
+// Integrations Table
+// ============================================================================
+
+export interface TrelloBoardStructure {
+  lists: Array<{ id: string; name: string; cardCount?: number }>;
+  labels: Array<{ id: string; name: string; color: string }>;
+  analyzedAt: number;
+  recommendedLists?: Record<string, string>;
+  labelMapping?: Record<string, string>;
+}
+
+export interface TrelloConfig {
+  accessToken: string;
+  tokenSecret?: string;
+  boardId: string;
+  boardName: string;
+  boardStructure?: TrelloBoardStructure;
+}
+
+export const integrations = sqliteTable('integrations', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id),
+  type: text('type').notNull(),  // 'trello', 'jira', etc.
+  config: text('config', { mode: 'json' }).$type<TrelloConfig>(),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
 });
