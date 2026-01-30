@@ -1,16 +1,15 @@
-objective:
-  name: "Anadir Tareas por Chat"
+name: "Anadir Tareas por Chat"
 
-  goal: |
-    Usa el chat de Evy para crear tareas usando lenguaje natural.
-    Por ejemplo: "Anademe una tarea para revisar la propuesta del cliente X para el viernes".
-    Verifica que la tarea se ha creado correctamente y aparece visible.
+goal: |
+  Usa el chat de Evy para crear tareas usando lenguaje natural.
+  Por ejemplo: "Anademe una tarea para revisar la propuesta del cliente X para el viernes".
+  Verifica que la tarea se ha creado correctamente y aparece visible.
 
-  autonomy:
-    level: goal-directed
-    bounds:
-      maxActions: 25
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 25
 
-  successCriteria:
-    type: element-present
-    condition: "[data-task], .task-item, .task-card, [class*='task']"
+successCriteria:
+  type: element-present
+  condition: "[data-task], .task-item, .task-card, [class*='task']"

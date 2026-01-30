@@ -1,26 +1,25 @@
-objective:
-  name: "Flujo Completo: Documento a Plan"
+name: "Flujo Completo: Documento a Plan"
 
-  goal: |
-    Completa el flujo principal de Evy de principio a fin:
-    1. Crea un proyecto para un cliente
-    2. Sube o crea un documento (brief, propuesta, notas)
-    3. Deja que Evy extraiga tareas y compromisos
-    4. Pide un plan semanal basado en esas tareas
+goal: |
+  Completa el flujo principal de Evy de principio a fin:
+  1. Crea un proyecto para un cliente
+  2. Sube o crea un documento (brief, propuesta, notas)
+  3. Deja que Evy extraiga tareas y compromisos
+  4. Pide un plan semanal basado en esas tareas
 
-    Este es el "wedge" principal de Evy: del documento al plan accionable.
+  Este es el "wedge" principal de Evy: del documento al plan accionable.
 
-  autonomy:
-    level: semi-guided
-    bounds:
-      maxActions: 50
+autonomy:
+  level: semi-guided
+  bounds:
+    maxActions: 50
 
-  successCriteria:
-    type: element-present
-    condition: "[data-plan], .weekly-plan, .day-plan, [class*='plan']"
+successCriteria:
+  type: element-present
+  condition: "[data-plan], .weekly-plan, .day-plan, [class*='plan']"
 
-  guidedSteps:
-    - "Navega a la seccion de proyectos y crea uno nuevo"
-    - "Sube un documento o crea uno con notas del proyecto"
-    - "Pide a Evy que analice el documento y extraiga tareas"
-    - "Solicita un plan de semana con las tareas identificadas"
+guidedSteps:
+  - "Navega a la seccion de proyectos y crea uno nuevo"
+  - "Sube un documento o crea uno con notas del proyecto"
+  - "Pide a Evy que analice el documento y extraiga tareas"
+  - "Solicita un plan de semana con las tareas identificadas"

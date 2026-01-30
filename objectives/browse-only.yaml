@@ -1,19 +1,18 @@
-objective:
-  name: "Solo Navegacion"
+name: "Solo Navegacion"
 
-  goal: |
-    Navega por la web, mira productos, lee descripciones y resenas.
-    No compres nada ni anadas productos al carrito.
+goal: |
+  Navega por la web, mira productos, lee descripciones y resenas.
+  No compres nada ni anadas productos al carrito.
 
-  autonomy:
-    level: restricted
-    bounds:
-      maxPages: 10
-      maxActions: 40
-    restrictions:
-      - "Nunca hacer clic en botones de 'Anadir al Carrito', 'Comprar', 'Buy', 'Add to Cart'"
-      - "No introducir informacion de pago"
-      - "No completar formularios de registro o checkout"
+autonomy:
+  level: restricted
+  bounds:
+    maxPages: 10
+    maxActions: 40
+  restrictions:
+    - "Nunca hacer clic en botones de 'Anadir al Carrito', 'Comprar', 'Buy', 'Add to Cart'"
+    - "No introducir informacion de pago"
+    - "No completar formularios de registro o checkout"
 
-  successCriteria:
-    type: none
+successCriteria:
+  type: none

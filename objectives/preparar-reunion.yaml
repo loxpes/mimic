@@ -1,16 +1,15 @@
-objective:
-  name: "Preparar Reunion con Cliente"
+name: "Preparar Reunion con Cliente"
 
-  goal: |
-    Pide a Evy que te ayude a preparar una reunion con un cliente.
-    Solicita un briefing con el contexto del proyecto, acuerdos pendientes y puntos a tratar.
-    Verifica que Evy genera informacion util basada en el contexto del proyecto.
+goal: |
+  Pide a Evy que te ayude a preparar una reunion con un cliente.
+  Solicita un briefing con el contexto del proyecto, acuerdos pendientes y puntos a tratar.
+  Verifica que Evy genera informacion util basada en el contexto del proyecto.
 
-  autonomy:
-    level: goal-directed
-    bounds:
-      maxActions: 25
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 25
 
-  successCriteria:
-    type: element-present
-    condition: "[data-briefing], .meeting-prep, .briefing, [class*='preparation']"
+successCriteria:
+  type: element-present
+  condition: "[data-briefing], .meeting-prep, .briefing, [class*='preparation']"

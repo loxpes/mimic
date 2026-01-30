@@ -1,16 +1,15 @@
-objective:
-  name: "Exploracion General"
+name: "Exploracion General"
 
-  goal: |
-    Explora la web como lo harias en tu primera visita.
-    Descubre que ofrece, como esta organizada, y que te parece la experiencia.
+goal: |
+  Explora la web como lo harias en tu primera visita.
+  Descubre que ofrece, como esta organizada, y que te parece la experiencia.
 
-  autonomy:
-    level: exploration
-    bounds:
-      maxPages: 15
-      maxDuration: 10
-      maxActions: 50
+autonomy:
+  level: exploration
+  bounds:
+    maxPages: 15
+    maxDuration: 10
+    maxActions: 50
 
-  successCriteria:
-    type: none
+successCriteria:
+  type: none

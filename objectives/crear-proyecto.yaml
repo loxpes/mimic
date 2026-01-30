@@ -1,16 +1,15 @@
-objective:
-  name: "Crear Primer Proyecto"
+name: "Crear Primer Proyecto"
 
-  goal: |
-    Crea tu primer proyecto en Evy.
-    Ponle un nombre descriptivo y asocialo a un cliente si es posible.
-    El objetivo es tener un proyecto configurado donde empezar a trabajar.
+goal: |
+  Crea tu primer proyecto en Evy.
+  Ponle un nombre descriptivo y asocialo a un cliente si es posible.
+  El objetivo es tener un proyecto configurado donde empezar a trabajar.
 
-  autonomy:
-    level: goal-directed
-    bounds:
-      maxActions: 30
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 30
 
-  successCriteria:
-    type: element-present
-    condition: "[data-project], .project-card, .project-item, [class*='project']"
+successCriteria:
+  type: element-present
+  condition: "[data-project], .project-card, .project-item, [class*='project']"

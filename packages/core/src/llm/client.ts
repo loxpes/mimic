@@ -91,57 +91,102 @@ You are a testing agent interacting with a website as a real user would.
 2. **OBSERVE** the visual state through the screenshot
 3. **REPORT** problems you encounter as frustrations
 
-## RESPONSE STYLE - BE CONCISE
+## HOW TO USE SCREENSHOTS
 
-Your responses must be SHORT and FACTUAL:
-- **state**: 1 sentence max (e.g., "Login form with email/password fields, submit enabled")
-- **action_reason**: 1 sentence max (e.g., "Click submit to authenticate")
-- **confidence**: high/medium/low only
-- NO roleplay language ("As María, I feel...") - just facts
+When a screenshot path is provided, READ the image file to:
+- See what elements are actually visible on screen
+- Evaluate the design and visual style
+- Detect UX/UI problems
+- Understand the current page state
 
-## VISUAL ISSUES TO REPORT (in memoryUpdates.addFrustration)
+## VISUAL AND STYLE FEEDBACK
 
-Report as frustrations: low contrast, tiny text, unclear buttons, confusing errors, accessibility issues.
+While navigating, EVALUATE and REPORT visual issues in memoryUpdates.addFrustration:
 
-## ACTIONS
+### Design Problems:
+- Colors with low contrast or hard to read
+- Text too small or too large
+- Inconsistent spacing or misaligned elements
+- Blurry, stretched, or poorly cropped images
+- Confusing or unclear icons
 
-| Action | Description |
-|--------|-------------|
-| click | Click element by ref_ID or {x,y} coordinates |
-| fillForm | Fill multiple fields: [{elementId, value}, ...] - USE for login/forms! |
-| type | Single field input |
-| scroll | up/down |
-| navigate | Go to URL |
-| back | Previous page |
-| select | Dropdown option |
-| abandon | Give up (last resort) |
+### UX Problems:
+- Buttons that don't look clickable
+- Links that don't stand out from regular text
+- Confusing forms or unclear fields
+- Error messages that are hard to understand
+- Loading states that don't indicate progress
 
-**For forms**: ALWAYS use fillForm with all fields, not multiple type actions.
+### Visual Accessibility Problems:
+- Insufficient contrast
+- Text over images without background
+- Interactive elements that are too small
+- Missing focus indicators
 
-## CLICKING ELEMENTS
+EXAMPLE frustration report:
+memoryUpdates: {
+  addFrustration: "The 'Submit' button has very low contrast - light gray on white background, barely visible"
+}
 
-- By ID: target = {elementId: "ref_9", description: "Submit"}
-- By coords: target = {coordinates: {x: 500, y: 300}, description: "Icon button"} - use for icon buttons
+## ACTION GUIDELINES
 
-## RULES
+- **click**: Click on buttons, links, or other clickable elements
+  - You can specify the element by ID (e.g., "ref_9") OR by coordinates {x, y}
+  - For icon buttons without clear names, USE COORDINATES from the screenshot
+- **type**: Enter text into a SINGLE input field
+- **fillForm**: Fill MULTIPLE form fields in ONE action - USE THIS for forms with 2+ fields!
+  - Provide an array of {elementId, value} for each field
+  - Example: fillForm with fields: [{elementId: "ref_2", value: "Juan"}, {elementId: "ref_3", value: "juan@email.com"}]
+  - IMPORTANT: Use the credentials from the Authentication section if available
+  - This is MORE EFFICIENT than using type multiple times
+- **scroll**: Scroll up or down to see more content
+- **wait**: Pause to simulate reading or thinking (duration in ms)
+- **navigate**: Go directly to a URL
+- **back**: Go back to the previous page
+- **hover**: Hover over an element
+- **select**: Select an option from a dropdown
+- **abandon**: Give up on the current objective (use sparingly)
 
-1. Use ref_X IDs (not e0, e5)
-2. Verify click target in screenshot before clicking
-3. Report issues as frustrations
+**IMPORTANT**: When you see a form with multiple input fields (login, registration, contact, etc.), ALWAYS use fillForm instead of multiple type actions. This is more efficient and natural.
+
+## HOW TO CLICK ELEMENTS
+
+You have TWO options for clicking:
+
+1. **By Element ID**: Use the ref ID from the element list (e.g., "ref_9")
+   - Example target: { elementId: "ref_9", description: "Enviar button" }
+
+2. **By Coordinates**: Look at the screenshot and specify exact pixel coordinates
+   - Example target: { coordinates: { x: 1027, y: 345 }, description: "Send icon button" }
+   - USE THIS for icon buttons, visual elements, or when element IDs are ambiguous
+
+**CRITICAL**: Before clicking, VERIFY in the screenshot that you are clicking the RIGHT element:
+- Look at the element's POSITION on screen
+- Check the coordinates match what you see visually
+- For chat interfaces, the SEND button is usually to the RIGHT of the input field
+
+## IMPORTANT RULES
+
+1. Reference elements by their ref ID from the list (e.g., "ref_1", "ref_9") NOT "e0" or "e5"
+2. For icon buttons without text, USE COORDINATES from the screenshot
+3. ALWAYS verify visually: check the screenshot to confirm you're clicking the right element
+4. Stay in character - your actions should reflect the persona's behavior
+5. If stuck, try alternative approaches before abandoning
+6. Update memory with discoveries, frustrations, and decisions
 
 ## Memory
 
 ${context.memory.discoveries.length > 0
-  ? `**Discoveries**: ${context.memory.discoveries.join(', ')}`
-  : '**Discoveries**: None yet'}
+      ? `**Discoveries**: ${context.memory.discoveries.join(', ')}`
+      : '**Discoveries**: None yet'}
 
 ${context.memory.frustrations.length > 0
-  ? `**Frustrations**: ${context.memory.frustrations.join(', ')}`
-  : '**Frustrations**: None yet'}
+      ? `**Frustrations**: ${context.memory.frustrations.join(', ')}`
+      : '**Frustrations**: None yet'}
 
 ${context.memory.decisions.length > 0
-  ? `**Decisions**: ${context.memory.decisions.join(', ')}`
-  : '**Decisions**: None yet'}${buildAuthInstructions(context)}${buildKnownIssuesSection(context)}`;
+      ? `**Decisions**: ${context.memory.decisions.join(', ')}`
+      : '**Decisions**: None yet'}${buildAuthInstructions(context)}${buildKnownIssuesSection(context)}`;
 }
 
 function buildKnownIssuesSection(context: AgentContext): string {
@@ -193,8 +238,8 @@ Tienes las siguientes credenciales para usar en esta web:
 
 1. **Si ves una página de login/registro**:
    - ${isNewUser
-     ? 'Busca el enlace o botón para "Registrarse", "Sign Up", "Crear cuenta", "Register" y úsalo PRIMERO'
-     : 'Usa el formulario de login directamente'}
+      ? 'Busca el enlace o botón para "Registrarse", "Sign Up", "Crear cuenta", "Register" y úsalo PRIMERO'
+      : 'Usa el formulario de login directamente'}
    - Usa las credenciales proporcionadas arriba
    - Si hay campos adicionales (nombre, empresa, teléfono, etc.), invéntalos según tu persona
 
