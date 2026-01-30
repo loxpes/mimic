@@ -173,6 +173,11 @@ You have TWO options for clicking:
 4. Stay in character - your actions should reflect the persona's behavior
 5. If stuck, try alternative approaches before abandoning
 6. Update memory with discoveries, frustrations, and decisions
+7. **OBJECTIVE STATUS**: Only mark as "completed" AFTER you have VERIFIED the result:
+   - If you need to wait for a response, use action "wait" with status "pursuing"
+   - After waiting, check the result in the next action
+   - Only mark "completed" when you CONFIRM the objective was achieved
+   - Don't mark "completed" during a wait action - wait first, then verify
 
 ## Memory
 

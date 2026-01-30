@@ -538,10 +538,19 @@ ${persona.context}`;
         });
 
         // Check objective status
+        // IMPORTANT: If action is 'wait', don't end session yet - let it continue to verify after waiting
+        const isWaitAction = decision.action.type === 'wait';
+
         if (decision.progress.objectiveStatus === 'completed') {
-          outcome = 'completed';
-          summary = 'Objective completed successfully';
-          break;
+          if (isWaitAction) {
+            // Wait action with "completed" status = agent wants to verify
+            // Continue to next iteration to confirm after the wait
+            console.log('[Agent] Wait action with completed status - continuing to verify...');
+          } else {
+            outcome = 'completed';
+            summary = 'Objective completed successfully';
+            break;
+          }
         }
 
         if (decision.progress.objectiveStatus === 'abandoned') {
