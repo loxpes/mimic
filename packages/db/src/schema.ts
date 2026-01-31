@@ -96,12 +96,69 @@ export const projects = sqliteTable('projects', {
 });
 
 // ============================================================================
+// Session Chains Table (Multi-Day Persistent Sessions)
+// ============================================================================
+
+export const sessionChains = sqliteTable('session_chains', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').references(() => projects.id),
+  personaId: text('persona_id').notNull().references(() => personas.id),
+  objectiveId: text('objective_id').notNull().references(() => objectives.id),
+  targetUrl: text('target_url').notNull(),
+  name: text('name'),
+  llmConfig: text('llm_config', { mode: 'json' }).$type<{
+    provider: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'custom';
+    model: string;
+    temperature?: number;
+    maxTokens?: number;
+    baseUrl?: string;
+    language?: string;
+  }>(),
+  visionConfig: text('vision_config', { mode: 'json' }).$type<{
+    screenshotInterval: number;
+    screenshotOnLowConfidence: boolean;
+    confidenceThreshold: number;
+  }>(),
+  status: text('status').notNull().default('active').$type<'active' | 'paused' | 'completed' | 'archived'>(),
+  sessionCount: integer('session_count').notNull().default(0),
+  schedule: text('schedule', { mode: 'json' }).$type<{
+    enabled: boolean;
+    cronExpression?: string;
+    nextRunAt?: number;
+    timezone?: string;
+    maxSessions?: number;
+  }>(),
+  persistentMemory: text('persistent_memory', { mode: 'json' }).$type<{
+    discoveries: string[];
+    frustrations: string[];
+    decisions: string[];
+    visitedPages: string[];
+  }>(),
+  aggregatedScore: text('aggregated_score', { mode: 'json' }).$type<{
+    totalSessions: number;
+    weightedScore: number;
+    scores: Array<{ sessionId: string; score: number; weight: number; timestamp: number }>;
+    trend: 'improving' | 'stable' | 'declining' | null;
+  }>(),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================================
 // Sessions Table
 // ============================================================================
 
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
   projectId: text('project_id').references(() => projects.id),
+  // Chain support
+  parentChainId: text('parent_chain_id').references(() => sessionChains.id),
+  chainSequence: integer('chain_sequence'),
+  scheduledAt: integer('scheduled_at', { mode: 'timestamp' }),
   personaId: text('persona_id').notNull().references(() => personas.id),
   objectiveId: text('objective_id').notNull().references(() => objectives.id),
   targetUrl: text('target_url').notNull(),
@@ -152,6 +209,24 @@ export const sessions = sqliteTable('sessions', {
     .notNull()
     .default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ============================================================================
+// Scheduled Tasks Table
+// ============================================================================
+
+export const scheduledTasks = sqliteTable('scheduled_tasks', {
+  id: text('id').primaryKey(),
+  type: text('type').notNull().$type<'chain_continue' | 'session_start'>(),
+  targetId: text('target_id').notNull(),
+  scheduledAt: integer('scheduled_at', { mode: 'timestamp' }).notNull(),
+  status: text('status').notNull().default('pending').$type<'pending' | 'running' | 'completed' | 'failed' | 'cancelled'>(),
+  attempts: integer('attempts').notNull().default(0),
+  lastAttemptAt: integer('last_attempt_at', { mode: 'timestamp' }),
+  error: text('error'),
+  createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -370,3 +445,9 @@ export type NewFinding = typeof findings.$inferInsert;
 
 export type SessionReport = typeof sessionReports.$inferSelect;
 export type NewSessionReport = typeof sessionReports.$inferInsert;
+
+export type SessionChain = typeof sessionChains.$inferSelect;
+export type NewSessionChain = typeof sessionChains.$inferInsert;
+
+export type ScheduledTask = typeof scheduledTasks.$inferSelect;
+export type NewScheduledTask = typeof scheduledTasks.$inferInsert;

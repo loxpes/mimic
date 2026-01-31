@@ -67,3 +67,11 @@ export { generateSessionReport, generateSessionReportBasic } from './reports/ind
 
 // Export utilities
 export { saveScreenshot, getScreenshotPath } from './utils/screenshot-storage.js';
+export {
+  calculateWeight,
+  calculateWeightedAverage,
+  calculateTrend,
+  addScoreToAggregate,
+  mergeMemoryArray,
+  mergeVisitedPages,
+} from './utils/rating.js';

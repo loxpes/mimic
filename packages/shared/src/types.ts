@@ -304,6 +304,7 @@ export interface AgentContext {
   memory: AgentMemory;
   existingFindings?: ExistingFindingsContext;
   language?: string;        // Response language for the agent
+  chainContext?: ChainContext;  // Multi-session chain context
 }
 
 export type ObjectiveStatus = 'pursuing' | 'blocked' | 'completed' | 'abandoned';
@@ -548,4 +549,70 @@ export interface AgentResult {
 export interface Agent {
   run(): Promise<AgentResult>;
   stop(): void;
+}
+
+// ============================================================================
+// Session Chain Types (Multi-Day Persistent Sessions)
+// ============================================================================
+
+export interface ChainSchedule {
+  enabled: boolean;
+  cronExpression?: string;  // "0 9 * * 1-5" (weekdays 9am)
+  nextRunAt?: number;       // Unix timestamp
+  timezone?: string;
+  maxSessions?: number;     // Optional limit
+}
+
+export interface PersistentMemory {
+  discoveries: string[];
+  frustrations: string[];
+  decisions: string[];
+  visitedPages: string[];
+}
+
+export interface ChainScoreEntry {
+  sessionId: string;
+  score: number;
+  weight: number;
+  timestamp: number;
+}
+
+export interface AggregatedScore {
+  totalSessions: number;
+  weightedScore: number;
+  scores: ChainScoreEntry[];
+  trend: 'improving' | 'stable' | 'declining' | null;
+}
+
+export type SessionChainStatus = 'active' | 'paused' | 'completed' | 'archived';
+
+export interface SessionChain {
+  id: string;
+  projectId?: string;
+  personaId: string;
+  objectiveId: string;
+  targetUrl: string;
+  name?: string;
+  llmConfig?: LLMConfig;
+  visionConfig?: VisionConfig;
+  status: SessionChainStatus;
+  sessionCount: number;
+  schedule?: ChainSchedule;
+  persistentMemory?: PersistentMemory;
+  aggregatedScore?: AggregatedScore;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ChainContext {
+  chainId: string;
+  sequence: number;
+  visitedPages: string[];
+  totalPreviousActions: number;
+}
+
+// Extended AgentConfig for chain support
+export interface AgentConfigWithChain extends AgentConfig {
+  initialMemory?: AgentMemory;
+  chainContext?: ChainContext;
 }

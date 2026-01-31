@@ -9,6 +9,18 @@ TestFarm is an AI-powered browser testing agent farm. The LLM serves as the "bra
 - **DECIDE**: LLM analyzes context (persona + objective + page state)
 - **ACT**: Playwright executes the LLM's decision
 
+## Development Principles
+
+### TDD (Test-Driven Development)
+
+**ALWAYS follow TDD when writing code in this project.** The workflow is:
+
+1. **RED**: Write a failing test first that defines the expected behavior
+2. **GREEN**: Write the minimum code necessary to make the test pass
+3. **REFACTOR**: Clean up the code while keeping tests green
+
+This applies to all code changes: new features, bug fixes, and refactors.
+
 ## Build & Development Commands
 
 ```bash

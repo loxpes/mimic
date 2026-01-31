@@ -214,7 +214,39 @@ ${context.memory.frustrations.length > 0
 
 ${context.memory.decisions.length > 0
       ? `**Decisions**: ${context.memory.decisions.join(', ')}`
-      : '**Decisions**: None yet'}${buildAuthInstructions(context)}${buildKnownIssuesSection(context)}`;
+      : '**Decisions**: None yet'}${buildChainContextSection(context)}${buildAuthInstructions(context)}${buildKnownIssuesSection(context)}`;
+}
+
+function buildChainContextSection(context: AgentContext): string {
+  const { chainContext } = context;
+
+  if (!chainContext) {
+    return '';
+  }
+
+  return `
+
+# Session Chain Context
+
+**IMPORTANT**: This is session #${chainContext.sequence} in an ongoing multi-day testing journey.
+
+You have been testing this site over multiple sessions. Here's your accumulated context:
+
+## Previous Progress
+- **Total actions across all previous sessions**: ${chainContext.totalPreviousActions}
+- **Pages you've already explored**: ${chainContext.visitedPages.length > 0
+    ? chainContext.visitedPages.slice(-10).join(', ')
+    : 'None recorded'}
+
+## Your Accumulated Knowledge
+The discoveries, frustrations, and decisions listed in the Memory section above include knowledge from previous sessions.
+
+## Continuation Guidelines
+1. **Build on previous work**: Don't repeat explorations you've already done
+2. **Remember your context**: Use your accumulated knowledge to make better decisions
+3. **Focus on depth**: Since you've already explored the surface, go deeper into specific features
+4. **Track new findings**: Any NEW discoveries or frustrations should be added to memory
+5. **Be efficient**: Skip steps you've already completed in previous sessions`;
 }
 
 function buildKnownIssuesSection(context: AgentContext): string {

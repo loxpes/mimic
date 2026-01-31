@@ -339,6 +339,18 @@ export const projectsApi = {
     request<Project>(`/projects/${id}/refresh-stats`, {
       method: 'POST',
     }),
+  getChains: (id: string) =>
+    request<SessionChain[]>(`/projects/${id}/chains`),
+  addChains: (id: string, chainIds: string[]) =>
+    request<{ message: string }>(`/projects/${id}/chains`, {
+      method: 'POST',
+      body: JSON.stringify({ chainIds }),
+    }),
+  removeChains: (id: string, chainIds: string[]) =>
+    request<{ message: string }>(`/projects/${id}/chains`, {
+      method: 'DELETE',
+      body: JSON.stringify({ chainIds }),
+    }),
 };
 
 // Trello Integration
@@ -462,3 +474,118 @@ export interface TrelloSyncResult {
   cards: Array<{ findingId: string; cardId: string; cardUrl: string }>;
   errors: Array<{ findingId: string; error: string }>;
 }
+
+// Session Chains (Multi-Day Persistent Sessions)
+export interface ChainSchedule {
+  enabled: boolean;
+  cronExpression?: string;
+  nextRunAt?: number;
+  timezone?: string;
+  maxSessions?: number;
+}
+
+export interface PersistentMemory {
+  discoveries: string[];
+  frustrations: string[];
+  decisions: string[];
+  visitedPages: string[];
+}
+
+export interface ChainScoreEntry {
+  sessionId: string;
+  score: number;
+  weight: number;
+  timestamp: number;
+}
+
+export interface AggregatedScore {
+  totalSessions: number;
+  weightedScore: number;
+  scores: ChainScoreEntry[];
+  trend: 'improving' | 'stable' | 'declining' | null;
+}
+
+export interface SessionChain {
+  id: string;
+  projectId?: string;
+  personaId: string;
+  objectiveId: string;
+  targetUrl: string;
+  name?: string;
+  status: 'active' | 'paused' | 'completed' | 'archived';
+  sessionCount: number;
+  schedule?: ChainSchedule;
+  aggregatedScore?: AggregatedScore;
+  createdAt: string;
+  updatedAt: string;
+  personaName?: string;
+  objectiveName?: string;
+}
+
+export interface SessionChainDetail extends SessionChain {
+  persistentMemory?: PersistentMemory;
+  sessions: Session[];
+}
+
+export interface CreateSessionChainInput {
+  personaId: string;
+  objectiveId: string;
+  targetUrl: string;
+  projectId?: string;
+  name?: string;
+  llmConfig?: Record<string, unknown>;
+  visionConfig?: Record<string, unknown>;
+  schedule?: ChainSchedule;
+}
+
+export interface UpdateSessionChainInput {
+  name?: string;
+  status?: 'active' | 'paused' | 'completed' | 'archived';
+  schedule?: ChainSchedule;
+  projectId?: string | null;
+}
+
+export const sessionChainsApi = {
+  list: (projectId?: string) =>
+    request<SessionChain[]>(projectId ? `/session-chains?projectId=${projectId}` : '/session-chains'),
+
+  get: (id: string) => request<SessionChainDetail>(`/session-chains/${id}`),
+
+  create: (data: CreateSessionChainInput) =>
+    request<SessionChain>('/session-chains', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: string, data: UpdateSessionChainInput) =>
+    request<{ message: string }>(`/session-chains/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: string, deleteSessions = false) =>
+    request<{ message: string }>(`/session-chains/${id}?deleteSessions=${deleteSessions}`, {
+      method: 'DELETE',
+    }),
+
+  continue: (id: string) =>
+    request<{ message: string; session: Session; chainSequence: number }>(`/session-chains/${id}/continue`, {
+      method: 'POST',
+    }),
+
+  setSchedule: (id: string, schedule: ChainSchedule) =>
+    request<{ message: string; schedule: ChainSchedule }>(`/session-chains/${id}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify(schedule),
+    }),
+
+  pause: (id: string) =>
+    request<{ message: string }>(`/session-chains/${id}/pause`, {
+      method: 'POST',
+    }),
+
+  resume: (id: string) =>
+    request<{ message: string }>(`/session-chains/${id}/resume`, {
+      method: 'POST',
+    }),
+};

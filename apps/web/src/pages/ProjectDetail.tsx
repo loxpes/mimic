@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { projectsApi, sessionsApi, personasApi, objectivesApi, trelloApi, type Session, type Persona, type Objective, type TrelloBoardStructure } from '@/lib/api';
+import { projectsApi, sessionsApi, personasApi, objectivesApi, trelloApi, sessionChainsApi, type Session, type Persona, type Objective, type TrelloBoardStructure, type SessionChain, type CreateSessionChainInput } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -34,6 +34,12 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  Link2 as ChainIcon,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Calendar,
+  Eye,
 } from 'lucide-react';
 
 export function ProjectDetail() {
@@ -44,6 +50,8 @@ export function ProjectDetail() {
   const [isCreateSessionOpen, setIsCreateSessionOpen] = useState(false);
   const [isTrelloDialogOpen, setIsTrelloDialogOpen] = useState(false);
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
+  const [isAddChainsOpen, setIsAddChainsOpen] = useState(false);
+  const [isCreateChainOpen, setIsCreateChainOpen] = useState(false);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', id],
@@ -64,6 +72,17 @@ export function ProjectDetail() {
   const { data: objectives = [] } = useQuery({
     queryKey: ['objectives'],
     queryFn: objectivesApi.list,
+  });
+
+  const { data: projectChains = [] } = useQuery({
+    queryKey: ['project-chains', id],
+    queryFn: () => projectsApi.getChains(id!),
+    enabled: !!id,
+  });
+
+  const { data: allChains = [] } = useQuery({
+    queryKey: ['session-chains'],
+    queryFn: () => sessionChainsApi.list(),
   });
 
   const { data: trelloStatus, isLoading: isTrelloLoading } = useQuery({
@@ -155,6 +174,32 @@ export function ProjectDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    },
+  });
+
+  const addChainsMutation = useMutation({
+    mutationFn: (chainIds: string[]) => projectsApi.addChains(id!, chainIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-chains', id] });
+      queryClient.invalidateQueries({ queryKey: ['session-chains'] });
+      setIsAddChainsOpen(false);
+    },
+  });
+
+  const removeChainMutation = useMutation({
+    mutationFn: (chainId: string) => projectsApi.removeChains(id!, [chainId]),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-chains', id] });
+      queryClient.invalidateQueries({ queryKey: ['session-chains'] });
+    },
+  });
+
+  const createChainMutation = useMutation({
+    mutationFn: (data: CreateSessionChainInput) => sessionChainsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-chains', id] });
+      queryClient.invalidateQueries({ queryKey: ['session-chains'] });
+      setIsCreateChainOpen(false);
     },
   });
 
@@ -391,6 +436,88 @@ export function ProjectDetail() {
                   session={session}
                   onRemove={() => removeSessionMutation.mutate(session.id)}
                   isRemoving={removeSessionMutation.isPending}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Session Chains */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ChainIcon className="h-5 w-5" />
+                {t('projectDetail.chains')}
+              </CardTitle>
+              <CardDescription>{t('projectDetail.chainsDesc')}</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Dialog open={isCreateChainOpen} onOpenChange={setIsCreateChainOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('projectDetail.createChain')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{t('projectDetail.createChain')}</DialogTitle>
+                    <DialogDescription>
+                      {t('projectDetail.createSessionFor')} {project.targetUrl}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CreateChainDialog
+                    personas={personas}
+                    objectives={objectives}
+                    project={project}
+                    onCreate={(data) => createChainMutation.mutate(data)}
+                    isLoading={createChainMutation.isPending}
+                  />
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isAddChainsOpen} onOpenChange={setIsAddChainsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('projectDetail.addExistingChain')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{t('projectDetail.addExistingChain')}</DialogTitle>
+                    <DialogDescription>
+                      {t('projectDetail.selectChainsToAdd')}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AddChainsDialog
+                    availableChains={allChains.filter(c => !c.projectId)}
+                    onAdd={(ids) => addChainsMutation.mutate(ids)}
+                    isLoading={addChainsMutation.isPending}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {projectChains.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <ChainIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>{t('projectDetail.noChains')}</p>
+              <p className="text-sm mt-1">{t('projectDetail.noChainsDesc')}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {projectChains.map((chain) => (
+                <ChainRow
+                  key={chain.id}
+                  chain={chain}
+                  onRemove={() => removeChainMutation.mutate(chain.id)}
+                  isRemoving={removeChainMutation.isPending}
                 />
               ))}
             </div>
@@ -1068,5 +1195,274 @@ function AddSessionsDialog({
         </Button>
       </DialogFooter>
     </div>
+  );
+}
+
+function ChainRow({
+  chain,
+  onRemove,
+  isRemoving,
+}: {
+  chain: SessionChain;
+  onRemove: () => void;
+  isRemoving: boolean;
+}) {
+  const { t } = useTranslation();
+
+  const getTrendIcon = (trend: string | null | undefined) => {
+    if (trend === 'improving') return <TrendingUp className="h-4 w-4 text-green-500" />;
+    if (trend === 'declining') return <TrendingDown className="h-4 w-4 text-red-500" />;
+    return <Minus className="h-4 w-4 text-muted-foreground" />;
+  };
+
+  const statusColors: Record<string, string> = {
+    active: 'bg-green-500',
+    paused: 'bg-yellow-500',
+    completed: 'bg-gray-500',
+    archived: 'bg-gray-400',
+  };
+
+  return (
+    <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors">
+      <Link
+        to={`/session-chains/${chain.id}`}
+        className="flex items-center gap-4 flex-1"
+      >
+        <div className={`w-2 h-2 rounded-full ${statusColors[chain.status] || 'bg-gray-500'}`} />
+        <div className="flex-1">
+          <div className="font-medium">
+            {chain.name || chain.personaName || t('sessionChains.untitled')}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {chain.objectiveName}
+          </div>
+        </div>
+      </Link>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">{chain.sessionCount} {t('sessionChains.sessions')}</span>
+          {chain.aggregatedScore && (
+            <span className="flex items-center gap-1">
+              {chain.aggregatedScore.weightedScore?.toFixed(1)}
+              {getTrendIcon(chain.aggregatedScore.trend)}
+            </span>
+          )}
+          {chain.schedule?.enabled && (
+            <Calendar className="h-4 w-4 text-primary" />
+          )}
+        </div>
+        <Badge variant="outline">{t(`status.${chain.status}`)}</Badge>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          asChild
+        >
+          <Link to={`/session-chains/${chain.id}`}>
+            <Eye className="h-4 w-4" />
+          </Link>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRemove();
+          }}
+          disabled={isRemoving}
+        >
+          {isRemoving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AddChainsDialog({
+  availableChains,
+  onAdd,
+  isLoading,
+}: {
+  availableChains: SessionChain[];
+  onAdd: (ids: string[]) => void;
+  isLoading: boolean;
+}) {
+  const { t } = useTranslation();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState('');
+
+  const filteredChains = availableChains.filter(
+    (c) =>
+      filter === '' ||
+      c.name?.toLowerCase().includes(filter.toLowerCase()) ||
+      c.personaName?.toLowerCase().includes(filter.toLowerCase()) ||
+      c.objectiveName?.toLowerCase().includes(filter.toLowerCase()) ||
+      c.targetUrl.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  const toggleChain = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Input
+        placeholder={t('projectDetail.filterSessions')}
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+      />
+
+      {filteredChains.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          {t('projectDetail.noAvailableChains')}
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          {filteredChains.map((chain) => (
+            <div
+              key={chain.id}
+              className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                selectedIds.has(chain.id) ? 'bg-primary/10 border-primary' : 'hover:bg-accent'
+              }`}
+              onClick={() => toggleChain(chain.id)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">
+                    {chain.name || chain.personaName || t('sessionChains.untitled')}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {chain.objectiveName} • {chain.sessionCount} {t('sessionChains.sessions')}
+                  </div>
+                </div>
+                <Badge variant="outline">{t(`status.${chain.status}`)}</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <DialogFooter>
+        <Button
+          onClick={() => onAdd(Array.from(selectedIds))}
+          disabled={selectedIds.size === 0 || isLoading}
+        >
+          {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {t('projectDetail.addChain')} ({selectedIds.size})
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
+function CreateChainDialog({
+  personas,
+  objectives,
+  project,
+  onCreate,
+  isLoading,
+}: {
+  personas: Persona[];
+  objectives: Objective[];
+  project: { id: string; targetUrl: string };
+  onCreate: (data: CreateSessionChainInput) => void;
+  isLoading: boolean;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState('');
+  const [targetUrl, setTargetUrl] = useState(project.targetUrl);
+  const [personaId, setPersonaId] = useState(personas[0]?.id || '');
+  const [objectiveId, setObjectiveId] = useState(objectives[0]?.id || '');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (targetUrl && personaId && objectiveId) {
+      const language = localStorage.getItem('testfarm_language') || 'es';
+      onCreate({
+        name: name || undefined,
+        targetUrl,
+        personaId,
+        objectiveId,
+        projectId: project.id,
+        llmConfig: { language },
+      });
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label>{t('sessionChains.chainName')}</Label>
+          <Input
+            placeholder={t('sessionChains.chainNamePlaceholder')}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>{t('sessions.targetUrl')}</Label>
+          <Input
+            type="url"
+            placeholder="https://example.com"
+            value={targetUrl}
+            onChange={(e) => setTargetUrl(e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>{t('sessions.persona')}</Label>
+          <select
+            value={personaId}
+            onChange={(e) => setPersonaId(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border bg-background"
+            required
+          >
+            {personas.length === 0 ? (
+              <option value="">{t('sessions.noPersonas')}</option>
+            ) : (
+              personas.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))
+            )}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label>{t('sessions.objective')}</Label>
+          <select
+            value={objectiveId}
+            onChange={(e) => setObjectiveId(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border bg-background"
+            required
+          >
+            {objectives.length === 0 ? (
+              <option value="">{t('sessions.noObjectives')}</option>
+            ) : (
+              objectives.map((o) => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))
+            )}
+          </select>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button type="submit" disabled={isLoading || !targetUrl}>
+          {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {t('sessionChains.createChain')}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

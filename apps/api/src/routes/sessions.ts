@@ -7,8 +7,9 @@ import { getDb } from '@testfarm/db';
 import { sessions, personas, objectives, events, findings, sessionReports } from '@testfarm/db';
 import { eq, inArray } from 'drizzle-orm';
 import { createAgent, loadKnownIssues, generateSessionReport, type AgentConfig } from '@testfarm/core';
-import type { Persona, Objective, ExistingFindingsContext, SessionReportData } from '@testfarm/shared';
+import type { Persona, Objective, ExistingFindingsContext, SessionReportData, ChainContext, AgentMemory } from '@testfarm/shared';
 import { broadcastSessionEvent } from './events.js';
+import { getChainContextForSession, updateChainAfterSession } from './session-chains.js';
 
 // Store running agents to allow cancellation
 const runningAgents = new Map<string, ReturnType<typeof createAgent>>();
@@ -222,6 +223,21 @@ app.post('/:id/start', async (c) => {
     console.warn('Failed to load known issues for deduplication:', error);
   }
 
+  // Load chain context if this session is part of a chain
+  let initialMemory: AgentMemory | undefined;
+  let chainContext: ChainContext | undefined;
+
+  if (session.parentChainId && session.chainSequence) {
+    try {
+      const chainData = await getChainContextForSession(session.parentChainId, session.chainSequence);
+      initialMemory = chainData.initialMemory;
+      chainContext = chainData.chainContext;
+      console.log(`[Session ${id}] Loaded chain context: sequence #${session.chainSequence}, ${chainContext?.totalPreviousActions ?? 0} previous actions`);
+    } catch (error) {
+      console.warn(`[Session ${id}] Failed to load chain context:`, error);
+    }
+  }
+
   // Create agent config
   const agentConfig: AgentConfig = {
     persona: agentPersona,
@@ -233,6 +249,9 @@ app.post('/:id/start', async (c) => {
     timeout: (objective.config.maxDuration || 10) * 60 * 1000, // Convert minutes to ms
     sessionId: id,
     existingFindings: existingFindingsContext,
+    // Chain continuation support
+    initialMemory,
+    chainContext,
   };
 
   let eventSequence = 0;
@@ -357,6 +376,23 @@ app.post('/:id/start', async (c) => {
           personalAssessment: result.personalAssessment,
         },
       }).where(eq(sessions.id, id));
+
+      // Update chain if this session is part of one
+      if (session.parentChainId) {
+        try {
+          const score = result.personalAssessment?.overallScore;
+          await updateChainAfterSession(
+            session.parentChainId,
+            id,
+            result.memory,
+            result.visitedPages,
+            score
+          );
+          console.log(`[Session ${id}] Updated chain ${session.parentChainId} with session results`);
+        } catch (chainError) {
+          console.error(`[Session ${id}] Failed to update chain:`, chainError);
+        }
+      }
 
       // Generate session report
       try {

@@ -9,12 +9,14 @@ import {
   Settings,
   Sparkles,
   FolderOpen,
+  Link2,
 } from 'lucide-react';
 
 const navigation = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
   { key: 'projects', href: '/projects', icon: FolderOpen },
   { key: 'sessions', href: '/sessions', icon: PlayCircle },
+  { key: 'sessionChains', href: '/session-chains', icon: Link2 },
   { key: 'personas', href: '/personas', icon: Users },
   { key: 'objectives', href: '/objectives', icon: Target },
   { key: 'features', href: '/features', icon: Sparkles },

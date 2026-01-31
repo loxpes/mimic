@@ -29,6 +29,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { initializeDb } from '@testfarm/db';
 import sessions from './routes/sessions.js';
+import sessionChains from './routes/session-chains.js';
 import personas from './routes/personas.js';
 import objectives from './routes/objectives.js';
 import events from './routes/events.js';
@@ -37,6 +38,7 @@ import reports from './routes/reports.js';
 import screenshots from './routes/screenshots.js';
 import projects from './routes/projects.js';
 import trello from './routes/integrations/trello.js';
+import { startScheduler } from './scheduler.js';
 // YAML sync removed - personas now managed 100% via DB and frontend
 // import { syncYamlToDatabase } from './sync.js';
 
@@ -65,6 +67,7 @@ app.get('/health', (c) => {
 
 // Routes
 app.route('/api/sessions', sessions);
+app.route('/api/session-chains', sessionChains);
 app.route('/api/personas', personas);
 app.route('/api/objectives', objectives);
 app.route('/api/events', events);
@@ -84,6 +87,9 @@ async function main() {
   // Initialize database
   await initializeDb();
   console.log('Database initialized');
+
+  // Start scheduler for session chains
+  startScheduler();
 
   // Start server
   console.log(`TestFarm API running on http://localhost:${PORT}`);

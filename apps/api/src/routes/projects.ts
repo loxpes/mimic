@@ -4,7 +4,7 @@
 
 import { Hono } from 'hono';
 import { eq, desc, inArray } from 'drizzle-orm';
-import { getDb, projects, sessions, findings, personas, objectives } from '@testfarm/db';
+import { getDb, projects, sessions, findings, personas, objectives, sessionChains } from '@testfarm/db';
 
 // Simple ID generator
 function generateId(): string {
@@ -336,6 +336,126 @@ app.post('/:id/refresh-stats', async (c) => {
   await getDb().update(projects).set({ stats, updatedAt: new Date() }).where(eq(projects.id, id));
 
   return c.json({ ...project[0], stats });
+});
+
+// GET /api/projects/:id/chains - Get session chains for project
+app.get('/:id/chains', async (c) => {
+  const { id } = c.req.param();
+
+  const project = await getDb()
+    .select()
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+
+  if (project.length === 0) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
+
+  const chains = await getDb()
+    .select({
+      id: sessionChains.id,
+      projectId: sessionChains.projectId,
+      personaId: sessionChains.personaId,
+      objectiveId: sessionChains.objectiveId,
+      targetUrl: sessionChains.targetUrl,
+      name: sessionChains.name,
+      status: sessionChains.status,
+      sessionCount: sessionChains.sessionCount,
+      schedule: sessionChains.schedule,
+      aggregatedScore: sessionChains.aggregatedScore,
+      createdAt: sessionChains.createdAt,
+      updatedAt: sessionChains.updatedAt,
+      personaName: personas.name,
+      objectiveName: objectives.name,
+    })
+    .from(sessionChains)
+    .leftJoin(personas, eq(sessionChains.personaId, personas.id))
+    .leftJoin(objectives, eq(sessionChains.objectiveId, objectives.id))
+    .where(eq(sessionChains.projectId, id))
+    .orderBy(desc(sessionChains.createdAt));
+
+  return c.json(chains);
+});
+
+// POST /api/projects/:id/chains - Add chains to project
+app.post('/:id/chains', async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  const { chainIds } = body;
+
+  if (!Array.isArray(chainIds) || chainIds.length === 0) {
+    return c.json({ error: 'chainIds array is required' }, 400);
+  }
+
+  // Verify project exists
+  const project = await getDb()
+    .select()
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+
+  if (project.length === 0) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
+
+  // Update chains to belong to this project
+  await getDb()
+    .update(sessionChains)
+    .set({ projectId: id, updatedAt: new Date() })
+    .where(inArray(sessionChains.id, chainIds));
+
+  // Update sessions of those chains to belong to this project
+  await getDb()
+    .update(sessions)
+    .set({ projectId: id, updatedAt: new Date() })
+    .where(inArray(sessions.parentChainId, chainIds));
+
+  // Recalculate project stats
+  const stats = await calculateProjectStats(id);
+  await getDb().update(projects).set({ stats, updatedAt: new Date() }).where(eq(projects.id, id));
+
+  return c.json({ message: `Added ${chainIds.length} chains to project`, stats });
+});
+
+// DELETE /api/projects/:id/chains - Remove chains from project
+app.delete('/:id/chains', async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  const { chainIds } = body;
+
+  if (!Array.isArray(chainIds) || chainIds.length === 0) {
+    return c.json({ error: 'chainIds array is required' }, 400);
+  }
+
+  // Verify project exists
+  const project = await getDb()
+    .select()
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+
+  if (project.length === 0) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
+
+  // Remove chains from this project (set projectId to null)
+  await getDb()
+    .update(sessionChains)
+    .set({ projectId: null, updatedAt: new Date() })
+    .where(inArray(sessionChains.id, chainIds));
+
+  // Remove sessions of those chains from this project
+  await getDb()
+    .update(sessions)
+    .set({ projectId: null, updatedAt: new Date() })
+    .where(inArray(sessions.parentChainId, chainIds));
+
+  // Recalculate project stats
+  const stats = await calculateProjectStats(id);
+  await getDb().update(projects).set({ stats, updatedAt: new Date() }).where(eq(projects.id, id));
+
+  return c.json({ message: `Removed ${chainIds.length} chains from project`, stats });
 });
 
 export default app;

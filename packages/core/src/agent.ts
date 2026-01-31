@@ -23,6 +23,7 @@ import type {
   AuthCredentials,
   UnifiedElement,
   PersonalAssessment,
+  ChainContext,
 } from '@testfarm/shared';
 import { LLMClient } from './llm/client.js';
 import { BrowserController, createBrowser } from './browser/controller.js';
@@ -64,6 +65,10 @@ export interface AgentConfig {
   timeout: number; // ms
   sessionId?: string; // For deduplication
   existingFindings?: ExistingFindingsContext;
+  /** Initial memory for session chain continuation */
+  initialMemory?: AgentMemory;
+  /** Chain context for multi-session continuity */
+  chainContext?: ChainContext;
 }
 
 export interface AgentEvents {
@@ -85,6 +90,10 @@ export interface AgentResult {
   metrics: SessionMetrics;
   history: ActionHistory[];
   personalAssessment?: PersonalAssessment;
+  /** Memory state at session end (for chain persistence) */
+  memory?: AgentMemory;
+  /** Pages visited during this session */
+  visitedPages?: string[];
 }
 
 // ============================================================================
@@ -122,19 +131,31 @@ export class Agent {
       },
     });
 
-    // Initialize memory
-    this.memory = {
-      discoveries: [],
-      frustrations: [],
-      decisions: [],
-    };
+    // Initialize memory (from chain continuation or empty)
+    this.memory = config.initialMemory
+      ? {
+          discoveries: [...config.initialMemory.discoveries],
+          frustrations: [...config.initialMemory.frustrations],
+          decisions: [...config.initialMemory.decisions],
+        }
+      : {
+          discoveries: [],
+          frustrations: [],
+          decisions: [],
+        };
 
-    // Initialize history
+    // Initialize history (with visited pages from chain context if continuing)
     this.history = {
       recentActions: [],
-      visitedPages: [],
+      visitedPages: config.chainContext?.visitedPages ? [...config.chainContext.visitedPages] : [],
       failedAttempts: [],
     };
+
+    // Log chain continuation context
+    if (config.chainContext) {
+      console.log(`[Agent] Continuing session chain #${config.chainContext.sequence} with ${config.chainContext.totalPreviousActions} previous actions`);
+      console.log(`[Agent] Inherited memory: ${this.memory.discoveries.length} discoveries, ${this.memory.frustrations.length} frustrations, ${this.memory.decisions.length} decisions`);
+    }
 
     // Initialize metrics
     this.metrics = {
@@ -275,6 +296,7 @@ ${persona.context}`;
       memory: this.memory,
       existingFindings: this.config.existingFindings,
       language: this.config.llm.language,
+      chainContext: this.config.chainContext,
     };
   }
 
@@ -639,6 +661,8 @@ ${persona.context}`;
       metrics: this.metrics,
       history: this.history.recentActions,
       personalAssessment,
+      memory: this.getMemorySnapshot(),
+      visitedPages: this.getVisitedPages(),
     };
 
     this.events.onComplete?.(result);
@@ -656,6 +680,31 @@ ${persona.context}`;
 
   isActive(): boolean {
     return this.isRunning;
+  }
+
+  /**
+   * Get current memory state for persistence (used by session chains)
+   */
+  getMemorySnapshot(): AgentMemory {
+    return {
+      discoveries: [...this.memory.discoveries],
+      frustrations: [...this.memory.frustrations],
+      decisions: [...this.memory.decisions],
+    };
+  }
+
+  /**
+   * Get visited pages for chain persistence
+   */
+  getVisitedPages(): string[] {
+    return [...this.history.visitedPages];
+  }
+
+  /**
+   * Get chain context if this is a chain session
+   */
+  getChainContext(): ChainContext | undefined {
+    return this.config.chainContext;
   }
 }
 
