@@ -180,6 +180,7 @@ export function ProjectDetail() {
   const addChainsMutation = useMutation({
     mutationFn: (chainIds: string[]) => projectsApi.addChains(id!, chainIds),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project-chains', id] });
       queryClient.invalidateQueries({ queryKey: ['session-chains'] });
       setIsAddChainsOpen(false);
@@ -189,6 +190,7 @@ export function ProjectDetail() {
   const removeChainMutation = useMutation({
     mutationFn: (chainId: string) => projectsApi.removeChains(id!, [chainId]),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project-chains', id] });
       queryClient.invalidateQueries({ queryKey: ['session-chains'] });
     },
@@ -197,6 +199,7 @@ export function ProjectDetail() {
   const createChainMutation = useMutation({
     mutationFn: (data: CreateSessionChainInput) => sessionChainsApi.create(data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project-chains', id] });
       queryClient.invalidateQueries({ queryKey: ['session-chains'] });
       setIsCreateChainOpen(false);
