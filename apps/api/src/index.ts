@@ -54,8 +54,8 @@ const app = new Hono();
 app.use('*', logger());
 app.use('*', cors());
 
-// Health check
-app.get('/', (c) => {
+// Health check endpoints
+app.get('/api/info', (c) => {
   return c.json({
     name: 'TestFarm API',
     version: '0.1.0',
