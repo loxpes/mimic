@@ -2,6 +2,9 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
+# Forzar NODE_ENV=development para instalar devDependencies (typescript, etc.)
+ENV NODE_ENV=development
+
 # Instalar pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
@@ -14,7 +17,7 @@ COPY packages/core/package.json ./packages/core/
 COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
 
-# Instalar dependencias
+# Instalar TODAS las dependencias (incluyendo devDependencies para tsc)
 RUN pnpm install --frozen-lockfile
 
 # Copiar código fuente
