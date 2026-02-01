@@ -66,8 +66,15 @@ export class BrowserController {
       this.options.browserType === 'webkit' ? webkit :
       chromium;
 
+    // Use system Chromium if PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH is set
+    const executablePath = this.options.browserType === 'chromium'
+      ? process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      : undefined;
+
     this.browser = await browserLauncher.launch({
       headless: this.options.headless,
+      executablePath,
+      args: executablePath ? ['--no-sandbox', '--disable-setuid-sandbox'] : [],
     });
 
     this.context = await this.browser.newContext({
