@@ -24,9 +24,11 @@ for (const envPath of envPaths) {
   }
 }
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { existsSync, readFileSync } from 'fs';
 import { initializeDb } from '@testfarm/db';
 import sessions from './routes/sessions.js';
 import sessionChains from './routes/session-chains.js';
@@ -76,6 +78,29 @@ app.route('/api/reports', reports);
 app.route('/api/screenshots', screenshots);
 app.route('/api/projects', projects);
 app.route('/api/integrations/trello', trello);
+
+// ============================================================================
+// Serve Frontend Static Files (SPA)
+// ============================================================================
+
+// Path to frontend dist (relative to apps/api/dist when running compiled)
+const frontendDistPath = resolve(__dirname, '../../web/dist');
+
+// Serve static assets from frontend build
+app.use('/assets/*', serveStatic({ root: frontendDistPath }));
+
+// Serve other static files (favicon, etc.)
+app.get('/vite.svg', serveStatic({ root: frontendDistPath, path: '/vite.svg' }));
+
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (c) => {
+  const indexPath = resolve(frontendDistPath, 'index.html');
+  if (existsSync(indexPath)) {
+    const html = readFileSync(indexPath, 'utf-8');
+    return c.html(html);
+  }
+  return c.json({ error: 'Frontend not found' }, 404);
+});
 
 // ============================================================================
 // Start Server
