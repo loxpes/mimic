@@ -1,0 +1,14 @@
+name: "Crear Evento de Calendario con Ubicacion y Recordatorio"
+
+goal: |
+  Crea un evento en el calendario desde el chat con ubicacion y recordatorio
+  (ej: "Reunion con proveedor el jueves a las 12 en Calle X, avisame 1 hora antes").
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 30
+
+successCriteria:
+  type: element-present
+  condition: "[data-testid='entity-card'][data-entity='event'], .entity-card.event, .calendar-event"

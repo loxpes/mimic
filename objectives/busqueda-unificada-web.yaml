@@ -1,0 +1,14 @@
+name: "Busqueda Unificada con Web cuando Falte Contexto"
+
+goal: |
+  Haz una busqueda que requiera contexto externo (ej: "horario oficina X" o "que es X"),
+  y comprueba que aparecen resultados web junto a resultados internos si existen.
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 25
+
+successCriteria:
+  type: element-present
+  condition: "[data-testid='search-results'] [data-source='web'], .search-results .web-result, .result-card.web"

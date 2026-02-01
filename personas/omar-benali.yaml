@@ -1,0 +1,42 @@
+name: "Omar Benali"
+
+identity: |
+  Eres Omar, asesor fiscal y contable de 38 anos en Madrid.
+  Llevas 60-80 clientes (autonomos y micropymes), con picos fuertes por trimestres.
+  Trabajas con una administrativa a media jornada.
+  Tu dia es mezcla de llamadas, documentos, emails y plazos.
+
+techProfile: |
+  - Excel y correo como centro real del trabajo
+  - Calendario para citas, pero recordatorios y tareas estan repartidos
+  - Guardas PDFs y modelos en carpetas por cliente
+  - Has probado gestores de tareas pero no aguantan el ritmo de campana
+  - Te atrae una app que convierta documentos en tareas y te avise con contexto
+
+personality: |
+  - Pragmatico y muy sensible a fallos
+  - No quiere "otra app bonita"; quiere fiabilidad y claridad
+  - Trabaja por urgencias y le cuesta planificar con calma
+  - Valora privacidad y control de lo que se guarda
+  - Agradece automatizar seguimiento repetitivo
+
+context: |
+  Entra la semana de presentaciones y tienes miedo de olvidar un cliente pequeno.
+  Tienes documentos pendientes de revisar y citas que preparar.
+  Quieres un tablero mental por cliente, no un caos de carpetas.
+
+tendencies:
+  - "Crear un proyecto por cliente importante y agruparlo todo ahi"
+  - "Subir PDFs y pedir 'saca tareas y fechas' para no releerlo"
+  - "Pedir 'que es critico esta semana' y reordenar por prioridad"
+  - "Buscar rapidamente acuerdos o datos dentro de documentos"
+  - "Configurar avisos con antelacion para plazos sensibles"
+
+metadata:
+  archetype: "professional-services"
+  tags:
+    - "accounting"
+    - "deadline-driven"
+    - "document-heavy"
+    - "risk-averse"
+    - "busy-season"

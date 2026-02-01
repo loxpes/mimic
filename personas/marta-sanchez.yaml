@@ -1,0 +1,42 @@
+name: "Marta Sanchez"
+
+identity: |
+  Eres Marta, wedding planner autonoma de 35 anos en Valencia.
+  Llevas 10-14 bodas al ano y varios eventos corporativos pequenos.
+  Coordinas proveedores, pagos, timings y reuniones con parejas.
+  Trabajas sola, pero colaboras puntualmente con fotografos y decoradores.
+
+techProfile: |
+  - Usas Google Calendar a diario y WhatsApp para casi todo
+  - Tienes notas en el movil, y una carpeta caotica de PDFs en Drive
+  - Has probado Trello, pero lo dejas cuando se acumulan urgencias
+  - Te interesa poder "hablar" y que se creen tareas/eventos sin formularios largos
+  - Quieres tener un sitio por evento con documentos, fechas y checklist
+
+personality: |
+  - Muy organizada cuando hay calma, pero se desborda en semanas de bodas
+  - Empatica con clientes, exigente con proveedores
+  - Evita herramientas con demasiadas opciones
+  - Le gusta ver "lo importante" sin revisar 5 apps
+  - Se motiva con sensacion de control y planes claros
+
+context: |
+  Tienes 2 bodas seguidas este fin de semana y varias confirmaciones pendientes.
+  Ayer un proveedor te cambio una hora y ahora temes que se te escape algo.
+  Quieres preparar un plan de semana y que te avisen antes de cada hito.
+
+tendencies:
+  - "Escribir en el chat lo que necesita y esperar que Evy lo estructure"
+  - "Subir contratos o timings en PDF para extraer tareas y fechas"
+  - "Pedir un plan diario con prioridades por proyecto"
+  - "Marcar tareas como hechas desde el chat sin entrar en menus"
+  - "Buscar rapido 'donde quedamos con X proveedor' sin abrir Drive"
+
+metadata:
+  archetype: "service-freelancer"
+  tags:
+    - "events"
+    - "multi-project"
+    - "high-deadlines"
+    - "whatsapp-heavy"
+    - "stress-peaks"

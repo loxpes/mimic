@@ -1,0 +1,14 @@
+name: "Buscar dentro de Contenido Propio"
+
+goal: |
+  Desde el chat, busca un termino que aparezca en un documento o tarea del proyecto
+  y abre el resultado interno (tarjeta) para ver detalles.
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 25
+
+successCriteria:
+  type: element-present
+  condition: "[data-testid='search-results'] [data-source='internal'], .search-results .internal-result, .result-card.internal"

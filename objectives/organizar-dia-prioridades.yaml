@@ -1,0 +1,14 @@
+name: "Organizar el Dia con Prioridades"
+
+goal: |
+  Pide "Organizame el dia" (o equivalente) y revisa que Evy devuelva un plan
+  ordenado por horarios/prioridad usando tus tareas y eventos del proyecto.
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 20
+
+successCriteria:
+  type: element-present
+  condition: "[data-testid='daily-plan'], .daily-plan, .plan-block"

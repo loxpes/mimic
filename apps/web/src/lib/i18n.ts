@@ -271,6 +271,11 @@ const resources = {
           writes: 'El agente escribirá todos los hallazgos e informes en el idioma seleccionado',
           existing: 'Las sesiones existentes no se ven afectadas por cambios de idioma',
         },
+        llmProvider: 'Proveedor LLM',
+        llmProviderDesc: 'Modelo de IA utilizado para los agentes de pruebas',
+        claudeCode: 'Claude Code',
+        claudeCodeDesc: 'Usando Claude Code CLI con tu suscripción Claude Max',
+        claudeCodeActive: 'Activo',
       },
       // Features
       features: {
@@ -699,6 +704,11 @@ const resources = {
           writes: 'The agent will write all findings and reports in the selected language',
           existing: 'Existing sessions are not affected by language changes',
         },
+        llmProvider: 'LLM Provider',
+        llmProviderDesc: 'AI model used for testing agents',
+        claudeCode: 'Claude Code',
+        claudeCodeDesc: 'Using Claude Code CLI with your Claude Max subscription',
+        claudeCodeActive: 'Active',
       },
       // Features
       features: {
@@ -1127,6 +1137,11 @@ const resources = {
           writes: 'O agente escreverá todas as descobertas e relatórios no idioma selecionado',
           existing: 'Sessões existentes não são afetadas por mudanças de idioma',
         },
+        llmProvider: 'Provedor LLM',
+        llmProviderDesc: 'Modelo de IA usado para os agentes de teste',
+        claudeCode: 'Claude Code',
+        claudeCodeDesc: 'Usando Claude Code CLI com sua assinatura Claude Max',
+        claudeCodeActive: 'Ativo',
       },
       // Features
       features: {
@@ -1548,6 +1563,11 @@ const resources = {
           writes: 'L\'agent écrira toutes les découvertes et rapports dans la langue sélectionnée',
           existing: 'Les sessions existantes ne sont pas affectées par les changements de langue',
         },
+        llmProvider: 'Fournisseur LLM',
+        llmProviderDesc: 'Modèle IA utilisé pour les agents de test',
+        claudeCode: 'Claude Code',
+        claudeCodeDesc: 'Utilisation de Claude Code CLI avec votre abonnement Claude Max',
+        claudeCodeActive: 'Actif',
       },
       // Features
       features: {
@@ -1969,6 +1989,11 @@ const resources = {
           writes: 'Der Agent schreibt alle Befunde und Berichte in der ausgewählten Sprache',
           existing: 'Bestehende Sitzungen sind von Sprachänderungen nicht betroffen',
         },
+        llmProvider: 'LLM-Anbieter',
+        llmProviderDesc: 'KI-Modell für die Test-Agenten',
+        claudeCode: 'Claude Code',
+        claudeCodeDesc: 'Verwendung von Claude Code CLI mit Ihrem Claude Max-Abonnement',
+        claudeCodeActive: 'Aktiv',
       },
       // Features
       features: {

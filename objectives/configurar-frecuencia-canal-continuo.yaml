@@ -1,0 +1,14 @@
+name: "Configurar Frecuencia del Canal Continuo"
+
+goal: |
+  Ajusta la configuracion para que Evy te escriba con una frecuencia concreta
+  (por ejemplo, diario o solo cuando haya algo importante).
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 30
+
+successCriteria:
+  type: element-present
+  condition: "[data-testid='notification-frequency'][data-selected], .settings .frequency.selected, .preferences .frequency-active"

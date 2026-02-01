@@ -1,0 +1,14 @@
+name: "Crear Proyecto y Seleccionarlo en el Chat"
+
+goal: |
+  Crea un proyecto nuevo (por ejemplo, "Cliente Prueba") y dejalo seleccionado
+  en el chat para que Evy trabaje con ese contexto.
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 25
+
+successCriteria:
+  type: element-present
+  condition: "[data-testid='project-selector'] [data-selected='true'], .project-selector .is-selected"

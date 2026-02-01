@@ -1,0 +1,14 @@
+name: "Filtrar Historial de Chats por Proyecto"
+
+goal: |
+  Abre el historial de chats y filtra para ver solo conversaciones de un proyecto concreto.
+  Entra en una conversacion filtrada.
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 25
+
+successCriteria:
+  type: element-present
+  condition: "[data-testid='chat-history'][data-filter='project'], .chat-history.project-filtered, .history-filter.is-active"

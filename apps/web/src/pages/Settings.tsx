@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Settings as SettingsIcon, Globe, Check } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Check, Terminal } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const languages = [
   { value: 'es', label: 'Español', flag: '🇪🇸' },
@@ -94,6 +95,37 @@ export function Settings() {
           <p className="text-sm text-muted-foreground mt-3">
             {t('settings.appliedToNewSessions')}
           </p>
+        </CardContent>
+      </Card>
+
+      {/* LLM Provider Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Terminal className="h-5 w-5 text-primary" />
+            <CardTitle>{t('settings.llmProvider')}</CardTitle>
+          </div>
+          <CardDescription>
+            {t('settings.llmProviderDesc')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Terminal className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="font-medium">{t('settings.claudeCode')}</div>
+                <div className="text-sm text-muted-foreground">
+                  {t('settings.claudeCodeDesc')}
+                </div>
+              </div>
+            </div>
+            <Badge variant="success" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+              {t('settings.claudeCodeActive')}
+            </Badge>
+          </div>
         </CardContent>
       </Card>
 
