@@ -53,3 +53,4 @@
 |-------|--------|-------|
 | 2025-02-01 | Archivos creados | Dockerfile, .dockerignore, GitHub Action |
 | 2026-02-01 | Fix TypeScript references | Agregada referencia a @testfarm/db en packages/core/tsconfig.json |
+| 2026-02-01 | Fix build order | Agregado --workspace-concurrency=1 para builds secuenciales en Docker |

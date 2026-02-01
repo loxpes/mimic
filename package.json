@@ -4,7 +4,7 @@
   "private": true,
   "description": "AI-powered browser testing agent farm",
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm -r --workspace-concurrency=1 build",
     "dev": "pnpm -r --parallel dev",
     "dev:api": "pnpm --filter @testfarm/api dev",
     "dev:web": "pnpm --filter @testfarm/web dev",

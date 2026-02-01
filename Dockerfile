@@ -23,8 +23,8 @@ RUN pnpm install --frozen-lockfile
 # Copiar código fuente
 COPY . .
 
-# Build
-RUN pnpm build
+# Build packages sequentially to ensure proper dependency order
+RUN pnpm -r --workspace-concurrency=1 build
 
 # --- Production stage ---
 FROM node:20-slim AS runner
