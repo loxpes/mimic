@@ -52,3 +52,4 @@
 | Fecha | Avance | Notas |
 |-------|--------|-------|
 | 2025-02-01 | Archivos creados | Dockerfile, .dockerignore, GitHub Action |
+| 2026-02-01 | Fix TypeScript references | Agregada referencia a @testfarm/db en packages/core/tsconfig.json |
