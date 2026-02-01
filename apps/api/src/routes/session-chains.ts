@@ -18,8 +18,8 @@ const app = new Hono();
 
 // Default configurations (same as sessions)
 const DEFAULT_LLM_CONFIG = {
-  provider: 'claude-cli' as const,
-  model: 'claude-sonnet-4-20250514',
+  provider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli',
+  model: process.env.LLM_MODEL || 'claude-sonnet-4-20250514',
   temperature: 0.7,
   maxTokens: 2048,
 };

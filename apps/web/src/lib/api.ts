@@ -589,3 +589,36 @@ export const sessionChainsApi = {
       method: 'POST',
     }),
 };
+
+// ============================================================================
+// Settings API
+// ============================================================================
+
+export interface AppSettings {
+  llmProvider: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google';
+  llmModel: string;
+  ollamaBaseUrl: string;
+  hasAnthropicKey: boolean;
+  hasOpenaiKey: boolean;
+  hasGoogleKey: boolean;
+  encryptionConfigured: boolean;
+}
+
+export interface UpdateSettingsInput {
+  llmProvider?: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google';
+  llmModel?: string;
+  ollamaBaseUrl?: string;
+  anthropicApiKey?: string | null;
+  openaiApiKey?: string | null;
+  googleApiKey?: string | null;
+}
+
+export const settingsApi = {
+  get: () => request<AppSettings>('/settings'),
+
+  update: (data: UpdateSettingsInput) =>
+    request<{ success: boolean; error?: string }>('/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+};

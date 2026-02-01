@@ -107,7 +107,7 @@ export const sessionChains = sqliteTable('session_chains', {
   targetUrl: text('target_url').notNull(),
   name: text('name'),
   llmConfig: text('llm_config', { mode: 'json' }).$type<{
-    provider: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'custom';
+    provider: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'custom' | 'google';
     model: string;
     temperature?: number;
     maxTokens?: number;
@@ -163,7 +163,7 @@ export const sessions = sqliteTable('sessions', {
   objectiveId: text('objective_id').notNull().references(() => objectives.id),
   targetUrl: text('target_url').notNull(),
   llmConfig: text('llm_config', { mode: 'json' }).notNull().$type<{
-    provider: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'custom';
+    provider: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'custom' | 'google';
     model: string;
     temperature?: number;
     maxTokens?: number;
@@ -419,8 +419,34 @@ export const integrations = sqliteTable('integrations', {
 });
 
 // ============================================================================
+// App Settings Table (Global Configuration)
+// ============================================================================
+
+export const appSettings = sqliteTable('app_settings', {
+  id: text('id').primaryKey().default('global'),
+
+  // LLM Configuration
+  llmProvider: text('llm_provider').default('anthropic').$type<'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google'>(),
+  llmModel: text('llm_model').default('claude-sonnet-4-20250514'),
+
+  // Encrypted API Keys (AES-256-GCM, base64 encoded)
+  encryptedAnthropicKey: text('encrypted_anthropic_key'),
+  encryptedOpenaiKey: text('encrypted_openai_key'),
+  encryptedGoogleKey: text('encrypted_google_key'),
+
+  // Ollama config (no key needed)
+  ollamaBaseUrl: text('ollama_base_url').default('http://localhost:11434/v1'),
+
+  // Timestamps
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+});
+
+// ============================================================================
 // Type Exports
 // ============================================================================
+
+export type AppSettings = typeof appSettings.$inferSelect;
+export type NewAppSettings = typeof appSettings.$inferInsert;
 
 export type Persona = typeof personas.$inferSelect;
 export type NewPersona = typeof personas.$inferInsert;

@@ -4,8 +4,9 @@
 
 import { Hono } from 'hono';
 import { getDb } from '@testfarm/db';
-import { sessions, personas, objectives, events, findings, sessionReports } from '@testfarm/db';
+import { sessions, personas, objectives, events, findings, sessionReports, appSettings } from '@testfarm/db';
 import { eq, inArray } from 'drizzle-orm';
+import { decrypt, isEncryptionConfigured } from '../crypto.js';
 import { createAgent, loadKnownIssues, generateSessionReport, type AgentConfig } from '@testfarm/core';
 import type { Persona, Objective, ExistingFindingsContext, SessionReportData, ChainContext, AgentMemory } from '@testfarm/shared';
 import { broadcastSessionEvent } from './events.js';
@@ -57,10 +58,9 @@ app.get('/:id', async (c) => {
 });
 
 // Default configurations
-// Using claude-cli to leverage Claude Max subscription instead of API
 const DEFAULT_LLM_CONFIG = {
-  provider: 'claude-cli' as const,
-  model: 'claude-sonnet-4-20250514',
+  provider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli',
+  model: process.env.LLM_MODEL || 'claude-sonnet-4-20250514',
   temperature: 0.7,
   maxTokens: 2048,
 };
@@ -70,6 +70,65 @@ const DEFAULT_VISION_CONFIG = {
   screenshotOnLowConfidence: true,
   confidenceThreshold: 0.5,
 };
+
+/**
+ * Get global LLM configuration from appSettings
+ */
+async function getGlobalLLMConfig() {
+  const db = getDb();
+  const settings = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).get();
+
+  if (settings) {
+    return {
+      provider: settings.llmProvider || DEFAULT_LLM_CONFIG.provider,
+      model: settings.llmModel || DEFAULT_LLM_CONFIG.model,
+      temperature: DEFAULT_LLM_CONFIG.temperature,
+      maxTokens: DEFAULT_LLM_CONFIG.maxTokens,
+    };
+  }
+
+  return DEFAULT_LLM_CONFIG;
+}
+
+/**
+ * Resolve API key with priority: DB (encrypted) > env var
+ */
+async function resolveApiKey(provider: string): Promise<string | undefined> {
+  const db = getDb();
+  const settings = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).get();
+
+  // 1. Try to get from DB (encrypted)
+  if (settings && isEncryptionConfigured()) {
+    try {
+      if (provider === 'anthropic' && settings.encryptedAnthropicKey) {
+        return decrypt(settings.encryptedAnthropicKey);
+      }
+      if (provider === 'openai' && settings.encryptedOpenaiKey) {
+        return decrypt(settings.encryptedOpenaiKey);
+      }
+      if (provider === 'google' && settings.encryptedGoogleKey) {
+        return decrypt(settings.encryptedGoogleKey);
+      }
+    } catch (e) {
+      console.error('Failed to decrypt API key:', e);
+    }
+  }
+
+  // 2. Fallback to env vars
+  switch (provider) {
+    case 'anthropic':
+      return process.env.ANTHROPIC_API_KEY;
+    case 'openai':
+      return process.env.OPENAI_API_KEY;
+    case 'google':
+      return process.env.GOOGLE_API_KEY;
+    case 'claude-cli':
+    case 'ollama':
+      return undefined; // Don't need API key
+    default:
+      return undefined;
+  }
+}
 
 // POST /api/sessions - Create new session
 app.post('/', async (c) => {
@@ -238,12 +297,37 @@ app.post('/:id/start', async (c) => {
     }
   }
 
+  // Get LLM config - use session config or fall back to global settings
+  const baseLLMConfig = session.llmConfig || await getGlobalLLMConfig();
+  const provider = baseLLMConfig.provider;
+
+  // Resolve API key from DB or env vars
+  const apiKey = await resolveApiKey(provider);
+
+  // Validate that we have an API key for providers that need it
+  if ((provider === 'anthropic' || provider === 'openai' || provider === 'google') && !apiKey) {
+    const envVarMap: Record<string, string> = {
+      anthropic: 'ANTHROPIC_API_KEY',
+      openai: 'OPENAI_API_KEY',
+      google: 'GOOGLE_API_KEY',
+    };
+    return c.json({
+      error: `API key not configured for provider: ${provider}. Configure it in Settings or set ${envVarMap[provider]} environment variable.`,
+    }, 400);
+  }
+
+  // Build final LLM config with resolved API key
+  const llmConfig = {
+    ...baseLLMConfig,
+    apiKey,
+  };
+
   // Create agent config
   const agentConfig: AgentConfig = {
     persona: agentPersona,
     objective: agentObjective,
     targetUrl: session.targetUrl,
-    llm: session.llmConfig as AgentConfig['llm'],
+    llm: llmConfig as AgentConfig['llm'],
     vision: session.visionConfig as AgentConfig['vision'],
     maxActions: objective.config.maxActions || 50,
     timeout: (objective.config.maxDuration || 10) * 60 * 1000, // Convert minutes to ms

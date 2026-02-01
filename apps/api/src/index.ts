@@ -40,6 +40,7 @@ import reports from './routes/reports.js';
 import screenshots from './routes/screenshots.js';
 import projects from './routes/projects.js';
 import trello from './routes/integrations/trello.js';
+import settings from './routes/settings.js';
 import { startScheduler } from './scheduler.js';
 // YAML sync removed - personas now managed 100% via DB and frontend
 // import { syncYamlToDatabase } from './sync.js';
@@ -78,6 +79,7 @@ app.route('/api/reports', reports);
 app.route('/api/screenshots', screenshots);
 app.route('/api/projects', projects);
 app.route('/api/integrations/trello', trello);
+app.route('/api/settings', settings);
 
 // ============================================================================
 // Serve Frontend Static Files (SPA)

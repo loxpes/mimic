@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
+    "@ai-sdk/google": "^1.0.0",
     "@ai-sdk/openai": "^1.0.0",
     "@testfarm/db": "workspace:*",
     "@testfarm/shared": "workspace:*",

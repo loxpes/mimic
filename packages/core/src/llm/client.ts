@@ -5,6 +5,7 @@
 
 import { generateObject } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { AgentDecisionSchema, PersonalAssessmentSchema } from './schemas.js';
 import { executeClaudeCliStructured, executeClaudeCliText } from './claude-cli.js';
@@ -24,6 +25,11 @@ function createProvider(config: LLMConfig) {
     case 'openai':
       return createOpenAI({
         apiKey: config.apiKey || process.env.OPENAI_API_KEY,
+      });
+
+    case 'google':
+      return createGoogleGenerativeAI({
+        apiKey: config.apiKey || process.env.GOOGLE_API_KEY,
       });
 
     case 'ollama':

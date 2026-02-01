@@ -197,6 +197,17 @@ export async function initializeDb(): Promise<void> {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS app_settings (
+      id TEXT PRIMARY KEY DEFAULT 'global',
+      llm_provider TEXT DEFAULT 'anthropic',
+      llm_model TEXT DEFAULT 'claude-sonnet-4-20250514',
+      encrypted_anthropic_key TEXT,
+      encrypted_openai_key TEXT,
+      encrypted_google_key TEXT,
+      ollama_base_url TEXT DEFAULT 'http://localhost:11434/v1',
+      updated_at INTEGER
+    );
+
     CREATE INDEX IF NOT EXISTS idx_integrations_project ON integrations(project_id);
     CREATE INDEX IF NOT EXISTS idx_integrations_type ON integrations(type);
     CREATE INDEX IF NOT EXISTS idx_sessions_persona ON sessions(persona_id);
@@ -243,6 +254,13 @@ export async function initializeDb(): Promise<void> {
   }
   try {
     sqlite.exec(`ALTER TABLE sessions ADD COLUMN scheduled_at INTEGER;`);
+  } catch {
+    // Column already exists, ignore
+  }
+
+  // Migration: Add Google API key to app_settings
+  try {
+    sqlite.exec(`ALTER TABLE app_settings ADD COLUMN encrypted_google_key TEXT;`);
   } catch {
     // Column already exists, ignore
   }
