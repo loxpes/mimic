@@ -78,3 +78,4 @@
 | 2026-02-02 | 🔧 Fix: Claude CLI en Docker | Instalado @anthropic-ai/claude-code globalmente en Dockerfile |
 | 2026-02-02 | 🔒 Fix: Usuario no-root | App ejecuta como nodeuser para permisos de Claude CLI |
 | 2026-02-02 | 🏠 Fix: Home directory | Creado /home/nodeuser con permisos para .claude.json |
+| 2026-02-02 | 🔧 Fix: DB readonly | Entrypoint script corrige permisos de volumen antes de iniciar |
