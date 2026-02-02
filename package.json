@@ -17,7 +17,8 @@
     "db:migrate": "pnpm --filter @testfarm/db migrate",
     "db:studio": "pnpm --filter @testfarm/db studio",
     "config:check": "tsx scripts/check-llm-config.ts",
-    "config:fix": "tsx scripts/fix-llm-config.ts"
+    "config:fix": "tsx scripts/fix-llm-config.ts",
+    "sessions:update-config": "tsx scripts/update-sessions-llm-config.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
