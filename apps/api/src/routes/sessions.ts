@@ -626,12 +626,11 @@ app.post('/:id/retry', async (c) => {
     return c.json({ error: 'Session not found' }, 404);
   }
 
-  // Get global LLM config and merge with original config
-  const globalLlmConfig = await getGlobalLLMConfig();
-  const llmConfig = {
-    ...globalLlmConfig,
-    ...(original.llmConfig as object || {}),
-  };
+  // Use current global LLM config (don't copy old session config)
+  // This ensures retry always uses the latest settings
+  const llmConfig = await getGlobalLLMConfig();
+
+  console.log(`[Retry] Creating new session with current global config: ${llmConfig.provider}`);
 
   // Create a clone with fresh state
   const newSession = {
