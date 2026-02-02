@@ -439,6 +439,7 @@ export class LLMClient {
           userPrompt,
           schema: AgentDecisionSchema,
           maxTokens: this.config.maxTokens ?? 2048,
+          model: this.config.model,
         });
 
         // Report token usage if callback provided
@@ -490,7 +491,8 @@ export class LLMClient {
       const result = await executeClaudeCliText(
         prompt,
         system,
-        this.config.maxTokens ?? 2048
+        this.config.maxTokens ?? 2048,
+        this.config.model
       );
 
       if (this.onTokenUsage) {
@@ -567,6 +569,7 @@ Rate this experience:`;
           userPrompt,
           schema: PersonalAssessmentSchema,
           maxTokens: 512,
+          model: this.config.model,
         });
 
         if (this.onTokenUsage) {

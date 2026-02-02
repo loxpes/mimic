@@ -16,6 +16,7 @@ export interface ClaudeCliOptions {
   userPrompt: string;
   schema?: ZodSchema;
   maxTokens?: number;
+  model?: string;  // Claude model to use (e.g., 'claude-sonnet-4-20250514')
 }
 
 export interface ClaudeCliResult<T = unknown> {
@@ -91,7 +92,7 @@ export async function executeClaudeCliStructured<T>(
 ${options.userPrompt}`;
 
   // Use CLI's native JSON schema support
-  return executeClaudeCliWithSchema<T>(fullPrompt, options.schema, options.maxTokens);
+  return executeClaudeCliWithSchema<T>(fullPrompt, options.schema, options.maxTokens, options.model);
 }
 
 /**
@@ -100,13 +101,14 @@ ${options.userPrompt}`;
 export async function executeClaudeCliText(
   prompt: string,
   systemPrompt?: string,
-  maxTokens?: number
+  maxTokens?: number,
+  model?: string
 ): Promise<ClaudeCliResult<string>> {
   const fullPrompt = systemPrompt
     ? `${systemPrompt}\n\n---\n\n${prompt}`
     : prompt;
 
-  return executeClaudeCli(fullPrompt, maxTokens);
+  return executeClaudeCli(fullPrompt, maxTokens, model);
 }
 
 /**
@@ -115,7 +117,8 @@ export async function executeClaudeCliText(
 async function executeClaudeCliWithSchema<T>(
   prompt: string,
   schema: ZodSchema,
-  _maxTokens?: number // Currently unused - Claude CLI doesn't support max-tokens directly
+  _maxTokens?: number, // Currently unused - Claude CLI doesn't support max-tokens directly
+  model?: string
 ): Promise<ClaudeCliResult<T>> {
   const jsonSchema = zodToJsonSchema(schema, { target: 'jsonSchema7' });
 
@@ -130,6 +133,11 @@ async function executeClaudeCliWithSchema<T>(
       '--json-schema', JSON.stringify(jsonSchema),
       '-p', '-',  // Read prompt from stdin
     ];
+
+    // Add model flag if specified
+    if (model) {
+      args.push('--model', model);
+    }
 
     console.log('[Claude CLI] Executing structured call with JSON schema...');
     console.log('[Claude CLI] Prompt length:', prompt.length, 'chars');
@@ -231,7 +239,8 @@ async function executeClaudeCliWithSchema<T>(
  */
 async function executeClaudeCli(
   prompt: string,
-  _maxTokens?: number // Currently unused - Claude CLI doesn't support max-tokens directly
+  _maxTokens?: number, // Currently unused - Claude CLI doesn't support max-tokens directly
+  model?: string
 ): Promise<ClaudeCliResult<string>> {
   return new Promise((resolve, reject) => {
     // Build CLI arguments with stream-json for real metrics
@@ -243,6 +252,11 @@ async function executeClaudeCli(
       '--dangerously-skip-permissions',
       '-p', '-',  // Read prompt from stdin
     ];
+
+    // Add model flag if specified
+    if (model) {
+      args.push('--model', model);
+    }
 
     console.log('[Claude CLI] Executing text call, prompt length:', prompt.length);
     const proc = spawn('claude', args, {

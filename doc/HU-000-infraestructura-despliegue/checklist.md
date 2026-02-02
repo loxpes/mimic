@@ -35,6 +35,7 @@
 - [x] Ocultar claves env en frontend
 - [x] Actualizar mensajes de error
 - [x] Documentar en README y CLAUDE.md
+- [x] Pasar parámetro --model a Claude CLI
 
 ## CI/CD
 - [x] Obtener webhook URL de Coolify
@@ -71,3 +72,4 @@
 | 2026-02-02 | Sistema de credenciales | Setup automático Claude CLI, env vars ocultas en frontend |
 | 2026-02-02 | ✅ HU-000 Completada | Infraestructura desplegada y funcionando en producción |
 | 2026-02-02 | 🔍 Debug LLM Provider | App usa Gemini en vez de Claude CLI - Investigando config |
+| 2026-02-02 | 🔧 Fix: --model flag | Claude CLI ahora recibe parámetro --model correctamente |
