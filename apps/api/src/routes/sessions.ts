@@ -59,7 +59,7 @@ app.get('/:id', async (c) => {
 
 // Default configurations
 const DEFAULT_LLM_CONFIG = {
-  provider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli',
+  provider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google',
   model: process.env.LLM_MODEL || 'claude-sonnet-4-20250514',
   temperature: 0.7,
   maxTokens: 2048,
@@ -135,13 +135,20 @@ app.post('/', async (c) => {
   const body = await c.req.json();
   const db = getDb();
 
+  // Get global LLM config as base and merge with body config
+  const globalConfig = await getGlobalLLMConfig();
+  const llmConfig = {
+    ...globalConfig,
+    ...(body.llmConfig || {}),
+  };
+
   const newSession = {
     id: crypto.randomUUID(),
     projectId: body.projectId || null,
     personaId: body.personaId,
     objectiveId: body.objectiveId,
     targetUrl: body.targetUrl,
-    llmConfig: body.llmConfig || DEFAULT_LLM_CONFIG,
+    llmConfig,
     visionConfig: body.visionConfig || DEFAULT_VISION_CONFIG,
     state: {
       status: 'pending' as const,
@@ -164,6 +171,13 @@ app.post('/batch', async (c) => {
 
   const { targetUrl, personaIds, objectiveIds, llmConfig, visionConfig, projectId } = body;
 
+  // Get global LLM config as base and merge with body config
+  const globalConfig = await getGlobalLLMConfig();
+  const mergedLlmConfig = {
+    ...globalConfig,
+    ...(llmConfig || {}),
+  };
+
   // Create a session for each persona-objective combination
   const sessionsToCreate = [];
 
@@ -175,7 +189,7 @@ app.post('/batch', async (c) => {
         personaId,
         objectiveId,
         targetUrl,
-        llmConfig: llmConfig || DEFAULT_LLM_CONFIG,
+        llmConfig: mergedLlmConfig,
         visionConfig: visionConfig || DEFAULT_VISION_CONFIG,
         state: {
           status: 'pending' as const,
@@ -493,7 +507,7 @@ app.post('/:id/start', async (c) => {
 
         const report = await generateSessionReport(
           reportData,
-          session.llmConfig as AgentConfig['llm']
+          llmConfig as AgentConfig['llm']
         );
 
         // Save report to database
