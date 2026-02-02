@@ -1,3 +1,33 @@
+# Workflow de Git
+
+**SIEMPRE** trabaja en ramas separadas, nunca directamente en `main`:
+
+1. **CREAR RAMA**: Antes de empezar cualquier trabajo, crea una rama desde `main` con nombre descriptivo
+2. **TRABAJAR**: Realiza todos los cambios en la rama de feature
+3. **MERGE**: Una vez completado y verificado, vuelve a `main` y fusiona los cambios
+4. **LIMPIAR**: Opcional - Elimina la rama de feature después del merge
+
+```bash
+# Ejemplo de workflow
+git checkout main
+git pull
+git checkout -b feature/nombre-descriptivo
+# ... trabajar ...
+git add .
+git commit -m "mensaje descriptivo"
+git checkout main
+git merge feature/nombre-descriptivo
+git push
+```
+
+**Nombres de ramas sugeridos:**
+- `feature/nombre` - Para nuevas funcionalidades
+- `fix/nombre` - Para corrección de bugs
+- `docs/nombre` - Para documentación
+- `refactor/nombre` - Para refactorizaciones
+
+---
+
 # TDD Obligatorio
 
 **SIEMPRE** sigue Test-Driven Development (TDD) al escribir código:
