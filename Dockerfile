@@ -53,6 +53,9 @@ WORKDIR /app
 # Instalar pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
+# Instalar Claude CLI globalmente
+RUN npm install -g @anthropic-ai/claude-code
+
 # Copiar desde builder
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
