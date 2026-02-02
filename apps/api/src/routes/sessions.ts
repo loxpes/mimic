@@ -11,6 +11,7 @@ import { createAgent, loadKnownIssues, generateSessionReport, type AgentConfig }
 import type { Persona, Objective, ExistingFindingsContext, SessionReportData, ChainContext, AgentMemory } from '@testfarm/shared';
 import { broadcastSessionEvent } from './events.js';
 import { getChainContextForSession, updateChainAfterSession } from './session-chains.js';
+import { getGlobalLLMConfig } from '../lib/llm-config.js';
 
 // Store running agents to allow cancellation
 const runningAgents = new Map<string, ReturnType<typeof createAgent>>();
@@ -57,38 +58,11 @@ app.get('/:id', async (c) => {
   return c.json(session);
 });
 
-// Default configurations
-const DEFAULT_LLM_CONFIG = {
-  provider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google',
-  model: process.env.LLM_MODEL || 'claude-sonnet-4-20250514',
-  temperature: 0.7,
-  maxTokens: 2048,
-};
-
 const DEFAULT_VISION_CONFIG = {
   screenshotInterval: 5,
   screenshotOnLowConfidence: true,
   confidenceThreshold: 0.5,
 };
-
-/**
- * Get global LLM configuration from appSettings
- */
-async function getGlobalLLMConfig() {
-  const db = getDb();
-  const settings = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).get();
-
-  if (settings) {
-    return {
-      provider: settings.llmProvider || DEFAULT_LLM_CONFIG.provider,
-      model: settings.llmModel || DEFAULT_LLM_CONFIG.model,
-      temperature: DEFAULT_LLM_CONFIG.temperature,
-      maxTokens: DEFAULT_LLM_CONFIG.maxTokens,
-    };
-  }
-
-  return DEFAULT_LLM_CONFIG;
-}
 
 /**
  * Resolve API key with priority: DB (encrypted) > env var
@@ -610,13 +584,20 @@ app.post('/:id/retry', async (c) => {
     return c.json({ error: 'Session not found' }, 404);
   }
 
+  // Get global LLM config and merge with original config
+  const globalLlmConfig = await getGlobalLLMConfig();
+  const llmConfig = {
+    ...globalLlmConfig,
+    ...(original.llmConfig as object || {}),
+  };
+
   // Create a clone with fresh state
   const newSession = {
     id: crypto.randomUUID(),
     personaId: original.personaId,
     objectiveId: original.objectiveId,
     targetUrl: original.targetUrl,
-    llmConfig: original.llmConfig,
+    llmConfig,
     visionConfig: original.visionConfig,
     state: {
       status: 'pending' as const,

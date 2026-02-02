@@ -13,16 +13,9 @@ import {
   mergeVisitedPages,
 } from '@testfarm/core';
 import type { PersistentMemory, AggregatedScore, ChainSchedule } from '@testfarm/shared';
+import { getGlobalLLMConfig } from '../lib/llm-config.js';
 
 const app = new Hono();
-
-// Default configurations (same as sessions)
-const DEFAULT_LLM_CONFIG = {
-  provider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli',
-  model: process.env.LLM_MODEL || 'claude-sonnet-4-20250514',
-  temperature: 0.7,
-  maxTokens: 2048,
-};
 
 const DEFAULT_VISION_CONFIG = {
   screenshotInterval: 5,
@@ -120,6 +113,13 @@ app.post('/', async (c) => {
   const body = await c.req.json();
   const db = getDb();
 
+  // Get global LLM config and merge with body config
+  const globalLlmConfig = await getGlobalLLMConfig();
+  const llmConfig = {
+    ...globalLlmConfig,
+    ...(body.llmConfig || {}),
+  };
+
   const newChain = {
     id: crypto.randomUUID(),
     projectId: body.projectId || null,
@@ -127,7 +127,7 @@ app.post('/', async (c) => {
     objectiveId: body.objectiveId,
     targetUrl: body.targetUrl,
     name: body.name || null,
-    llmConfig: { ...DEFAULT_LLM_CONFIG, ...body.llmConfig },
+    llmConfig,
     visionConfig: { ...DEFAULT_VISION_CONFIG, ...body.visionConfig },
     status: 'active' as const,
     sessionCount: 0,
@@ -160,7 +160,10 @@ app.patch('/:id', async (c) => {
   if (body.status !== undefined) updates.status = body.status;
   if (body.schedule !== undefined) updates.schedule = body.schedule;
   if (body.projectId !== undefined) updates.projectId = body.projectId;
-  if (body.llmConfig !== undefined) updates.llmConfig = { ...DEFAULT_LLM_CONFIG, ...body.llmConfig };
+  if (body.llmConfig !== undefined) {
+    const globalLlmConfig = await getGlobalLLMConfig();
+    updates.llmConfig = { ...globalLlmConfig, ...body.llmConfig };
+  }
   if (body.visionConfig !== undefined) updates.visionConfig = { ...DEFAULT_VISION_CONFIG, ...body.visionConfig };
 
   await db.update(sessionChains).set(updates).where(eq(sessionChains.id, id));
@@ -221,6 +224,13 @@ app.post('/:id/continue', async (c) => {
 
   const nextSequence = (lastSession?.chainSequence ?? 0) + 1;
 
+  // Get global LLM config and merge with chain config
+  const globalLlmConfig = await getGlobalLLMConfig();
+  const llmConfig = {
+    ...globalLlmConfig,
+    ...(chain.llmConfig as object || {}),
+  };
+
   // Create new session with chain context
   const newSession = {
     id: crypto.randomUUID(),
@@ -231,7 +241,7 @@ app.post('/:id/continue', async (c) => {
     personaId: chain.personaId,
     objectiveId: chain.objectiveId,
     targetUrl: chain.targetUrl,
-    llmConfig: { ...DEFAULT_LLM_CONFIG, ...(chain.llmConfig as object) },
+    llmConfig,
     visionConfig: { ...DEFAULT_VISION_CONFIG, ...(chain.visionConfig as object) },
     state: {
       status: 'pending' as const,

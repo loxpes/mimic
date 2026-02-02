@@ -5,6 +5,7 @@
 import { getDb } from '@testfarm/db';
 import { scheduledTasks, sessionChains, sessions } from '@testfarm/db';
 import { eq, and, lte, desc, sql } from 'drizzle-orm';
+import { getGlobalLLMConfig } from './lib/llm-config.js';
 
 // Check interval in milliseconds (1 minute)
 const CHECK_INTERVAL = 60 * 1000;
@@ -135,6 +136,13 @@ async function continueChain(chainId: string): Promise<void> {
 
   const nextSequence = (lastSession?.chainSequence ?? 0) + 1;
 
+  // Get global LLM config and merge with chain config
+  const globalLlmConfig = await getGlobalLLMConfig();
+  const llmConfig = {
+    ...globalLlmConfig,
+    ...(chain.llmConfig as object || {}),
+  };
+
   // Create the new session
   const newSession = {
     id: crypto.randomUUID(),
@@ -145,12 +153,7 @@ async function continueChain(chainId: string): Promise<void> {
     personaId: chain.personaId,
     objectiveId: chain.objectiveId,
     targetUrl: chain.targetUrl,
-    llmConfig: chain.llmConfig || {
-      provider: 'claude-cli' as const,
-      model: 'claude-sonnet-4-20250514',
-      temperature: 0.7,
-      maxTokens: 2048,
-    },
+    llmConfig,
     visionConfig: chain.visionConfig || {
       screenshotInterval: 5,
       screenshotOnLowConfidence: true,
