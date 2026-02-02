@@ -77,3 +77,4 @@
 | 2026-02-02 | 🐛 Fix: Retry con config vieja | Retry ahora usa config global en vez de copiar llmConfig antigua |
 | 2026-02-02 | 🔧 Fix: Claude CLI en Docker | Instalado @anthropic-ai/claude-code globalmente en Dockerfile |
 | 2026-02-02 | 🔒 Fix: Usuario no-root | App ejecuta como nodeuser para permisos de Claude CLI |
+| 2026-02-02 | 🏠 Fix: Home directory | Creado /home/nodeuser con permisos para .claude.json |
