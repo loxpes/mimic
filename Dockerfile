@@ -66,6 +66,13 @@ COPY --from=builder /app/config ./config
 # Crear directorio para datos persistentes
 RUN mkdir -p /app/data
 
+# Crear usuario no-root y dar permisos
+RUN groupadd -r nodeuser && useradd -r -g nodeuser nodeuser \
+    && chown -R nodeuser:nodeuser /app
+
+# Cambiar a usuario no-root
+USER nodeuser
+
 EXPOSE 3001
 
 CMD ["node", "apps/api/dist/index.js"]
