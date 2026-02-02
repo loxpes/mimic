@@ -65,7 +65,8 @@ export const ObjectiveStatusSchema = z.enum([
   'pursuing',
   'blocked',
   'completed',
-  'abandoned'
+  'abandoned',
+  'waiting-for-user'
 ]);
 
 export const ProgressSchema = z.object({
@@ -81,7 +82,25 @@ export const ProgressSchema = z.object({
 export const MemoryUpdatesSchema = z.object({
   addDiscovery: z.string().optional().describe('Something useful discovered about the site'),
   addFrustration: z.string().optional().describe('Something frustrating encountered'),
-  addDecision: z.string().optional().describe('An important decision made')
+  addDecision: z.string().optional().describe('An important decision made'),
+  /** What behavior was expected vs what happened - only provide when addFrustration is set */
+  expectedBehavior: z.string().optional().describe('What you expected to happen vs what actually happened. Example: "Expected the form to submit, but got a generic error message"')
+});
+
+// ============================================================================
+// User Input Request Schema (2FA, CAPTCHA, etc.)
+// ============================================================================
+
+export const UserInputTypeSchema = z.enum([
+  'verification-code',
+  'captcha',
+  'custom'
+]);
+
+export const UserInputRequestSchema = z.object({
+  type: UserInputTypeSchema.describe('Type of verification needed'),
+  prompt: z.string().describe('Message to show to the user explaining what is needed. Example: "Enter the 6-digit code sent to your email"'),
+  fieldId: z.string().optional().describe('ID of the field where the value should be entered')
 });
 
 // ============================================================================
@@ -93,7 +112,8 @@ export const AgentDecisionSchema = z.object({
   reasoning: ReasoningSchema.describe('Your reasoning process'),
   progress: ProgressSchema.describe('Progress toward the objective'),
   memoryUpdates: MemoryUpdatesSchema.optional().describe('Updates to agent memory'),
-  requestScreenshot: z.boolean().optional().describe('Request a screenshot for more visual context')
+  requestScreenshot: z.boolean().optional().describe('Request a screenshot for more visual context'),
+  userInputRequest: UserInputRequestSchema.optional().describe('Request for user input when objectiveStatus is "waiting-for-user"')
 });
 
 // ============================================================================

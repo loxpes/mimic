@@ -33,7 +33,11 @@ import {
   ThumbsUp,
   ThumbsDown,
   Send,
+  ListOrdered,
+  HelpCircle,
+  KeyRound,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface DOMElement {
   id: string;
@@ -58,6 +62,12 @@ interface PersonalAssessment {
   summary: string;
 }
 
+interface UserInputRequest {
+  type: string;
+  prompt: string;
+  fieldId?: string;
+}
+
 export function SessionDetail() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
@@ -65,6 +75,9 @@ export function SessionDetail() {
   const navigate = useNavigate();
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [selectedElements, setSelectedElements] = useState<DOMElement[] | null>(null);
+  const [userInputRequest, setUserInputRequest] = useState<UserInputRequest | null>(null);
+  const [userInputValue, setUserInputValue] = useState('');
+  const [isSubmittingInput, setIsSubmittingInput] = useState(false);
 
   const { data: session, isLoading: sessionLoading } = useQuery({
     queryKey: ['session', id],
@@ -148,6 +161,12 @@ export function SessionDetail() {
           queryClient.invalidateQueries({ queryKey: ['session', id] });
           queryClient.invalidateQueries({ queryKey: ['events', id] });
           queryClient.invalidateQueries({ queryKey: ['findings', id] });
+          // Clear any pending user input request
+          setUserInputRequest(null);
+        } else if (data.type === 'user-input-required') {
+          // Agent needs user input (2FA, CAPTCHA, etc.)
+          setUserInputRequest(data.data as UserInputRequest);
+          setUserInputValue('');
         }
       } catch (err) {
         console.error('Failed to parse SSE event:', err);
@@ -162,6 +181,22 @@ export function SessionDetail() {
       eventSource.close();
     };
   }, [id, session?.state.status, queryClient]);
+
+  // Handle user input submission for 2FA
+  const handleSubmitUserInput = async () => {
+    if (!id || !userInputValue.trim()) return;
+
+    setIsSubmittingInput(true);
+    try {
+      await sessionsApi.provideInput(id, userInputValue.trim());
+      setUserInputRequest(null);
+      setUserInputValue('');
+    } catch (error) {
+      console.error('Failed to submit user input:', error);
+    } finally {
+      setIsSubmittingInput(false);
+    }
+  };
 
   // Use events directly from DB (no more liveEvents mixing)
   const allEvents = events;
@@ -393,6 +428,76 @@ export function SessionDetail() {
           elements={selectedElements}
           onClose={() => setSelectedElements(null)}
         />
+      )}
+
+      {/* 2FA User Input Modal */}
+      {userInputRequest && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => {}} // Don't close on backdrop click
+        >
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-primary" />
+                Verification Required
+              </CardTitle>
+              <CardDescription>
+                {userInputRequest.prompt}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {userInputRequest.type}
+                </Badge>
+                {userInputRequest.fieldId && (
+                  <span className="text-xs text-muted-foreground">
+                    Field: {userInputRequest.fieldId}
+                  </span>
+                )}
+              </div>
+              <Input
+                type="text"
+                placeholder="Enter verification code..."
+                value={userInputValue}
+                onChange={(e) => setUserInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isSubmittingInput) {
+                    handleSubmitUserInput();
+                  }
+                }}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUserInputRequest(null);
+                    setUserInputValue('');
+                    // Cancel by providing empty input
+                    if (id) {
+                      sessionsApi.provideInput(id, '').catch(console.error);
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmitUserInput}
+                  disabled={isSubmittingInput || !userInputValue.trim()}
+                >
+                  {isSubmittingInput ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Submit
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
@@ -627,13 +732,17 @@ function FindingCard({
       actionNumber: number;
       previousActions?: Array<{ type: string; target?: string; success: boolean }>;
     };
+    stepsToReproduce?: string[];
   } }).evidence;
+
+  const expectedBehavior = (finding as { expectedBehavior?: string }).expectedBehavior;
 
   const hasEvidence = evidence && (
     evidence.screenshotPath ||
     (evidence.consoleLogs && evidence.consoleLogs.length > 0) ||
-    evidence.actionContext
-  );
+    evidence.actionContext ||
+    (evidence.stepsToReproduce && evidence.stepsToReproduce.length > 0)
+  ) || expectedBehavior;
 
   return (
     <div className="p-3 rounded-lg border space-y-2">
@@ -691,10 +800,40 @@ function FindingCard({
       )}
 
       {/* Evidence Section */}
-      {isExpanded && evidence && (
+      {isExpanded && (
         <div className="mt-3 pt-3 border-t space-y-3">
+          {/* Expected Behavior */}
+          {expectedBehavior && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                <HelpCircle className="h-3 w-3" />
+                Expected Behavior
+              </div>
+              <p className="text-xs bg-muted/50 rounded p-2 italic">
+                {expectedBehavior}
+              </p>
+            </div>
+          )}
+
+          {/* Steps to Reproduce */}
+          {evidence?.stepsToReproduce && evidence.stepsToReproduce.length > 0 && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                <ListOrdered className="h-3 w-3" />
+                Steps to Reproduce ({evidence.stepsToReproduce.length})
+              </div>
+              <ol className="text-xs space-y-1 list-decimal list-inside bg-muted/30 rounded p-2">
+                {evidence.stepsToReproduce.map((step, i) => (
+                  <li key={i} className="text-muted-foreground">
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           {/* Screenshot */}
-          {evidence.screenshotPath && (
+          {evidence?.screenshotPath && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
                 <ImageIcon className="h-3 w-3" />
@@ -717,7 +856,7 @@ function FindingCard({
           )}
 
           {/* Console Logs */}
-          {evidence.consoleLogs && evidence.consoleLogs.length > 0 && (
+          {evidence?.consoleLogs && evidence.consoleLogs.length > 0 && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
                 <Code2 className="h-3 w-3" />
@@ -734,7 +873,7 @@ function FindingCard({
           )}
 
           {/* Action Context */}
-          {evidence.actionContext && (
+          {evidence?.actionContext && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1">
                 Action #{evidence.actionContext.actionNumber}

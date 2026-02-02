@@ -307,7 +307,7 @@ export interface AgentContext {
   chainContext?: ChainContext;  // Multi-session chain context
 }
 
-export type ObjectiveStatus = 'pursuing' | 'blocked' | 'completed' | 'abandoned';
+export type ObjectiveStatus = 'pursuing' | 'blocked' | 'completed' | 'abandoned' | 'waiting-for-user';
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
@@ -327,6 +327,20 @@ export interface MemoryUpdates {
   addDiscovery?: string;
   addFrustration?: string;
   addDecision?: string;
+  /** What behavior was expected vs what happened - only relevant when addFrustration is set */
+  expectedBehavior?: string;
+}
+
+/** Request for user input (2FA, CAPTCHA, etc.) */
+export type UserInputType = 'verification-code' | 'captcha' | 'custom';
+
+export interface UserInputRequest {
+  /** Type of verification needed */
+  type: UserInputType;
+  /** Message to show to the user explaining what is needed */
+  prompt: string;
+  /** ID of the field where the value should be entered (if applicable) */
+  fieldId?: string;
 }
 
 export interface AgentDecision {
@@ -335,6 +349,8 @@ export interface AgentDecision {
   progress: AgentProgress;
   memoryUpdates?: MemoryUpdates;
   requestScreenshot?: boolean;
+  /** Request for user input when objectiveStatus is 'waiting-for-user' */
+  userInputRequest?: UserInputRequest;
 }
 
 // ============================================================================
@@ -437,6 +453,8 @@ export interface FindingEvidence {
       success: boolean;
     }>;
   };
+  /** Complete steps to reproduce the issue from session start */
+  stepsToReproduce?: string[];
 }
 
 export interface Finding {
@@ -453,6 +471,8 @@ export interface Finding {
   fingerprint?: string;
   isDuplicate?: boolean;
   evidence?: FindingEvidence;
+  /** What behavior was expected vs what happened */
+  expectedBehavior?: string;
 }
 
 export interface KnownIssue {

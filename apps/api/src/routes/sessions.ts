@@ -423,6 +423,16 @@ app.post('/:id/start', async (c) => {
       });
     },
 
+    onWaitingForUser: (request) => {
+      console.log(`[Session ${id}] Waiting for user input: ${request.type}`);
+
+      // Broadcast user input required event
+      broadcastSessionEvent(id, {
+        type: 'user-input-required',
+        data: request,
+      });
+    },
+
     onComplete: async (result) => {
       // Check if session was cancelled - don't overwrite cancelled status
       if (cancelledSessions.has(id)) {
@@ -760,6 +770,56 @@ app.delete('/:id', async (c) => {
   await db.delete(sessions).where(eq(sessions.id, id));
 
   return c.json({ message: 'Session deleted', sessionId: id });
+});
+
+// POST /api/sessions/:id/input - Provide user input for 2FA/CAPTCHA
+app.post('/:id/input', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  const { value } = body;
+
+  if (!value) {
+    return c.json({ error: 'value is required' }, 400);
+  }
+
+  // Get the running agent
+  const agent = runningAgents.get(id);
+  if (!agent) {
+    return c.json({ error: 'Session is not running or agent not found' }, 404);
+  }
+
+  // Check if the agent is waiting for user input
+  if (!agent.isWaitingForUserInput()) {
+    return c.json({ error: 'Agent is not waiting for user input' }, 400);
+  }
+
+  // Provide the user input to the agent
+  const success = agent.provideUserInput(value);
+
+  if (success) {
+    return c.json({ message: 'Input provided successfully', sessionId: id });
+  } else {
+    return c.json({ error: 'Failed to provide input' }, 500);
+  }
+});
+
+// GET /api/sessions/:id/input-status - Check if session is waiting for user input
+app.get('/:id/input-status', async (c) => {
+  const id = c.req.param('id');
+
+  // Get the running agent
+  const agent = runningAgents.get(id);
+  if (!agent) {
+    return c.json({ waiting: false, message: 'Session is not running' });
+  }
+
+  const isWaiting = agent.isWaitingForUserInput();
+  const request = agent.getPendingUserInputRequest();
+
+  return c.json({
+    waiting: isWaiting,
+    request: request,
+  });
 });
 
 export default app;

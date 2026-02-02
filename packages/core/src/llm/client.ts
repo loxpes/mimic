@@ -220,7 +220,35 @@ ${context.memory.frustrations.length > 0
 
 ${context.memory.decisions.length > 0
       ? `**Decisions**: ${context.memory.decisions.join(', ')}`
-      : '**Decisions**: None yet'}${buildChainContextSection(context)}${buildAuthInstructions(context)}${buildKnownIssuesSection(context)}`;
+      : '**Decisions**: None yet'}${buildDuplicatePreventionSection(context.memory.frustrations)}${buildChainContextSection(context)}${buildAuthInstructions(context)}${buildKnownIssuesSection(context)}`;
+}
+
+/**
+ * Builds the duplicate prevention section of the prompt
+ * Helps the LLM avoid reporting the same frustration multiple times
+ */
+export function buildDuplicatePreventionSection(frustrations: string[]): string {
+  if (frustrations.length === 0) {
+    return '';
+  }
+
+  const frustrationList = frustrations
+    .map((f, i) => `${i + 1}. ${f}`)
+    .join('\n');
+
+  return `
+
+## IMPORTANTE: Evitar Reportes Duplicados
+
+ANTES de añadir una frustración a memoryUpdates.addFrustration:
+1. Revisa la lista de frustraciones ya reportadas abajo
+2. Si ya reportaste algo SIMILAR (mismo problema, diferente redacción), NO lo reportes de nuevo
+3. Solo reporta problemas NUEVOS que no hayas mencionado antes
+
+**Frustraciones ya reportadas en esta sesión:**
+${frustrationList}
+
+Si encuentras un problema que YA reportaste (aunque con otras palabras), simplemente continúa sin añadir una nueva frustración.`;
 }
 
 function buildChainContextSection(context: AgentContext): string {
@@ -309,15 +337,43 @@ Tienes las siguientes credenciales para usar en esta web:
    - Usa las credenciales proporcionadas arriba
    - Si hay campos adicionales (nombre, empresa, teléfono, etc.), invéntalos según tu persona
 
-2. **Si el registro requiere verificación de email**:
-   - Marca el objetivo como "blocked" con el motivo "Requiere verificación de email"
+2. **Si el registro requiere verificación de email/SMS o 2FA**:
+   - Usa objectiveStatus: "waiting-for-user"
+   - Incluye userInputRequest con:
+     - type: "verification-code" (para códigos de email/SMS/OTP)
+     - prompt: Mensaje claro para el usuario (ej: "Introduce el código de 6 dígitos enviado a tu email")
+     - fieldId: ID del campo donde introducir el código (si existe)
 
 3. **Si hay login social (Google, GitHub, Apple, etc.)**:
    - NO lo uses, usa siempre el registro/login con email y contraseña
 
 4. **Después de autenticarte exitosamente**:
    - Continúa con tu objetivo principal
-   - Añade "Autenticación completada" a tus discoveries`;
+   - Añade "Autenticación completada" a tus discoveries
+
+## Verificación de Dos Factores (2FA)
+
+Si detectas una pantalla pidiendo:
+- Código de verificación por email/SMS
+- Código OTP de aplicación autenticadora
+- CAPTCHA que requiere intervención humana
+
+**USA objectiveStatus: "waiting-for-user"** y especifica:
+\`\`\`json
+{
+  "progress": {
+    "objectiveStatus": "waiting-for-user",
+    ...
+  },
+  "userInputRequest": {
+    "type": "verification-code",
+    "prompt": "Introduce el código de 6 dígitos enviado a tu email",
+    "fieldId": "e5"  // ID del campo si existe
+  }
+}
+\`\`\`
+
+El agente se pausará y esperará a que el usuario proporcione el código.`;
 }
 
 function buildUserPrompt(context: AgentContext): string {

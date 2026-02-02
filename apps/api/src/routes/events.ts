@@ -111,7 +111,7 @@ app.get('/:sessionId/stream', async (c) => {
 
 // Helper function to broadcast events to all listeners
 export function broadcastSessionEvent(sessionId: string, event: {
-  type: 'action' | 'progress' | 'finding' | 'complete' | 'error';
+  type: 'action' | 'progress' | 'finding' | 'complete' | 'error' | 'user-input-required';
   data: unknown;
 }) {
   const streams = activeStreams.get(sessionId);

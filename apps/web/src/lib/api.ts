@@ -214,6 +214,22 @@ export const sessionsApi = {
       method: 'DELETE',
       body: JSON.stringify({ ids }),
     }),
+  /** Provide user input for 2FA/CAPTCHA verification */
+  provideInput: (id: string, value: string) =>
+    request<{ message: string }>(`/sessions/${id}/input`, {
+      method: 'POST',
+      body: JSON.stringify({ value }),
+    }),
+  /** Check if session is waiting for user input */
+  getInputStatus: (id: string) =>
+    request<{
+      waiting: boolean;
+      request?: {
+        type: string;
+        prompt: string;
+        fieldId?: string;
+      };
+    }>(`/sessions/${id}/input-status`),
 };
 
 // Personas

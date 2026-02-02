@@ -24,6 +24,7 @@ import type {
   UnifiedElement,
   PersonalAssessment,
   ChainContext,
+  UserInputRequest,
 } from '@testfarm/shared';
 import { LLMClient } from './llm/client.js';
 import { BrowserController, createBrowser } from './browser/controller.js';
@@ -78,6 +79,8 @@ export interface AgentEvents {
   onProgress?: (progress: { actionCount: number; status: string; url: string }) => void;
   onComplete?: (result: AgentResult) => void;
   onError?: (error: Error) => void;
+  /** Called when the agent needs user input (2FA, CAPTCHA, etc.) */
+  onWaitingForUser?: (request: UserInputRequest) => void;
 }
 
 export interface AgentResult {
@@ -117,6 +120,11 @@ export class Agent {
   private unifiedElements: UnifiedElement[] = [];
   /** Current screenshot path for findings evidence */
   private currentScreenshotPath: string | undefined;
+  /** Pending user input request for 2FA/CAPTCHA */
+  private pendingUserInput: {
+    request: UserInputRequest;
+    resolve: (value: string) => void;
+  } | null = null;
 
   constructor(config: AgentConfig, events: AgentEvents = {}) {
     this.config = config;
@@ -394,7 +402,8 @@ ${persona.context}`;
 
         // Create a finding with appropriate type
         const findingType = isVisualIssue ? 'visual-design' : 'ux-issue';
-        await this.createFinding(findingType, 'medium', decision.memoryUpdates.addFrustration, currentUrl);
+        const expectedBehavior = decision.memoryUpdates.expectedBehavior;
+        await this.createFinding(findingType, 'medium', decision.memoryUpdates.addFrustration, currentUrl, undefined, expectedBehavior);
       }
       if (decision.memoryUpdates.addDecision) {
         this.memory.decisions.push(decision.memoryUpdates.addDecision);
@@ -413,7 +422,8 @@ ${persona.context}`;
     severity: Finding['severity'],
     description: string,
     url: string,
-    elementId?: string
+    elementId?: string,
+    expectedBehavior?: string
   ): Promise<void> {
     // Check for deduplication if enabled
     let deduplicationResult: DeduplicationResult | undefined;
@@ -441,7 +451,10 @@ ${persona.context}`;
       }
     }
 
-    // Build evidence with screenshot, console logs, and action context
+    // Build steps to reproduce from the full action history
+    const stepsToReproduce = this.buildStepsToReproduce();
+
+    // Build evidence with screenshot, console logs, action context, and steps to reproduce
     const evidence: FindingEvidence = {
       screenshotPath: this.currentScreenshotPath,
       consoleLogs: this.browser?.getRecentConsoleLogs(10),
@@ -453,6 +466,7 @@ ${persona.context}`;
           success: a.success,
         })),
       },
+      stepsToReproduce,
     };
 
     const finding: Finding = {
@@ -468,10 +482,64 @@ ${persona.context}`;
       fingerprint,
       isDuplicate,
       evidence,
+      expectedBehavior,
     };
 
     this.findings.push(finding);
     this.events.onFinding?.(finding, deduplicationResult);
+  }
+
+  /**
+   * Build human-readable steps to reproduce from the action history
+   */
+  private buildStepsToReproduce(): string[] {
+    const steps: string[] = [];
+
+    // Start with navigation to target URL
+    steps.push(`Navigate to ${this.config.targetUrl}`);
+
+    // Add each action as a step
+    for (const action of this.history.recentActions) {
+      const step = this.formatActionAsStep(action);
+      if (step) {
+        steps.push(step);
+      }
+    }
+
+    return steps;
+  }
+
+  /**
+   * Format a single action as a human-readable step
+   */
+  private formatActionAsStep(action: ActionHistory): string {
+    const { type, target, value, direction, duration } = action.action;
+    const status = action.success ? '' : ' (failed)';
+
+    switch (type) {
+      case 'click':
+        return `Click on "${target?.description || 'element'}"${status}`;
+      case 'type':
+        return `Type "${value}" into "${target?.description || 'field'}"${status}`;
+      case 'fillForm':
+        return `Fill form${status}`;
+      case 'scroll':
+        return `Scroll ${direction || 'down'}${status}`;
+      case 'wait':
+        return `Wait ${duration || 1000}ms${status}`;
+      case 'navigate':
+        return `Navigate to ${value || 'URL'}${status}`;
+      case 'back':
+        return `Go back${status}`;
+      case 'hover':
+        return `Hover over "${target?.description || 'element'}"${status}`;
+      case 'select':
+        return `Select "${value}" from "${target?.description || 'dropdown'}"${status}`;
+      case 'abandon':
+        return `Abandon objective${status}`;
+      default:
+        return `${type}${status}`;
+    }
   }
 
   // ============================================================================
@@ -601,6 +669,45 @@ ${persona.context}`;
           }
         }
 
+        // Handle waiting-for-user status (2FA, CAPTCHA, etc.)
+        if (decision.progress.objectiveStatus === 'waiting-for-user') {
+          const userInputRequest = decision.userInputRequest;
+          if (userInputRequest) {
+            console.log(`[Agent] Waiting for user input: ${userInputRequest.type} - ${userInputRequest.prompt}`);
+
+            // Emit event and wait for user input
+            this.events.onWaitingForUser?.(userInputRequest);
+
+            // Create a promise that will be resolved when user provides input
+            const userInput = await new Promise<string>((resolve) => {
+              this.pendingUserInput = { request: userInputRequest, resolve };
+            });
+
+            // If we got empty input (cancelled) or shouldStop, break
+            if (!userInput || this.shouldStop) {
+              outcome = 'abandoned';
+              summary = 'User cancelled the verification request';
+              break;
+            }
+
+            // Type the user input into the specified field
+            if (userInputRequest.fieldId && this.browser) {
+              console.log(`[Agent] Entering user input into field ${userInputRequest.fieldId}`);
+              const typeAction = {
+                type: 'type' as const,
+                target: {
+                  elementId: userInputRequest.fieldId,
+                  description: 'Verification code field',
+                },
+                value: userInput,
+              };
+              await this.browser.executeAction(typeAction, elementMap);
+            }
+
+            // Continue the loop - the agent will decide what to do next
+          }
+        }
+
         // Small delay between actions
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
@@ -667,6 +774,41 @@ ${persona.context}`;
 
   stop(): void {
     this.shouldStop = true;
+    // Also resolve any pending user input to unblock the loop
+    if (this.pendingUserInput) {
+      this.pendingUserInput.resolve('');
+      this.pendingUserInput = null;
+    }
+  }
+
+  /**
+   * Provide user input for 2FA/CAPTCHA verification
+   * @param value The verification code or user input
+   * @returns true if there was a pending request, false otherwise
+   */
+  provideUserInput(value: string): boolean {
+    if (this.pendingUserInput) {
+      console.log(`[Agent] User provided input: ${value.substring(0, 3)}***`);
+      this.pendingUserInput.resolve(value);
+      this.pendingUserInput = null;
+      return true;
+    }
+    console.warn('[Agent] No pending user input request');
+    return false;
+  }
+
+  /**
+   * Check if the agent is waiting for user input
+   */
+  isWaitingForUserInput(): boolean {
+    return this.pendingUserInput !== null;
+  }
+
+  /**
+   * Get the current user input request (if any)
+   */
+  getPendingUserInputRequest(): UserInputRequest | null {
+    return this.pendingUserInput?.request ?? null;
   }
 
   isActive(): boolean {
