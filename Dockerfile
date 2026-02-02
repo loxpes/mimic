@@ -66,9 +66,9 @@ COPY --from=builder /app/config ./config
 # Crear directorio para datos persistentes
 RUN mkdir -p /app/data
 
-# Crear usuario no-root y dar permisos
-RUN groupadd -r nodeuser && useradd -r -g nodeuser nodeuser \
-    && chown -R nodeuser:nodeuser /app
+# Crear usuario no-root con home directory y dar permisos
+RUN groupadd -r nodeuser && useradd -r -g nodeuser -m -d /home/nodeuser nodeuser \
+    && chown -R nodeuser:nodeuser /app /home/nodeuser
 
 # Cambiar a usuario no-root
 USER nodeuser
