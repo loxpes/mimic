@@ -191,13 +191,20 @@ app.post('/:id/start', async (c) => {
   const id = c.req.param('id');
   const db = getDb();
 
+  console.log(`[Session ${id}] Starting session...`);
+
   // Get session
   const session = await db.select().from(sessions).where(eq(sessions.id, id)).get();
   if (!session) {
+    console.error(`[Session ${id}] Session not found in database`);
     return c.json({ error: 'Session not found' }, 404);
   }
 
+  console.log(`[Session ${id}] Session state:`, session.state.status);
+  console.log(`[Session ${id}] LLM config:`, session.llmConfig);
+
   if (session.state.status === 'running') {
+    console.error(`[Session ${id}] Session is already running`);
     return c.json({ error: 'Session is already running' }, 400);
   }
 
@@ -289,8 +296,14 @@ app.post('/:id/start', async (c) => {
   const baseLLMConfig = session.llmConfig || await getGlobalLLMConfig();
   const provider = baseLLMConfig.provider;
 
+  console.log(`[Session ${id}] LLM Provider: ${provider}`);
+  console.log(`[Session ${id}] LLM Model: ${baseLLMConfig.model}`);
+  console.log(`[Session ${id}] Using session config:`, !!session.llmConfig);
+
   // Resolve API key from DB or env vars
   const apiKey = await resolveApiKey(provider);
+
+  console.log(`[Session ${id}] API key resolved:`, apiKey ? 'YES' : 'NO');
 
   // Validate that we have an API key for providers that need it
   if ((provider === 'anthropic' || provider === 'openai' || provider === 'google') && !apiKey) {
@@ -299,9 +312,9 @@ app.post('/:id/start', async (c) => {
       openai: 'OPENAI_API_KEY',
       google: 'GOOGLE_API_KEY',
     };
-    return c.json({
-      error: `API key not configured for provider: ${provider}. Configure it in Settings or set ${envVarMap[provider]} environment variable.`,
-    }, 400);
+    const errorMsg = `API key not configured for provider: ${provider}. Configure it in Settings or set ${envVarMap[provider]} environment variable.`;
+    console.error(`[Session ${id}] VALIDATION FAILED: ${errorMsg}`);
+    return c.json({ error: errorMsg }, 400);
   }
 
   // Build final LLM config with resolved API key
