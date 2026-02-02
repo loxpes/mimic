@@ -31,32 +31,6 @@ const providers = [
   { value: 'claude-cli', label: 'Claude Code CLI', description: 'Solo para desarrollo local' },
 ];
 
-const modelsByProvider: Record<string, { value: string; label: string }[]> = {
-  anthropic: [
-    { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-    { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-    { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' },
-  ],
-  openai: [
-    { value: 'gpt-4o', label: 'GPT-4o' },
-    { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-  ],
-  google: [
-    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-    { value: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash (Experimental)' },
-  ],
-  ollama: [
-    { value: 'llama3', label: 'Llama 3' },
-    { value: 'mistral', label: 'Mistral' },
-    { value: 'codellama', label: 'CodeLlama' },
-  ],
-  'claude-cli': [
-    { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-  ],
-};
-
 export function Settings() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -110,11 +84,6 @@ export function Settings() {
   // Handle provider change
   const handleProviderChange = (value: string) => {
     setProvider(value);
-    // Set default model for the provider
-    const models = modelsByProvider[value];
-    if (models && models.length > 0) {
-      setModel(models[0].value);
-    }
   };
 
   // Handle save provider/model
@@ -144,7 +113,6 @@ export function Settings() {
 
   const selectedLanguage = languages.find(l => l.value === language);
   const selectedProvider = providers.find(p => p.value === provider);
-  const availableModels = modelsByProvider[provider] || [];
 
   if (isLoading) {
     return (
@@ -252,18 +220,14 @@ export function Settings() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Modelo</label>
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableModels.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder="ej: claude-sonnet-4-20250514, gpt-4o, gemini-1.5-pro"
+              />
+              <p className="text-xs text-muted-foreground">
+                Introduce el ID del modelo del proveedor seleccionado
+              </p>
             </div>
           </div>
 
