@@ -29,7 +29,7 @@ RUN pnpm -r --workspace-concurrency=1 build
 # --- Production stage ---
 FROM node:20-slim AS runner
 
-# Dependencias para Playwright/Chromium
+# Dependencias para Playwright/Chromium + gosu para entrypoint
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -43,6 +43,7 @@ RUN apt-get update && apt-get install -y \
     libgbm1 \
     libasound2 \
     libxshmfence1 \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
@@ -70,9 +71,12 @@ RUN mkdir -p /app/data
 RUN groupadd -r nodeuser && useradd -r -g nodeuser -m -d /home/nodeuser nodeuser \
     && chown -R nodeuser:nodeuser /app /home/nodeuser
 
-# Cambiar a usuario no-root
-USER nodeuser
+# Copiar y configurar entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3001
 
+# Ejecutar como root para poder cambiar permisos, luego switch a nodeuser
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "apps/api/dist/index.js"]
