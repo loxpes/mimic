@@ -35,6 +35,32 @@ export interface ClaudeCliResult<T = unknown> {
 // ============================================================================
 
 /**
+ * Map model names to Claude CLI format
+ * Claude CLI accepts: sonnet, opus, haiku (not full model IDs)
+ */
+function mapModelToCliFormat(model?: string): string | undefined {
+  if (!model || model === 'default') {
+    return 'sonnet'; // Default to Sonnet 4.5
+  }
+
+  const lowerModel = model.toLowerCase();
+
+  // Already in CLI format
+  if (['sonnet', 'opus', 'haiku'].includes(lowerModel)) {
+    return lowerModel;
+  }
+
+  // Map API model names to CLI format
+  if (lowerModel.includes('sonnet')) return 'sonnet';
+  if (lowerModel.includes('opus')) return 'opus';
+  if (lowerModel.includes('haiku')) return 'haiku';
+
+  // Unknown model, let CLI use default
+  console.warn(`[Claude CLI] Unknown model "${model}", using sonnet`);
+  return 'sonnet';
+}
+
+/**
  * Parse NDJSON output from Claude CLI stream-json format
  * Returns the result line containing structured_output and usage metrics
  */
@@ -134,14 +160,15 @@ async function executeClaudeCliWithSchema<T>(
       '-p', '-',  // Read prompt from stdin
     ];
 
-    // Add model flag if specified
-    if (model) {
-      args.push('--model', model);
+    // Add model flag (always use mapped format)
+    const cliModel = mapModelToCliFormat(model);
+    if (cliModel) {
+      args.push('--model', cliModel);
     }
 
     console.log('[Claude CLI] Executing structured call with JSON schema...');
     console.log('[Claude CLI] Prompt length:', prompt.length, 'chars');
-    console.log('[Claude CLI] Model:', model || '(default)');
+    console.log('[Claude CLI] Model:', cliModel || '(none)');
     console.log('[Claude CLI] Full command:', 'claude', args.join(' '));
     const proc = spawn('claude', args, {
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -255,13 +282,14 @@ async function executeClaudeCli(
       '-p', '-',  // Read prompt from stdin
     ];
 
-    // Add model flag if specified
-    if (model) {
-      args.push('--model', model);
+    // Add model flag (always use mapped format)
+    const cliModel = mapModelToCliFormat(model);
+    if (cliModel) {
+      args.push('--model', cliModel);
     }
 
     console.log('[Claude CLI] Executing text call, prompt length:', prompt.length);
-    console.log('[Claude CLI] Model:', model || '(default)');
+    console.log('[Claude CLI] Model:', cliModel || '(none)');
     console.log('[Claude CLI] Full command:', 'claude', args.join(' '));
     const proc = spawn('claude', args, {
       stdio: ['pipe', 'pipe', 'pipe'],
