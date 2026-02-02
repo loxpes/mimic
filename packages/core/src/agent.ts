@@ -38,10 +38,6 @@ import { saveScreenshot } from './utils/screenshot-storage.js';
 // Initial wait time for page to fully load (ms)
 const INITIAL_LOAD_WAIT = 3000;
 
-// Maximum consecutive "wait" actions with "completed" status before terminating
-// This prevents infinite loops where LLM keeps waiting after reporting completion
-const MAX_CONSECUTIVE_COMPLETED_WAITS = 2;
-
 // ============================================================================
 // Types
 // ============================================================================
@@ -117,8 +113,6 @@ export class Agent {
   private metrics: SessionMetrics;
   private isRunning: boolean = false;
   private shouldStop: boolean = false;
-  /** Counter for consecutive "wait" actions with "completed" status */
-  private consecutiveCompletedWaits: number = 0;
   /** Current unified elements from hybrid DOM + Vision extraction */
   private unifiedElements: UnifiedElement[] = [];
   /** Current screenshot path for findings evidence */
@@ -492,7 +486,6 @@ ${persona.context}`;
     this.isRunning = true;
     this.shouldStop = false;
     this.startTime = Date.now();
-    this.consecutiveCompletedWaits = 0;
 
     let outcome: AgentResult['outcome'] = 'completed';
     let summary = '';
@@ -586,30 +579,11 @@ ${persona.context}`;
           url: this.browser.getCurrentUrl(),
         });
 
-        // Check objective status
-        const isWaitAction = decision.action.type === 'wait';
-        const isCompleted = decision.progress.objectiveStatus === 'completed';
-
-        // Track consecutive "wait" actions with "completed" status to prevent infinite loops
-        if (isWaitAction && isCompleted) {
-          this.consecutiveCompletedWaits++;
-          console.log(`[Agent] Wait action with completed status (#${this.consecutiveCompletedWaits}/${MAX_CONSECUTIVE_COMPLETED_WAITS})`);
-
-          if (this.consecutiveCompletedWaits >= MAX_CONSECUTIVE_COMPLETED_WAITS) {
-            console.log('[Agent] Max consecutive completed waits reached - terminating');
-            outcome = 'completed';
-            summary = 'Objective completed successfully (verified after wait)';
-            break;
-          }
-        } else {
-          // Reset counter when action is not wait or status is not completed
-          this.consecutiveCompletedWaits = 0;
-
-          if (isCompleted) {
-            outcome = 'completed';
-            summary = 'Objective completed successfully';
-            break;
-          }
+        // Check objective status - trust the LLM's assessment
+        if (decision.progress.objectiveStatus === 'completed') {
+          outcome = 'completed';
+          summary = 'Objective completed successfully';
+          break;
         }
 
         if (decision.progress.objectiveStatus === 'abandoned') {
