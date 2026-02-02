@@ -15,7 +15,9 @@
     "clean": "pnpm -r clean && rm -rf node_modules",
     "db:generate": "pnpm --filter @testfarm/db generate",
     "db:migrate": "pnpm --filter @testfarm/db migrate",
-    "db:studio": "pnpm --filter @testfarm/db studio"
+    "db:studio": "pnpm --filter @testfarm/db studio",
+    "config:check": "tsx scripts/check-llm-config.ts",
+    "config:fix": "tsx scripts/fix-llm-config.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

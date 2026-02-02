@@ -1,6 +1,6 @@
 # HU-000: Checklist de Seguimiento
 
-## Estado: 🟢 Completado
+## Estado: 🟡 En progreso - Debug provider LLM
 
 ## Archivos de Configuración
 - [x] Dockerfile multi-stage
@@ -47,11 +47,17 @@
 - [ ] Añadir dominio en Coolify
 - [ ] Verificar SSL automático
 
+## Corrección de Configuración LLM
+- [ ] Verificar provider actual con `pnpm config:check`
+- [ ] Corregir a claude-cli con `pnpm config:fix` o desde Settings
+- [ ] Verificar que CLAUDE_CODE_OAUTH_TOKEN esté en Coolify
+- [ ] Probar creación de sesión con claude-cli
+
 ## Verificación Final
-- [ ] App accesible públicamente
-- [ ] Crear sesión de prueba
+- [x] App accesible públicamente
+- [ ] Crear sesión de prueba con claude-cli
 - [ ] Verificar persistencia tras restart
-- [ ] Verificar logs en Coolify
+- [x] Verificar logs en Coolify
 
 ## Notas de Progreso
 
@@ -64,3 +70,4 @@
 | 2026-02-02 | CI/CD funcionando | GitHub webhook configurado, deploys automáticos activos |
 | 2026-02-02 | Sistema de credenciales | Setup automático Claude CLI, env vars ocultas en frontend |
 | 2026-02-02 | ✅ HU-000 Completada | Infraestructura desplegada y funcionando en producción |
+| 2026-02-02 | 🔍 Debug LLM Provider | App usa Gemini en vez de Claude CLI - Investigando config |
