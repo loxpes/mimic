@@ -34,14 +34,15 @@ app.get('/', async (c) => {
     settings = defaultSettings;
   }
 
-  // Return without decrypted keys (only indicate if they exist)
+  // Return without decrypted keys (only indicate if they exist in DB)
+  // Note: Env vars are invisible to users - they work as system fallback
   return c.json({
     llmProvider: settings.llmProvider,
     llmModel: settings.llmModel,
     ollamaBaseUrl: settings.ollamaBaseUrl,
-    hasAnthropicKey: !!settings.encryptedAnthropicKey || !!process.env.ANTHROPIC_API_KEY,
-    hasOpenaiKey: !!settings.encryptedOpenaiKey || !!process.env.OPENAI_API_KEY,
-    hasGoogleKey: !!settings.encryptedGoogleKey || !!process.env.GOOGLE_API_KEY,
+    hasAnthropicKey: !!settings.encryptedAnthropicKey,
+    hasOpenaiKey: !!settings.encryptedOpenaiKey,
+    hasGoogleKey: !!settings.encryptedGoogleKey,
     encryptionConfigured: isEncryptionConfigured(),
   });
 });

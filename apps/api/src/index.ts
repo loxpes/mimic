@@ -42,6 +42,7 @@ import projects from './routes/projects.js';
 import trello from './routes/integrations/trello.js';
 import settings from './routes/settings.js';
 import { startScheduler } from './scheduler.js';
+import { setupClaudeAuth } from './lib/setup-claude.js';
 // YAML sync removed - personas now managed 100% via DB and frontend
 // import { syncYamlToDatabase } from './sync.js';
 
@@ -114,6 +115,22 @@ async function main() {
   // Initialize database
   await initializeDb();
   console.log('Database initialized');
+
+  // Setup Claude CLI authentication (if CLAUDE_CODE_OAUTH_TOKEN is set)
+  try {
+    await setupClaudeAuth();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Startup Error] Claude setup failed:', message);
+
+    // Only fail if using claude-cli provider
+    if (process.env.LLM_PROVIDER === 'claude-cli' || !process.env.LLM_PROVIDER) {
+      console.error('[Startup Error] Cannot start without Claude auth');
+      process.exit(1);
+    } else {
+      console.warn('[Startup Warning] Claude setup failed but using other provider');
+    }
+  }
 
   // Start scheduler for session chains
   startScheduler();

@@ -120,10 +120,56 @@ apps/
 ## Environment Variables
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...   # For Anthropic provider
+# LLM Providers
+ANTHROPIC_API_KEY=sk-ant-...   # For Anthropic API provider
 OPENAI_API_KEY=sk-...          # For OpenAI provider
+GOOGLE_API_KEY=AIza...         # For Google Gemini
 OLLAMA_BASE_URL=http://localhost:11434/v1
+
+# Claude CLI Provider (Recommended for Docker)
+CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...  # OAuth token for automated auth
+LLM_PROVIDER=claude-cli                    # Default provider
+LLM_MODEL=claude-sonnet-4-20250514         # Default model
+
+# Server
 PORT=3001                       # API server port
+ENCRYPTION_KEY=...              # For encrypting user API keys in DB
 ```
 
-Default LLM provider is `claude-cli` (Claude Code CLI).
+### Authentication Strategy
+
+**System credentials (env vars):**
+- Invisible to users
+- Used as fallback when user has no DB key
+- Configured in deployment (Coolify/Docker)
+
+**User credentials (DB):**
+- Configured in Settings UI
+- Stored encrypted
+- Take priority over system credentials
+
+### Claude CLI Authentication in Docker/Coolify
+
+The `claude-cli` provider requires authentication. For deployments:
+
+1. **Generate token locally:**
+   ```bash
+   npm install -g @anthropic-ai/claude-code
+   claude setup-token
+   # Copy the generated token
+   ```
+
+2. **Configure in Coolify:**
+   - Add environment variable: `CLAUDE_CODE_OAUTH_TOKEN=your-token`
+   - API will create `~/.claude.json` automatically on startup
+
+3. **Verify in logs:**
+   ```
+   [Claude Setup] Token detected, configuring automated auth...
+   [Claude Setup] ✅ Successfully configured for automated auth
+   ```
+
+**Troubleshooting:**
+- `Permission denied ~/.claude.json` → User lacks permissions in home directory
+- Token set but still asks for auth → Check `[Claude Setup]` logs
+- `Claude CLI not found` → CLI not installed in Docker image

@@ -167,10 +167,12 @@ async function executeClaudeCliWithSchema<T>(
       console.error('[Claude CLI] Process spawn error:', error);
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         reject(new Error(
-          'Claude CLI not found. Please install it:\n' +
+          'Claude CLI not found. Install:\n' +
           '  npm install -g @anthropic-ai/claude-code\n\n' +
-          'Then authenticate:\n' +
-          '  claude auth login'
+          'Authenticate using ONE of:\n' +
+          '  Local dev:  claude auth login\n' +
+          '  Docker/CI:  Set CLAUDE_CODE_OAUTH_TOKEN env var\n' +
+          '              (API auto-configures ~/.claude.json on startup)'
         ));
       } else {
         reject(new Error(`Failed to spawn Claude CLI: ${error.message}`));
@@ -270,10 +272,12 @@ async function executeClaudeCli(
     proc.on('error', (error) => {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         reject(new Error(
-          'Claude CLI not found. Please install it:\n' +
+          'Claude CLI not found. Install:\n' +
           '  npm install -g @anthropic-ai/claude-code\n\n' +
-          'Then authenticate:\n' +
-          '  claude auth login'
+          'Authenticate using ONE of:\n' +
+          '  Local dev:  claude auth login\n' +
+          '  Docker/CI:  Set CLAUDE_CODE_OAUTH_TOKEN env var\n' +
+          '              (API auto-configures ~/.claude.json on startup)'
         ));
       } else {
         reject(new Error(`Failed to spawn Claude CLI: ${error.message}`));

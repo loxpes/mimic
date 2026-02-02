@@ -72,11 +72,55 @@ apps/
 
 ## Environment Variables
 
+### LLM Provider Configuration
+
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...   # For Claude
-OPENAI_API_KEY=sk-...          # For GPT
+# Option 1: Use env vars for API providers (fallback, invisible to users)
+ANTHROPIC_API_KEY=sk-ant-...   # For Claude via API
+OPENAI_API_KEY=sk-...          # For GPT via API
+GOOGLE_API_KEY=AIza...         # For Google Gemini
+
+# Option 2: Claude CLI (Docker/CI/CD - Recommended)
+CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...  # Generate with: claude setup-token
+LLM_PROVIDER=claude-cli
+LLM_MODEL=claude-sonnet-4-20250514
+
+# Server configuration
 PORT=3001                       # API server port
+ENCRYPTION_KEY=...              # For encrypting user API keys in DB
 ```
+
+### Claude CLI Setup for Docker/Coolify
+
+The `claude-cli` provider requires authentication. For automated deployments:
+
+1. **Generate token locally:**
+   ```bash
+   # Install Claude CLI
+   npm install -g @anthropic-ai/claude-code
+
+   # Generate OAuth token (requires Claude Pro/Max)
+   claude setup-token
+   # Copy the generated token
+   ```
+
+2. **Configure in deployment:**
+   - Add environment variable: `CLAUDE_CODE_OAUTH_TOKEN=your-token`
+   - API will automatically create `~/.claude.json` on startup
+
+3. **Verify in logs:**
+   ```
+   [Claude Setup] Token detected, configuring automated auth...
+   [Claude Setup] ✅ Successfully configured for automated auth
+   ```
+
+**Local development:** Run `claude auth login` instead (browser-based)
+
+### User Credentials Override
+
+Users can configure their own API keys in Settings (stored encrypted in DB). These take priority over system env vars:
+- DB keys: Visible to user, stored encrypted
+- Env vars: Invisible fallback, used when no DB key exists
 
 ## Documentation
 
