@@ -22,7 +22,7 @@ export const ActionTypeSchema = z.enum([
 ]);
 
 export const ActionTargetSchema = z.object({
-  elementId: z.string().optional().describe('The element ID if known (e.g., "ref_5"). Optional if using coordinates.'),
+  elementId: z.string().optional().describe('The element ID if known (e.g., "e5"). Optional if using coordinates.'),
   description: z.string().describe('Human-readable description of the element'),
   coordinates: z.object({
     x: z.number().describe('X coordinate (pixels from left)'),
@@ -31,7 +31,7 @@ export const ActionTargetSchema = z.object({
 });
 
 export const FormFieldSchema = z.object({
-  elementId: z.string().describe('Element ID of the form field (e.g., "e2")'),
+  elementId: z.string().describe('Element ID of the form field from the element list (e.g., "e2")'),
   value: z.string().describe('Value to enter in the field'),
 });
 
