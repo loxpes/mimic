@@ -74,3 +74,4 @@
 | 2026-02-02 | 🔍 Debug LLM Provider | App usa Gemini en vez de Claude CLI - Investigando config |
 | 2026-02-02 | 🔧 Fix: --model flag | Claude CLI ahora recibe parámetro --model correctamente |
 | 2026-02-02 | 🔍 Debug: Verbose logging | Errores ahora visibles en frontend con detalles de provider/model |
+| 2026-02-02 | 🐛 Fix: Retry con config vieja | Retry ahora usa config global en vez de copiar llmConfig antigua |
