@@ -3,7 +3,7 @@
  * Saves screenshots to disk and returns file paths
  */
 
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, writeFile, rm } from 'fs/promises';
 import path from 'path';
 
 /**
@@ -48,4 +48,26 @@ export function getScreenshotPath(
   baseDir: string = 'data/screenshots'
 ): string {
   return path.join(baseDir, sessionId, filename);
+}
+
+/**
+ * Delete all screenshots for a session
+ * @param sessionId - The session ID (directory name)
+ * @param baseDir - Base directory for screenshots (default: data/screenshots)
+ */
+export async function deleteSessionScreenshots(
+  sessionId: string,
+  baseDir: string = 'data/screenshots'
+): Promise<void> {
+  const dir = path.join(baseDir, sessionId);
+
+  try {
+    await rm(dir, { recursive: true, force: true });
+    console.log(`[Screenshots] Deleted directory: ${dir}`);
+  } catch (error) {
+    // Ignore if directory doesn't exist
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.error(`[Screenshots] Failed to delete ${dir}:`, error);
+    }
+  }
 }

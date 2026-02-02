@@ -7,7 +7,7 @@ import { getDb } from '@testfarm/db';
 import { sessions, personas, objectives, events, findings, sessionReports, appSettings } from '@testfarm/db';
 import { eq, inArray } from 'drizzle-orm';
 import { decrypt, isEncryptionConfigured } from '../crypto.js';
-import { createAgent, loadKnownIssues, generateSessionReport, type AgentConfig } from '@testfarm/core';
+import { createAgent, loadKnownIssues, generateSessionReport, deleteSessionScreenshots, type AgentConfig } from '@testfarm/core';
 import type { Persona, Objective, ExistingFindingsContext, SessionReportData, ChainContext, AgentMemory } from '@testfarm/shared';
 import { broadcastSessionEvent } from './events.js';
 import { getChainContextForSession, updateChainAfterSession } from './session-chains.js';
@@ -717,6 +717,11 @@ app.delete('/batch', async (c) => {
     }
   }
 
+  // Delete screenshots from disk before deleting DB records
+  for (const sessionId of ids) {
+    await deleteSessionScreenshots(sessionId);
+  }
+
   // Delete related data in order (foreign key constraints)
   await db.delete(sessionReports).where(inArray(sessionReports.sessionId, ids));
   await db.delete(findings).where(inArray(findings.sessionId, ids));
@@ -744,6 +749,9 @@ app.delete('/:id', async (c) => {
       runningAgents.delete(id);
     }
   }
+
+  // Delete screenshots from disk before deleting DB records
+  await deleteSessionScreenshots(id);
 
   // Delete related data in order (foreign key constraints)
   await db.delete(sessionReports).where(eq(sessionReports.sessionId, id));

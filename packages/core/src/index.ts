@@ -66,7 +66,7 @@ export type { FingerprintInput, FindingInput } from './findings/index.js';
 export { generateSessionReport, generateSessionReportBasic } from './reports/index.js';
 
 // Export utilities
-export { saveScreenshot, getScreenshotPath } from './utils/screenshot-storage.js';
+export { saveScreenshot, getScreenshotPath, deleteSessionScreenshots } from './utils/screenshot-storage.js';
 export {
   calculateWeight,
   calculateWeightedAverage,
