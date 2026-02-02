@@ -561,13 +561,42 @@ app.post('/:id/start', async (c) => {
   runningAgents.set(id, agent);
 
   // Run agent in background (don't await)
-  console.log(`[Session ${id}] Starting agent...`);
+  console.log(`[Session ${id}] Starting agent with provider: ${llmConfig.provider}, model: ${llmConfig.model}`);
   agent.run()
     .then((result) => {
       console.log(`[Session ${id}] Agent completed:`, result.outcome, result.summary);
     })
-    .catch((error) => {
+    .catch(async (error) => {
       console.error(`[Session ${id}] Agent execution failed:`, error);
+
+      // Broadcast error to frontend
+      broadcastSessionEvent(id, {
+        type: 'error',
+        data: {
+          message: `Agent execution failed: ${error.message}`,
+          provider: llmConfig.provider,
+          model: llmConfig.model,
+        },
+      });
+
+      // Update session state to failed
+      try {
+        await db.update(sessions).set({
+          state: {
+            status: 'failed',
+            actionCount: 0,
+            progress: 0,
+            currentUrl: session.targetUrl,
+            startedAt: session.state.startedAt,
+            completedAt: Date.now(),
+          },
+        }).where(eq(sessions.id, id));
+      } catch (dbError) {
+        console.error(`[Session ${id}] Failed to update session state:`, dbError);
+      }
+
+      // Remove from running agents
+      runningAgents.delete(id);
     });
 
   return c.json({ message: 'Session started', sessionId: id });

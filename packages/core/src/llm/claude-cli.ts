@@ -141,6 +141,8 @@ async function executeClaudeCliWithSchema<T>(
 
     console.log('[Claude CLI] Executing structured call with JSON schema...');
     console.log('[Claude CLI] Prompt length:', prompt.length, 'chars');
+    console.log('[Claude CLI] Model:', model || '(default)');
+    console.log('[Claude CLI] Full command:', 'claude', args.join(' '));
     const proc = spawn('claude', args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
@@ -259,6 +261,8 @@ async function executeClaudeCli(
     }
 
     console.log('[Claude CLI] Executing text call, prompt length:', prompt.length);
+    console.log('[Claude CLI] Model:', model || '(default)');
+    console.log('[Claude CLI] Full command:', 'claude', args.join(' '));
     const proc = spawn('claude', args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
