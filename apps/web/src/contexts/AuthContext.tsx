@@ -11,7 +11,6 @@ import {
   signIn as supabaseSignIn,
   signUp as supabaseSignUp,
   signOut as supabaseSignOut,
-  signInWithGoogle as supabaseSignInWithGoogle,
   signInWithGitHub as supabaseSignInWithGitHub,
   resetPassword as supabaseResetPassword,
 } from '../lib/supabase';
@@ -28,7 +27,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name?: string) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
   signInWithGitHub: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   getAccessToken: () => Promise<string | null>;
@@ -117,12 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Sign in with Google
-  const signInWithGoogle = useCallback(async () => {
-    // OAuth redirects, so no need to handle response here
-    await supabaseSignInWithGoogle();
-  }, []);
-
   // Sign in with GitHub
   const signInWithGitHub = useCallback(async () => {
     // OAuth redirects, so no need to handle response here
@@ -148,7 +140,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
-    signInWithGoogle,
     signInWithGitHub,
     resetPassword,
     getAccessToken,

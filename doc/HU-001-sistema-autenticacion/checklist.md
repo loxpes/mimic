@@ -6,8 +6,7 @@
 
 ## Fase 1: Setup Supabase
 - [x] Crear cuenta/proyecto en supabase.com
-- [ ] Configurar proveedor Google OAuth
-- [x] Configurar proveedor GitHub OAuth
+- [x] Configurar proveedor GitHub OAuth (Google eliminado intencionalmente)
 - [ ] Configurar email templates (verificacion, reset)
 - [x] Obtener credenciales (URL, ANON_KEY, SERVICE_ROLE_KEY, DATABASE_URL)
 - [x] Anadir variables de entorno a .env.example
@@ -63,7 +62,6 @@
 ## Fase 5: Integracion y Testing
 - [ ] Probar flujo completo de registro
 - [ ] Probar flujo completo de login
-- [ ] Probar login con Google
 - [ ] Probar login con GitHub
 - [ ] Probar recuperacion de contrasena
 - [ ] Probar que usuario A no ve datos de usuario B
@@ -84,6 +82,7 @@
 | 2026-02-03 | 60% | Implementacion base de auth con Supabase completada. Schema PostgreSQL con userId, middleware auth, rutas de auth, frontend auth (login/register/password reset). Pendiente: migrar sintaxis .get/.all a PostgreSQL en APIs restantes, configurar proyecto Supabase real, aplicar RLS, testing. |
 | 2026-02-03 | 80% | Migracion SQLite a PostgreSQL completada en todas las rutas API. YAML sync deshabilitado en modo multi-tenant. Build exitoso de todos los paquetes. Pendiente: aplicar RLS, testing E2E. |
 | 2026-02-03 | 90% | Schema creado en Supabase con drizzle push. 42 politicas RLS aplicadas en 12 tablas. GitHub OAuth configurado. Pendiente: testing E2E. |
+| 2026-02-03 | 95% | Google OAuth eliminado (solo GitHub). Settings ahora son por usuario (no globales). Build verificado. Pendiente: habilitar GitHub en Supabase Dashboard, testing E2E. |
 
 ## Bloqueos
 
