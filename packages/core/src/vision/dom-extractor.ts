@@ -90,12 +90,43 @@ function mapRoleToType(role: string): ElementType {
 }
 
 // ============================================================================
+// Name Cleaning
+// ============================================================================
+
+/**
+ * Clean duplicated names that sometimes appear in accessibility trees
+ * E.g., "ExploreExplore" -> "Explore", "HomeHome" -> "Home"
+ */
+function cleanDuplicatedName(name: string): string {
+  if (!name || name.length < 2) return name;
+
+  const trimmed = name.trim();
+  const len = trimmed.length;
+
+  // Check if the string is exactly twice the same substring
+  if (len % 2 === 0) {
+    const half = len / 2;
+    const firstHalf = trimmed.substring(0, half);
+    const secondHalf = trimmed.substring(half);
+
+    if (firstHalf === secondHalf) {
+      console.log(`[DOM Extractor] Cleaned duplicate name: "${trimmed}" -> "${firstHalf}"`);
+      return firstHalf;
+    }
+  }
+
+  return trimmed;
+}
+
+// ============================================================================
 // Selector Building
 // ============================================================================
 
 function buildAccessibleSelector(node: AccessibilityNode): string {
   // Use Playwright's role selector format - more robust than CSS
-  const name = node.name.replace(/"/g, '\\"');
+  // Clean potential duplicate names from accessibility tree
+  const cleanedName = cleanDuplicatedName(node.name);
+  const name = cleanedName.replace(/"/g, '\\"');
   return `role=${node.role}[name="${name}"]`;
 }
 
@@ -115,7 +146,7 @@ function extractInteractiveElements(
   if (INTERACTIVE_ROLES.has(node.role) && node.name && node.name.trim()) {
     // Detect input type from role or context
     let elementType = mapRoleToType(node.role);
-    const displayName = node.name.trim();
+    const displayName = cleanDuplicatedName(node.name);
 
     // Refine textbox types based on name hints
     if (node.role === 'textbox') {

@@ -249,7 +249,7 @@ export class BrowserController {
     }
   }
 
-  async scroll(direction: 'up' | 'down', amount: number = 300): Promise<ActionResult> {
+  async scroll(direction: 'up' | 'down', amount: number = 500): Promise<ActionResult> {
     const start = Date.now();
     try {
       const delta = direction === 'down' ? amount : -amount;
