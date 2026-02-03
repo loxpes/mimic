@@ -23,6 +23,7 @@
     "typecheck": "tsc --noEmit",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
     "studio": "drizzle-kit studio"
   },
   "dependencies": {

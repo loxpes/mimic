@@ -5,11 +5,11 @@
 ---
 
 ## Fase 1: Setup Supabase
-- [ ] Crear cuenta/proyecto en supabase.com
+- [x] Crear cuenta/proyecto en supabase.com
 - [ ] Configurar proveedor Google OAuth
-- [ ] Configurar proveedor GitHub OAuth
+- [x] Configurar proveedor GitHub OAuth
 - [ ] Configurar email templates (verificacion, reset)
-- [ ] Obtener credenciales (URL, ANON_KEY, SERVICE_ROLE_KEY, DATABASE_URL)
+- [x] Obtener credenciales (URL, ANON_KEY, SERVICE_ROLE_KEY, DATABASE_URL)
 - [x] Anadir variables de entorno a .env.example
 
 ## Fase 2: Migracion Base de Datos
@@ -18,8 +18,8 @@
 - [x] Actualizar packages/db/src/client.ts para PostgreSQL
 - [x] Anadir userId a schema en tablas principales
 - [x] Crear archivo SQL con politicas RLS (supabase-rls.sql)
-- [ ] Aplicar politicas RLS en Supabase Dashboard
-- [ ] Verificar conexion a Supabase PostgreSQL
+- [x] Aplicar politicas RLS en Supabase (42 politicas en 12 tablas)
+- [x] Verificar conexion a Supabase PostgreSQL
 - [ ] Eliminar data/testfarm.db (SQLite antiguo)
 
 ## Fase 3: Backend Auth
@@ -83,6 +83,7 @@
 |-------|--------|-------|
 | 2026-02-03 | 60% | Implementacion base de auth con Supabase completada. Schema PostgreSQL con userId, middleware auth, rutas de auth, frontend auth (login/register/password reset). Pendiente: migrar sintaxis .get/.all a PostgreSQL en APIs restantes, configurar proyecto Supabase real, aplicar RLS, testing. |
 | 2026-02-03 | 80% | Migracion SQLite a PostgreSQL completada en todas las rutas API. YAML sync deshabilitado en modo multi-tenant. Build exitoso de todos los paquetes. Pendiente: aplicar RLS, testing E2E. |
+| 2026-02-03 | 90% | Schema creado en Supabase con drizzle push. 42 politicas RLS aplicadas en 12 tablas. GitHub OAuth configurado. Pendiente: testing E2E. |
 
 ## Bloqueos
 
