@@ -162,18 +162,36 @@ export interface ImportObjectiveInput {
 // API Functions
 // ============================================================================
 
+import { getAccessToken } from './supabase';
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  // Get access token for authenticated requests
+  const token = await getAccessToken();
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string>),
+  };
+
+  // Add Authorization header if we have a token
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+
+    // If unauthorized, the auth context will handle redirect
+    if (response.status === 401) {
+      throw new Error('Session expired. Please sign in again.');
+    }
+
+    throw new Error(error.error || error.message || `HTTP ${response.status}`);
   }
 
   return response.json();

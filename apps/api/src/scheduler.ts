@@ -100,11 +100,12 @@ async function continueChain(chainId: string): Promise<void> {
   const db = getDb();
 
   // Get the chain
-  const chain = await db
+  const chainResult = await db
     .select()
     .from(sessionChains)
     .where(eq(sessionChains.id, chainId))
-    .get();
+    .limit(1);
+  const chain = chainResult[0];
 
   if (!chain) {
     throw new Error(`Chain ${chainId} not found`);
@@ -126,13 +127,13 @@ async function continueChain(chainId: string): Promise<void> {
   }
 
   // Get the last session sequence
-  const lastSession = await db
+  const lastSessionResult = await db
     .select()
     .from(sessions)
     .where(eq(sessions.parentChainId, chainId))
     .orderBy(desc(sessions.chainSequence))
-    .limit(1)
-    .get();
+    .limit(1);
+  const lastSession = lastSessionResult[0];
 
   const nextSequence = (lastSession?.chainSequence ?? 0) + 1;
 

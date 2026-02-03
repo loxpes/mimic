@@ -12,6 +12,7 @@ import type { Persona, Objective, ExistingFindingsContext, SessionReportData, Ch
 import { broadcastSessionEvent } from './events.js';
 import { getChainContextForSession, updateChainAfterSession } from './session-chains.js';
 import { getGlobalLLMConfig } from '../lib/llm-config.js';
+import { requireUser } from '../middleware/auth.js';
 
 // Store running agents to allow cancellation
 const runningAgents = new Map<string, ReturnType<typeof createAgent>>();
@@ -49,7 +50,8 @@ app.get('/', async (c) => {
 app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = getDb();
-  const session = await db.select().from(sessions).where(eq(sessions.id, id)).get();
+  const sessionResult = await db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
+  const session = sessionResult[0];
 
   if (!session) {
     return c.json({ error: 'Session not found' }, 404);
@@ -69,7 +71,8 @@ const DEFAULT_VISION_CONFIG = {
  */
 async function resolveApiKey(provider: string): Promise<string | undefined> {
   const db = getDb();
-  const settings = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).get();
+  const settingsResult = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).limit(1);
+  const settings = settingsResult[0];
 
   // 1. Try to get from DB (encrypted)
   if (settings && isEncryptionConfigured()) {
@@ -194,7 +197,8 @@ app.post('/:id/start', async (c) => {
   console.log(`[Session ${id}] Starting session...`);
 
   // Get session
-  const session = await db.select().from(sessions).where(eq(sessions.id, id)).get();
+  const sessionResult = await db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
+  const session = sessionResult[0];
   if (!session) {
     console.error(`[Session ${id}] Session not found in database`);
     return c.json({ error: 'Session not found' }, 404);
@@ -209,13 +213,15 @@ app.post('/:id/start', async (c) => {
   }
 
   // Get persona
-  const persona = await db.select().from(personas).where(eq(personas.id, session.personaId)).get();
+  const personaResult = await db.select().from(personas).where(eq(personas.id, session.personaId)).limit(1);
+  const persona = personaResult[0];
   if (!persona) {
     return c.json({ error: 'Persona not found' }, 404);
   }
 
   // Get objective
-  const objective = await db.select().from(objectives).where(eq(objectives.id, session.objectiveId)).get();
+  const objectiveResult = await db.select().from(objectives).where(eq(objectives.id, session.objectiveId)).limit(1);
+  const objective = objectiveResult[0];
   if (!objective) {
     return c.json({ error: 'Objective not found' }, 404);
   }
@@ -266,7 +272,8 @@ app.post('/:id/start', async (c) => {
   // Load existing findings context for deduplication
   let existingFindingsContext: ExistingFindingsContext | undefined;
   try {
-    const knownIssues = await loadKnownIssues(50);
+    const user = requireUser(c);
+    const knownIssues = await loadKnownIssues(user.id, 50);
     if (knownIssues.length > 0) {
       existingFindingsContext = {
         knownIssues,
@@ -631,7 +638,8 @@ app.post('/:id/retry', async (c) => {
   const db = getDb();
 
   // Get original session
-  const original = await db.select().from(sessions).where(eq(sessions.id, id)).get();
+  const originalResult = await db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
+  const original = originalResult[0];
   if (!original) {
     return c.json({ error: 'Session not found' }, 404);
   }
@@ -673,7 +681,8 @@ app.post('/:id/cancel', async (c) => {
   const id = c.req.param('id');
   const db = getDb();
 
-  const session = await db.select().from(sessions).where(eq(sessions.id, id)).get();
+  const sessionResultCancel = await db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
+  const session = sessionResultCancel[0];
   if (!session) {
     return c.json({ error: 'Session not found' }, 404);
   }
@@ -746,7 +755,8 @@ app.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const db = getDb();
 
-  const session = await db.select().from(sessions).where(eq(sessions.id, id)).get();
+  const sessionResultDel = await db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
+  const session = sessionResultDel[0];
   if (!session) {
     return c.json({ error: 'Session not found' }, 404);
   }

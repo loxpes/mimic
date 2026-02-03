@@ -5,37 +5,50 @@
 import { Hono } from 'hono';
 import { getDb } from '@testfarm/db';
 import { objectives } from '@testfarm/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { requireUser } from '../middleware/auth.js';
 
 const app = new Hono();
 
-// GET /api/objectives - List all objectives
+// GET /api/objectives - List all objectives for current user
 app.get('/', async (c) => {
+  const user = requireUser(c);
   const db = getDb();
-  const allObjectives = await db.select().from(objectives).orderBy(objectives.name);
+  const allObjectives = await db
+    .select()
+    .from(objectives)
+    .where(eq(objectives.userId, user.id))
+    .orderBy(objectives.name);
   return c.json(allObjectives);
 });
 
 // GET /api/objectives/:id - Get objective by ID
 app.get('/:id', async (c) => {
+  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
-  const objective = await db.select().from(objectives).where(eq(objectives.id, id)).get();
+  const result = await db
+    .select()
+    .from(objectives)
+    .where(and(eq(objectives.id, id), eq(objectives.userId, user.id)))
+    .limit(1);
 
-  if (!objective) {
+  if (result.length === 0) {
     return c.json({ error: 'Objective not found' }, 404);
   }
 
-  return c.json(objective);
+  return c.json(result[0]);
 });
 
 // POST /api/objectives - Create new objective
 app.post('/', async (c) => {
+  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
   const newObjective = {
     id: crypto.randomUUID(),
+    userId: user.id,
     name: body.name,
     definition: body.definition,
     config: body.config,
@@ -48,34 +61,64 @@ app.post('/', async (c) => {
 
 // PUT /api/objectives/:id - Update objective
 app.put('/:id', async (c) => {
+  const user = requireUser(c);
   const id = c.req.param('id');
   const body = await c.req.json();
   const db = getDb();
+
+  // Verify ownership
+  const existing = await db
+    .select()
+    .from(objectives)
+    .where(and(eq(objectives.id, id), eq(objectives.userId, user.id)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return c.json({ error: 'Objective not found' }, 404);
+  }
 
   await db.update(objectives)
     .set({
       name: body.name,
       definition: body.definition,
       config: body.config,
+      updatedAt: new Date(),
     })
-    .where(eq(objectives.id, id));
+    .where(and(eq(objectives.id, id), eq(objectives.userId, user.id)));
 
-  const updated = await db.select().from(objectives).where(eq(objectives.id, id)).get();
-  return c.json(updated);
+  const updated = await db
+    .select()
+    .from(objectives)
+    .where(eq(objectives.id, id))
+    .limit(1);
+  return c.json(updated[0]);
 });
 
 // DELETE /api/objectives/:id - Delete objective
 app.delete('/:id', async (c) => {
+  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
 
-  await db.delete(objectives).where(eq(objectives.id, id));
+  // Verify ownership
+  const existing = await db
+    .select()
+    .from(objectives)
+    .where(and(eq(objectives.id, id), eq(objectives.userId, user.id)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return c.json({ error: 'Objective not found' }, 404);
+  }
+
+  await db.delete(objectives).where(and(eq(objectives.id, id), eq(objectives.userId, user.id)));
 
   return c.json({ message: 'Objective deleted' });
 });
 
 // POST /api/objectives/import - Batch import objectives
 app.post('/import', async (c) => {
+  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
@@ -92,6 +135,7 @@ app.post('/import', async (c) => {
 
     const newObjective = {
       id: crypto.randomUUID(),
+      userId: user.id,
       name: objectiveData.name,
       definition: {
         goal: objectiveData.goal || '',

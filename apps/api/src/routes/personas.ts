@@ -5,37 +5,50 @@
 import { Hono } from 'hono';
 import { getDb } from '@testfarm/db';
 import { personas } from '@testfarm/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { requireUser } from '../middleware/auth.js';
 
 const app = new Hono();
 
-// GET /api/personas - List all personas
+// GET /api/personas - List all personas for current user
 app.get('/', async (c) => {
+  const user = requireUser(c);
   const db = getDb();
-  const allPersonas = await db.select().from(personas).orderBy(personas.name);
+  const allPersonas = await db
+    .select()
+    .from(personas)
+    .where(eq(personas.userId, user.id))
+    .orderBy(personas.name);
   return c.json(allPersonas);
 });
 
 // GET /api/personas/:id - Get persona by ID
 app.get('/:id', async (c) => {
+  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
-  const persona = await db.select().from(personas).where(eq(personas.id, id)).get();
+  const result = await db
+    .select()
+    .from(personas)
+    .where(and(eq(personas.id, id), eq(personas.userId, user.id)))
+    .limit(1);
 
-  if (!persona) {
+  if (result.length === 0) {
     return c.json({ error: 'Persona not found' }, 404);
   }
 
-  return c.json(persona);
+  return c.json(result[0]);
 });
 
 // POST /api/personas - Create new persona
 app.post('/', async (c) => {
+  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
   const newPersona = {
     id: crypto.randomUUID(),
+    userId: user.id,
     name: body.name,
     definition: body.definition,
     metadata: body.metadata || {},
@@ -48,34 +61,64 @@ app.post('/', async (c) => {
 
 // PUT /api/personas/:id - Update persona
 app.put('/:id', async (c) => {
+  const user = requireUser(c);
   const id = c.req.param('id');
   const body = await c.req.json();
   const db = getDb();
+
+  // Verify ownership
+  const existing = await db
+    .select()
+    .from(personas)
+    .where(and(eq(personas.id, id), eq(personas.userId, user.id)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return c.json({ error: 'Persona not found' }, 404);
+  }
 
   await db.update(personas)
     .set({
       name: body.name,
       definition: body.definition,
       metadata: body.metadata,
+      updatedAt: new Date(),
     })
-    .where(eq(personas.id, id));
+    .where(and(eq(personas.id, id), eq(personas.userId, user.id)));
 
-  const updated = await db.select().from(personas).where(eq(personas.id, id)).get();
-  return c.json(updated);
+  const updated = await db
+    .select()
+    .from(personas)
+    .where(eq(personas.id, id))
+    .limit(1);
+  return c.json(updated[0]);
 });
 
 // DELETE /api/personas/:id - Delete persona
 app.delete('/:id', async (c) => {
+  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
 
-  await db.delete(personas).where(eq(personas.id, id));
+  // Verify ownership
+  const existing = await db
+    .select()
+    .from(personas)
+    .where(and(eq(personas.id, id), eq(personas.userId, user.id)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return c.json({ error: 'Persona not found' }, 404);
+  }
+
+  await db.delete(personas).where(and(eq(personas.id, id), eq(personas.userId, user.id)));
 
   return c.json({ message: 'Persona deleted' });
 });
 
 // POST /api/personas/import - Batch import personas
 app.post('/import', async (c) => {
+  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
@@ -92,6 +135,7 @@ app.post('/import', async (c) => {
 
     const newPersona = {
       id: crypto.randomUUID(),
+      userId: user.id,
       name: personaData.name,
       definition: {
         identity: personaData.identity || '',

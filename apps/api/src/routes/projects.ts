@@ -3,8 +3,9 @@
  */
 
 import { Hono } from 'hono';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { eq, desc, inArray, and } from 'drizzle-orm';
 import { getDb, projects, sessions, findings, personas, objectives, sessionChains } from '@testfarm/db';
+import { requireUser } from '../middleware/auth.js';
 
 // Simple ID generator
 function generateId(): string {
@@ -111,11 +112,14 @@ async function calculateProjectStats(projectId: string): Promise<ProjectStats> {
 // Routes
 // ============================================================================
 
-// GET /api/projects - List all projects
+// GET /api/projects - List all projects for current user
 app.get('/', async (c) => {
+  const user = requireUser(c);
+
   const allProjects = await getDb()
     .select()
     .from(projects)
+    .where(eq(projects.userId, user.id))
     .orderBy(desc(projects.updatedAt));
 
   // Recalculate stats for each project
@@ -131,12 +135,13 @@ app.get('/', async (c) => {
 
 // GET /api/projects/:id - Get project details
 app.get('/:id', async (c) => {
+  const user = requireUser(c);
   const { id } = c.req.param();
 
   const project = await getDb()
     .select()
     .from(projects)
-    .where(eq(projects.id, id))
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1);
 
   if (project.length === 0) {
@@ -176,6 +181,7 @@ app.get('/:id', async (c) => {
 
 // POST /api/projects - Create project
 app.post('/', async (c) => {
+  const user = requireUser(c);
   const body = await c.req.json();
   const { name, description, targetUrl } = body;
 
@@ -188,6 +194,7 @@ app.post('/', async (c) => {
 
   const newProject = {
     id,
+    userId: user.id,
     name,
     description: description || null,
     targetUrl,
@@ -213,6 +220,7 @@ app.post('/', async (c) => {
 
 // PATCH /api/projects/:id - Update project
 app.patch('/:id', async (c) => {
+  const user = requireUser(c);
   const { id } = c.req.param();
   const body = await c.req.json();
   const { name, description } = body;
@@ -220,7 +228,7 @@ app.patch('/:id', async (c) => {
   const existing = await getDb()
     .select()
     .from(projects)
-    .where(eq(projects.id, id))
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1);
 
   if (existing.length === 0) {
@@ -239,19 +247,32 @@ app.patch('/:id', async (c) => {
 
 // DELETE /api/projects/:id - Delete project
 app.delete('/:id', async (c) => {
+  const user = requireUser(c);
   const { id } = c.req.param();
+
+  // Verify ownership first
+  const existing = await getDb()
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
 
   // First, unlink sessions from this project
   await getDb().update(sessions).set({ projectId: null }).where(eq(sessions.projectId, id));
 
   // Then delete the project
-  await getDb().delete(projects).where(eq(projects.id, id));
+  await getDb().delete(projects).where(and(eq(projects.id, id), eq(projects.userId, user.id)));
 
   return c.json({ message: 'Project deleted' });
 });
 
 // POST /api/projects/:id/sessions - Add sessions to project
 app.post('/:id/sessions', async (c) => {
+  const user = requireUser(c);
   const { id } = c.req.param();
   const body = await c.req.json();
   const { sessionIds } = body;
@@ -260,11 +281,11 @@ app.post('/:id/sessions', async (c) => {
     return c.json({ error: 'sessionIds array is required' }, 400);
   }
 
-  // Verify project exists
+  // Verify project exists and belongs to user
   const project = await getDb()
     .select()
     .from(projects)
-    .where(eq(projects.id, id))
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1);
 
   if (project.length === 0) {
@@ -286,6 +307,7 @@ app.post('/:id/sessions', async (c) => {
 
 // DELETE /api/projects/:id/sessions - Remove sessions from project
 app.delete('/:id/sessions', async (c) => {
+  const user = requireUser(c);
   const { id } = c.req.param();
   const body = await c.req.json();
   const { sessionIds } = body;
@@ -294,11 +316,11 @@ app.delete('/:id/sessions', async (c) => {
     return c.json({ error: 'sessionIds array is required' }, 400);
   }
 
-  // Verify project exists
+  // Verify project exists and belongs to user
   const project = await getDb()
     .select()
     .from(projects)
-    .where(eq(projects.id, id))
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1);
 
   if (project.length === 0) {
@@ -320,12 +342,13 @@ app.delete('/:id/sessions', async (c) => {
 
 // POST /api/projects/:id/refresh-stats - Refresh project stats
 app.post('/:id/refresh-stats', async (c) => {
+  const user = requireUser(c);
   const { id } = c.req.param();
 
   const project = await getDb()
     .select()
     .from(projects)
-    .where(eq(projects.id, id))
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1);
 
   if (project.length === 0) {
@@ -340,12 +363,13 @@ app.post('/:id/refresh-stats', async (c) => {
 
 // GET /api/projects/:id/chains - Get session chains for project
 app.get('/:id/chains', async (c) => {
+  const user = requireUser(c);
   const { id } = c.req.param();
 
   const project = await getDb()
     .select()
     .from(projects)
-    .where(eq(projects.id, id))
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1);
 
   if (project.length === 0) {
@@ -380,6 +404,7 @@ app.get('/:id/chains', async (c) => {
 
 // POST /api/projects/:id/chains - Add chains to project
 app.post('/:id/chains', async (c) => {
+  const user = requireUser(c);
   const { id } = c.req.param();
   const body = await c.req.json();
   const { chainIds } = body;
@@ -388,11 +413,11 @@ app.post('/:id/chains', async (c) => {
     return c.json({ error: 'chainIds array is required' }, 400);
   }
 
-  // Verify project exists
+  // Verify project exists and belongs to user
   const project = await getDb()
     .select()
     .from(projects)
-    .where(eq(projects.id, id))
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1);
 
   if (project.length === 0) {
@@ -420,6 +445,7 @@ app.post('/:id/chains', async (c) => {
 
 // DELETE /api/projects/:id/chains - Remove chains from project
 app.delete('/:id/chains', async (c) => {
+  const user = requireUser(c);
   const { id } = c.req.param();
   const body = await c.req.json();
   const { chainIds } = body;
@@ -428,11 +454,11 @@ app.delete('/:id/chains', async (c) => {
     return c.json({ error: 'chainIds array is required' }, 400);
   }
 
-  // Verify project exists
+  // Verify project exists and belongs to user
   const project = await getDb()
     .select()
     .from(projects)
-    .where(eq(projects.id, id))
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1);
 
   if (project.length === 0) {

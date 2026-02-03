@@ -1,5 +1,5 @@
 /**
- * Settings API Routes - Global LLM Configuration
+ * Settings API Routes - Per-User LLM Configuration
  */
 
 import { Hono } from 'hono';
@@ -7,21 +7,28 @@ import { getDb } from '@testfarm/db';
 import { appSettings } from '@testfarm/db';
 import { eq } from 'drizzle-orm';
 import { encrypt, isEncryptionConfigured } from '../crypto.js';
+import { requireAuth, requireUser } from '../middleware/auth.js';
 
 const app = new Hono();
 
+// All settings routes require authentication
+app.use('/*', requireAuth);
+
 /**
  * GET /api/settings
- * Get global settings (without decrypted keys)
+ * Get user settings (without decrypted keys)
  */
 app.get('/', async (c) => {
+  const user = requireUser(c);
   const db = getDb();
-  let settings = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).get();
+  const settingsResult = await db.select().from(appSettings).where(eq(appSettings.userId, user.id)).limit(1);
+  let settings = settingsResult[0];
 
-  // Create default settings if not exist
+  // Create default settings for user if not exist
   if (!settings) {
     const defaultSettings = {
-      id: 'global',
+      id: `user_${user.id}`,
+      userId: user.id,
       llmProvider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google',
       llmModel: process.env.LLM_MODEL || 'claude-sonnet-4-20250514',
       encryptedAnthropicKey: null,
@@ -49,16 +56,18 @@ app.get('/', async (c) => {
 
 /**
  * PATCH /api/settings
- * Update global settings
+ * Update user settings
  */
 app.patch('/', async (c) => {
+  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
-  // Ensure settings row exists
-  const existing = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).get();
+  // Ensure settings row exists for user
+  const existingResult = await db.select().from(appSettings).where(eq(appSettings.userId, user.id)).limit(1);
+  const existing = existingResult[0];
   if (!existing) {
-    await db.insert(appSettings).values({ id: 'global' });
+    await db.insert(appSettings).values({ id: `user_${user.id}`, userId: user.id });
   }
 
   const updates: Record<string, unknown> = {};
@@ -115,7 +124,7 @@ app.patch('/', async (c) => {
   updates.updatedAt = new Date();
 
   if (Object.keys(updates).length > 0) {
-    await db.update(appSettings).set(updates).where(eq(appSettings.id, 'global'));
+    await db.update(appSettings).set(updates).where(eq(appSettings.userId, user.id));
   }
 
   return c.json({ success: true });

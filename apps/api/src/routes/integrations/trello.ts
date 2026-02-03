@@ -74,7 +74,7 @@ app.get('/auth/:projectId', async (c) => {
 
   // Verify project exists
   const db = getDb();
-  const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+  const project = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1).then(r => r[0]);
   if (!project) {
     return c.json({ error: 'Project not found' }, 404);
   }
@@ -152,7 +152,7 @@ app.post('/callback', async (c) => {
         eq(integrations.projectId, projectId),
         eq(integrations.type, 'trello')
       ))
-      .get();
+      .limit(1).then(r => r[0]);
 
     const config: TrelloConfig = {
       accessToken: token,
@@ -211,7 +211,7 @@ app.get('/:projectId/boards', async (c) => {
       eq(integrations.projectId, projectId),
       eq(integrations.type, 'trello')
     ))
-    .get();
+    .limit(1).then(r => r[0]);
 
   if (!integration || !integration.config) {
     return c.json({ error: 'Trello not connected for this project' }, 404);
@@ -255,7 +255,7 @@ app.post('/:projectId/board', async (c) => {
       eq(integrations.projectId, projectId),
       eq(integrations.type, 'trello')
     ))
-    .get();
+    .limit(1).then(r => r[0]);
 
   if (!integration || !integration.config) {
     return c.json({ error: 'Trello not connected for this project' }, 404);
@@ -439,7 +439,7 @@ app.post('/:projectId/cards', async (c) => {
       eq(integrations.projectId, projectId),
       eq(integrations.type, 'trello')
     ))
-    .get();
+    .limit(1).then(r => r[0]);
 
   if (!integration || !integration.config) {
     return c.json({ error: 'Trello not connected for this project' }, 404);
@@ -461,7 +461,7 @@ app.post('/:projectId/cards', async (c) => {
     // Lookup in database
     const dbFinding = await db.select().from(findings)
       .where(eq(findings.id, findingId))
-      .get();
+      .limit(1).then(r => r[0]);
 
     if (!dbFinding) {
       return c.json({ error: 'Finding not found' }, 404);
@@ -476,7 +476,7 @@ app.post('/:projectId/cards', async (c) => {
   if (sessionId) {
     session = await db.select().from(sessions)
       .where(eq(sessions.id, sessionId))
-      .get();
+      .limit(1).then(r => r[0]);
   }
 
   try {
@@ -605,7 +605,7 @@ app.get('/:projectId/status', async (c) => {
       eq(integrations.projectId, projectId),
       eq(integrations.type, 'trello')
     ))
-    .get();
+    .limit(1).then(r => r[0]);
 
   if (!integration || !integration.config) {
     return c.json({
@@ -639,7 +639,7 @@ app.post('/:projectId/analyze', async (c) => {
       eq(integrations.projectId, projectId),
       eq(integrations.type, 'trello')
     ))
-    .get();
+    .limit(1).then(r => r[0]);
 
   if (!integration || !integration.config) {
     return c.json({ error: 'Trello not connected for this project' }, 404);
@@ -744,7 +744,7 @@ app.get('/:projectId/sync-preview', async (c) => {
       eq(integrations.projectId, projectId),
       eq(integrations.type, 'trello')
     ))
-    .get();
+    .limit(1).then(r => r[0]);
 
   if (!integration || !integration.config) {
     return c.json({ error: 'Trello not connected for this project' }, 404);
@@ -843,7 +843,7 @@ app.post('/:projectId/sync', async (c) => {
       eq(integrations.projectId, projectId),
       eq(integrations.type, 'trello')
     ))
-    .get();
+    .limit(1).then(r => r[0]);
 
   if (!integration || !integration.config) {
     return c.json({ error: 'Trello not connected for this project' }, 404);

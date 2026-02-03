@@ -492,7 +492,7 @@ export interface ExistingFindingsContext {
 
 export interface DeduplicationResult {
   isDuplicate: boolean;
-  groupId: string;
+  groupId?: string; // Optional if deduplication is skipped
   isNewGroup: boolean;
   existingOccurrences: number;
 }

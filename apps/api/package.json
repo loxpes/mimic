@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
+    "@supabase/supabase-js": "^2.45.0",
     "@testfarm/core": "workspace:*",
     "@testfarm/db": "workspace:*",
     "@testfarm/shared": "workspace:*",

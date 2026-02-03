@@ -41,8 +41,10 @@ import screenshots from './routes/screenshots.js';
 import projects from './routes/projects.js';
 import trello from './routes/integrations/trello.js';
 import settings from './routes/settings.js';
+import auth from './routes/auth.js';
 import { startScheduler } from './scheduler.js';
 import { setupClaudeAuth } from './lib/setup-claude.js';
+import { requireAuth } from './middleware/auth.js';
 // YAML sync removed - personas now managed 100% via DB and frontend
 // import { syncYamlToDatabase } from './sync.js';
 
@@ -69,7 +71,22 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
-// Routes
+// Public routes (no auth required)
+app.route('/api/auth', auth);
+
+// Protected routes (require authentication)
+app.use('/api/sessions/*', requireAuth);
+app.use('/api/session-chains/*', requireAuth);
+app.use('/api/personas/*', requireAuth);
+app.use('/api/objectives/*', requireAuth);
+app.use('/api/events/*', requireAuth);
+app.use('/api/findings/*', requireAuth);
+app.use('/api/reports/*', requireAuth);
+app.use('/api/projects/*', requireAuth);
+app.use('/api/integrations/*', requireAuth);
+app.use('/api/settings/*', requireAuth);
+
+// Route handlers
 app.route('/api/sessions', sessions);
 app.route('/api/session-chains', sessionChains);
 app.route('/api/personas', personas);
