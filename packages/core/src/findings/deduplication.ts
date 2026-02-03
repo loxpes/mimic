@@ -4,7 +4,7 @@
 
 import { nanoid } from 'nanoid';
 import { getDb, findingGroups } from '@testfarm/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import type { FindingType, FindingSeverity, DeduplicationResult } from '@testfarm/shared';
 import {
   generateFingerprint,
@@ -22,6 +22,7 @@ export interface FindingInput {
   url: string;
   elementId?: string;
   sessionId: string;
+  userId?: string; // Required for multi-tenant support (if not provided, skips deduplication)
 }
 
 /**
@@ -31,6 +32,16 @@ export interface FindingInput {
 export async function checkAndDeduplicateFinding(
   input: FindingInput
 ): Promise<DeduplicationResult> {
+  // If no userId provided, skip deduplication and return as new finding
+  if (!input.userId) {
+    return {
+      isDuplicate: false,
+      groupId: undefined,
+      isNewGroup: false,
+      existingOccurrences: 0,
+    };
+  }
+
   const db = getDb();
 
   const fingerprintInput: FingerprintInput = {
@@ -45,12 +56,17 @@ export async function checkAndDeduplicateFinding(
   const normalizedUrl = normalizeUrl(input.url);
   const now = new Date();
 
-  // 1. Check for exact fingerprint match
-  const existingGroup = await db
+  // 1. Check for exact fingerprint match (within user's findings)
+  const existingGroupResult = await db
     .select()
     .from(findingGroups)
-    .where(eq(findingGroups.fingerprint, fingerprint))
-    .get();
+    .where(and(
+      eq(findingGroups.fingerprint, fingerprint),
+      eq(findingGroups.userId, input.userId)
+    ))
+    .limit(1);
+
+  const existingGroup = existingGroupResult[0];
 
   if (existingGroup) {
     // Update occurrence count and last seen timestamp
@@ -71,12 +87,14 @@ export async function checkAndDeduplicateFinding(
     };
   }
 
-  // 2. Check for similar findings (fuzzy matching)
+  // 2. Check for similar findings (fuzzy matching within user's findings)
   const similarGroups = await db
     .select()
     .from(findingGroups)
-    .where(eq(findingGroups.type, input.type))
-    .all();
+    .where(and(
+      eq(findingGroups.type, input.type),
+      eq(findingGroups.userId, input.userId)
+    ));
 
   for (const group of similarGroups) {
     const similarity = descriptionSimilarity(input.description, group.canonicalDescription);
@@ -105,6 +123,7 @@ export async function checkAndDeduplicateFinding(
   const newGroupId = nanoid();
   await db.insert(findingGroups).values({
     id: newGroupId,
+    userId: input.userId,
     fingerprint,
     type: input.type,
     severity: input.severity,
@@ -129,7 +148,7 @@ export async function checkAndDeduplicateFinding(
 /**
  * Loads known issues from the database for agent context
  */
-export async function loadKnownIssues(limit: number = 50) {
+export async function loadKnownIssues(userId: string, limit: number = 50) {
   const db = getDb();
 
   const groups = await db
@@ -143,10 +162,12 @@ export async function loadKnownIssues(limit: number = 50) {
       status: findingGroups.status,
     })
     .from(findingGroups)
-    .where(eq(findingGroups.status, 'open'))
+    .where(and(
+      eq(findingGroups.status, 'open'),
+      eq(findingGroups.userId, userId)
+    ))
     .orderBy(findingGroups.occurrenceCount)
-    .limit(limit)
-    .all();
+    .limit(limit);
 
   return groups.map((g) => ({
     groupId: g.id,
@@ -166,11 +187,13 @@ export async function incrementSessionCount(groupId: string): Promise<void> {
   const db = getDb();
   const now = new Date();
 
-  const group = await db
+  const groupResult = await db
     .select()
     .from(findingGroups)
     .where(eq(findingGroups.id, groupId))
-    .get();
+    .limit(1);
+
+  const group = groupResult[0];
 
   if (group) {
     await db

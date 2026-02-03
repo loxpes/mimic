@@ -1,59 +1,114 @@
 # HU-001: Checklist de Seguimiento
 
-## Estado: 🔴 No iniciado
+## Estado: 🟡 En progreso
 
-## Fase 1: Preparación
-- [ ] Decidir proveedor de auth (Clerk/Auth0/Supabase/Custom)
-- [ ] Crear cuenta en el proveedor elegido
-- [ ] Configurar proyecto en el proveedor
-- [ ] Obtener credenciales/API keys
+---
 
-## Fase 2: Backend
-- [ ] Instalar dependencias necesarias
-- [ ] Configurar variables de entorno
-- [ ] Crear middleware de autenticación
-- [ ] Implementar endpoints de auth
-- [ ] Proteger rutas existentes que lo requieran
-- [ ] Tests de integración para auth
+## Fase 1: Setup Supabase
+- [ ] Crear cuenta/proyecto en supabase.com
+- [ ] Configurar proveedor Google OAuth
+- [ ] Configurar proveedor GitHub OAuth
+- [ ] Configurar email templates (verificacion, reset)
+- [ ] Obtener credenciales (URL, ANON_KEY, SERVICE_ROLE_KEY, DATABASE_URL)
+- [x] Anadir variables de entorno a .env.example
 
-## Fase 3: Frontend
-- [ ] Crear página de login
-- [ ] Crear página de registro
-- [ ] Crear página de recuperación de contraseña
-- [ ] Implementar AuthContext/Provider
-- [ ] Añadir indicador de usuario en header
-- [ ] Añadir menú de usuario con logout
-- [ ] Proteger rutas privadas (redirect a login)
+## Fase 2: Migracion Base de Datos
+- [x] Instalar dependencias PostgreSQL (postgres, drizzle-orm/pg)
+- [x] Eliminar better-sqlite3
+- [x] Actualizar packages/db/src/client.ts para PostgreSQL
+- [x] Anadir userId a schema en tablas principales
+- [x] Crear archivo SQL con politicas RLS (supabase-rls.sql)
+- [ ] Aplicar politicas RLS en Supabase Dashboard
+- [ ] Verificar conexion a Supabase PostgreSQL
+- [ ] Eliminar data/testfarm.db (SQLite antiguo)
 
-## Fase 4: Integración
+## Fase 3: Backend Auth
+- [x] Instalar @supabase/supabase-js
+- [x] Crear apps/api/src/middleware/auth.ts
+- [ ] Crear apps/api/src/middleware/rateLimit.ts (opcional)
+- [x] Crear apps/api/src/routes/auth.ts
+- [x] Registrar rutas de auth en index.ts
+- [x] Aplicar authMiddleware a rutas existentes
+- [x] Actualizar rutas para filtrar por userId (projects, personas, objectives)
+- [ ] Migrar sintaxis SQLite (.get, .all) a PostgreSQL en rutas restantes:
+  - [ ] llm-config.ts
+  - [ ] findings.ts
+  - [ ] trello.ts
+  - [ ] reports.ts
+  - [ ] session-chains.ts
+  - [ ] sessions.ts
+  - [ ] events.ts
+  - [ ] settings.ts
+- [ ] Tests de middleware auth
+
+## Fase 4: Frontend Auth
+- [x] Instalar @supabase/supabase-js
+- [x] Crear apps/web/src/lib/supabase.ts
+- [x] Crear apps/web/src/contexts/AuthContext.tsx
+- [x] Crear apps/web/src/components/auth/ProtectedRoute.tsx
+- [x] Crear pagina Login.tsx
+- [x] Crear pagina Register.tsx
+- [x] Crear pagina ForgotPassword.tsx
+- [x] Crear pagina ResetPassword.tsx
+- [x] Crear pagina AuthCallback.tsx
+- [x] Actualizar App.tsx con rutas publicas/protegidas
+- [x] Actualizar main.tsx con AuthProvider
+- [x] Actualizar Layout.tsx con menu usuario
+- [x] Actualizar api.ts con header Authorization
+- [x] Crear componente dropdown-menu.tsx
+- [ ] Tests de AuthContext
+
+## Fase 5: Integracion y Testing
 - [ ] Probar flujo completo de registro
 - [ ] Probar flujo completo de login
-- [ ] Probar login social (Google)
-- [ ] Probar login social (GitHub)
-- [ ] Probar recuperación de contraseña
-- [ ] Probar persistencia de sesión
+- [ ] Probar login con Google
+- [ ] Probar login con GitHub
+- [ ] Probar recuperacion de contrasena
+- [ ] Probar que usuario A no ve datos de usuario B
+- [ ] Probar persistencia de sesion
 - [ ] Probar logout
 
-## Fase 5: Seguridad
-- [ ] Verificar HTTPS en producción
-- [ ] Implementar rate limiting
-- [ ] Revisar headers de seguridad
-- [ ] Verificar no exponer datos sensibles
-- [ ] Test de vulnerabilidades básicas
-
-## Fase 6: Documentación
-- [ ] Documentar flujo de auth en README
-- [ ] Documentar variables de entorno necesarias
+## Fase 6: Documentacion
 - [ ] Actualizar CLAUDE.md con nuevos endpoints
+- [ ] Documentar variables de entorno necesarias
+- [ ] Actualizar README con instrucciones de setup
+
+---
 
 ## Notas de Progreso
 
 | Fecha | Avance | Notas |
 |-------|--------|-------|
-| - | - | - |
+| 2026-02-03 | 60% | Implementacion base de auth con Supabase completada. Schema PostgreSQL con userId, middleware auth, rutas de auth, frontend auth (login/register/password reset). Pendiente: migrar sintaxis .get/.all a PostgreSQL en APIs restantes, configurar proyecto Supabase real, aplicar RLS, testing. |
 
 ## Bloqueos
 
-| Fecha | Descripción | Estado |
+| Fecha | Descripcion | Estado |
 |-------|-------------|--------|
-| - | - | - |
+| 2026-02-03 | Multiples archivos API usan sintaxis SQLite (.get, .all) que no existe en PostgreSQL Drizzle | Pendiente migracion |
+
+## Archivos Creados
+
+### Backend (apps/api)
+- `src/middleware/auth.ts` - Middleware de autenticacion JWT
+- `src/routes/auth.ts` - Endpoints de autenticacion
+
+### Frontend (apps/web)
+- `src/lib/supabase.ts` - Cliente Supabase
+- `src/contexts/AuthContext.tsx` - Estado de autenticacion
+- `src/components/auth/ProtectedRoute.tsx` - Componente de ruta protegida
+- `src/components/ui/dropdown-menu.tsx` - Menu desplegable
+- `src/pages/Login.tsx` - Pagina de login
+- `src/pages/Register.tsx` - Pagina de registro
+- `src/pages/ForgotPassword.tsx` - Pagina de olvide contrasena
+- `src/pages/ResetPassword.tsx` - Pagina de resetear contrasena
+- `src/pages/AuthCallback.tsx` - Callback para OAuth
+- `src/vite-env.d.ts` - Tipos para variables de entorno Vite
+
+### Database (packages/db)
+- `drizzle.config.ts` - Configuracion Drizzle para PostgreSQL
+- `supabase-rls.sql` - Politicas RLS para Supabase
+
+### Root
+- `.env.example` - Plantilla de variables de entorno
+- `apps/web/.env.example` - Plantilla para frontend
