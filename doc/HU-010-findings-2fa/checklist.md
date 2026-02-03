@@ -78,3 +78,6 @@
 |-------|--------|
 | 2026-02-02 | Implementacion completa de las 3 partes |
 | 2026-02-02 | Tests pasando, build exitoso |
+| 2026-02-03 | Bug fix: scroll aumentado a 500px |
+| 2026-02-03 | Bug fix: nombres duplicados en DOM (ExploreExplore → Explore) |
+| 2026-02-03 | **HU FINALIZADA** |
