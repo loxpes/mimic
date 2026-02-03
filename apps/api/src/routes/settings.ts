@@ -16,12 +16,14 @@ const app = new Hono();
  */
 app.get('/', async (c) => {
   const db = getDb();
-  let settings = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).get();
+  const settingsResult = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).limit(1);
+  let settings = settingsResult[0];
 
   // Create default settings if not exist
   if (!settings) {
     const defaultSettings = {
       id: 'global',
+      userId: null, // Global settings have no user
       llmProvider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google',
       llmModel: process.env.LLM_MODEL || 'claude-sonnet-4-20250514',
       encryptedAnthropicKey: null,
@@ -56,9 +58,10 @@ app.patch('/', async (c) => {
   const db = getDb();
 
   // Ensure settings row exists
-  const existing = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).get();
+  const existingResult = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).limit(1);
+  const existing = existingResult[0];
   if (!existing) {
-    await db.insert(appSettings).values({ id: 'global' });
+    await db.insert(appSettings).values({ id: 'global', userId: null });
   }
 
   const updates: Record<string, unknown> = {};

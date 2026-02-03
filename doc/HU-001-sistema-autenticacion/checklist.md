@@ -30,15 +30,17 @@
 - [x] Registrar rutas de auth en index.ts
 - [x] Aplicar authMiddleware a rutas existentes
 - [x] Actualizar rutas para filtrar por userId (projects, personas, objectives)
-- [ ] Migrar sintaxis SQLite (.get, .all) a PostgreSQL en rutas restantes:
-  - [ ] llm-config.ts
-  - [ ] findings.ts
-  - [ ] trello.ts
-  - [ ] reports.ts
-  - [ ] session-chains.ts
-  - [ ] sessions.ts
-  - [ ] events.ts
-  - [ ] settings.ts
+- [x] Migrar sintaxis SQLite (.get, .all) a PostgreSQL en rutas restantes:
+  - [x] llm-config.ts
+  - [x] findings.ts
+  - [x] trello.ts
+  - [x] reports.ts
+  - [x] session-chains.ts
+  - [x] sessions.ts
+  - [x] events.ts
+  - [x] settings.ts
+  - [x] scheduler.ts
+  - [x] sync.ts (deshabilitado en modo multi-tenant)
 - [ ] Tests de middleware auth
 
 ## Fase 4: Frontend Auth
@@ -80,12 +82,13 @@
 | Fecha | Avance | Notas |
 |-------|--------|-------|
 | 2026-02-03 | 60% | Implementacion base de auth con Supabase completada. Schema PostgreSQL con userId, middleware auth, rutas de auth, frontend auth (login/register/password reset). Pendiente: migrar sintaxis .get/.all a PostgreSQL en APIs restantes, configurar proyecto Supabase real, aplicar RLS, testing. |
+| 2026-02-03 | 80% | Migracion SQLite a PostgreSQL completada en todas las rutas API. YAML sync deshabilitado en modo multi-tenant. Build exitoso de todos los paquetes. Pendiente: aplicar RLS, testing E2E. |
 
 ## Bloqueos
 
 | Fecha | Descripcion | Estado |
 |-------|-------------|--------|
-| 2026-02-03 | Multiples archivos API usan sintaxis SQLite (.get, .all) que no existe en PostgreSQL Drizzle | Pendiente migracion |
+| 2026-02-03 | Multiples archivos API usan sintaxis SQLite (.get, .all) que no existe en PostgreSQL Drizzle | ✅ Resuelto |
 
 ## Archivos Creados
 

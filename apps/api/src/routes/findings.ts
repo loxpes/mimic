@@ -126,11 +126,12 @@ app.get('/groups/:id', async (c) => {
   const db = getDb();
 
   // Get the group
-  const group = await db
+  const groupResult = await db
     .select()
     .from(findingGroups)
     .where(eq(findingGroups.id, id))
-    .get();
+    .limit(1);
+  const group = groupResult[0];
 
   if (!group) {
     return c.json({ error: 'Finding group not found' }, 404);
@@ -175,13 +176,14 @@ app.patch('/groups/:id', async (c) => {
   }
 
   // Check if group exists
-  const group = await db
+  const groupCheckResult = await db
     .select()
     .from(findingGroups)
     .where(eq(findingGroups.id, id))
-    .get();
+    .limit(1);
+  const groupCheck = groupCheckResult[0];
 
-  if (!group) {
+  if (!groupCheck) {
     return c.json({ error: 'Finding group not found' }, 404);
   }
 
@@ -200,11 +202,12 @@ app.patch('/groups/:id', async (c) => {
     .where(eq(findingGroups.id, id));
 
   // Get updated group
-  const updatedGroup = await db
+  const updatedGroupResult = await db
     .select()
     .from(findingGroups)
     .where(eq(findingGroups.id, id))
-    .get();
+    .limit(1);
+  const updatedGroup = updatedGroupResult[0];
 
   return c.json(updatedGroup);
 });

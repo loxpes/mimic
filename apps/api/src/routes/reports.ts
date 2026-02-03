@@ -35,11 +35,12 @@ app.get('/:sessionId', async (c) => {
   const sessionId = c.req.param('sessionId');
   const db = getDb();
 
-  const report = await db
+  const reportResult = await db
     .select()
     .from(sessionReports)
     .where(eq(sessionReports.sessionId, sessionId))
-    .get();
+    .limit(1);
+  const report = reportResult[0];
 
   if (!report) {
     return c.json({ error: 'Report not found for this session' }, 404);
@@ -53,11 +54,12 @@ app.get('/:sessionId/markdown', async (c) => {
   const sessionId = c.req.param('sessionId');
   const db = getDb();
 
-  const report = await db
+  const reportResult = await db
     .select()
     .from(sessionReports)
     .where(eq(sessionReports.sessionId, sessionId))
-    .get();
+    .limit(1);
+  const report = reportResult[0];
 
   if (!report) {
     return c.json({ error: 'Report not found for this session' }, 404);
@@ -75,7 +77,7 @@ app.get('/:sessionId/summary', async (c) => {
   const sessionId = c.req.param('sessionId');
   const db = getDb();
 
-  const report = await db
+  const reportResult = await db
     .select({
       summary: sessionReports.summary,
       findingsSummary: sessionReports.findingsSummary,
@@ -83,7 +85,8 @@ app.get('/:sessionId/summary', async (c) => {
     })
     .from(sessionReports)
     .where(eq(sessionReports.sessionId, sessionId))
-    .get();
+    .limit(1);
+  const report = reportResult[0];
 
   if (!report) {
     return c.json({ error: 'Report not found for this session' }, 404);

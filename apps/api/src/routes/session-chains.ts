@@ -65,7 +65,7 @@ app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = getDb();
 
-  const chain = await db
+  const chainResult = await db
     .select({
       id: sessionChains.id,
       projectId: sessionChains.projectId,
@@ -89,7 +89,8 @@ app.get('/:id', async (c) => {
     .leftJoin(personas, eq(sessionChains.personaId, personas.id))
     .leftJoin(objectives, eq(sessionChains.objectiveId, objectives.id))
     .where(eq(sessionChains.id, id))
-    .get();
+    .limit(1);
+  const chain = chainResult[0];
 
   if (!chain) {
     return c.json({ error: 'Session chain not found' }, 404);
@@ -147,7 +148,8 @@ app.patch('/:id', async (c) => {
   const body = await c.req.json();
   const db = getDb();
 
-  const chain = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).get();
+  const chainResult = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).limit(1);
+  const chain = chainResult[0];
   if (!chain) {
     return c.json({ error: 'Session chain not found' }, 404);
   }
@@ -177,7 +179,8 @@ app.delete('/:id', async (c) => {
   const deleteSessionsToo = c.req.query('deleteSessions') === 'true';
   const db = getDb();
 
-  const chain = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).get();
+  const chainResultDel = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).limit(1);
+  const chain = chainResultDel[0];
   if (!chain) {
     return c.json({ error: 'Session chain not found' }, 404);
   }
@@ -204,7 +207,8 @@ app.post('/:id/continue', async (c) => {
   const id = c.req.param('id');
   const db = getDb();
 
-  const chain = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).get();
+  const chainResultCont = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).limit(1);
+  const chain = chainResultCont[0];
   if (!chain) {
     return c.json({ error: 'Session chain not found' }, 404);
   }
@@ -214,13 +218,13 @@ app.post('/:id/continue', async (c) => {
   }
 
   // Get the last session in the chain to determine sequence
-  const lastSession = await db
+  const lastSessionResult = await db
     .select()
     .from(sessions)
     .where(eq(sessions.parentChainId, id))
     .orderBy(desc(sessions.chainSequence))
-    .limit(1)
-    .get();
+    .limit(1);
+  const lastSession = lastSessionResult[0];
 
   const nextSequence = (lastSession?.chainSequence ?? 0) + 1;
 
@@ -273,7 +277,8 @@ app.post('/:id/schedule', async (c) => {
   const body = await c.req.json();
   const db = getDb();
 
-  const chain = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).get();
+  const chainResultSched = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).limit(1);
+  const chain = chainResultSched[0];
   if (!chain) {
     return c.json({ error: 'Session chain not found' }, 404);
   }
@@ -321,7 +326,8 @@ app.post('/:id/pause', async (c) => {
   const id = c.req.param('id');
   const db = getDb();
 
-  const chain = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).get();
+  const chainResultPause = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).limit(1);
+  const chain = chainResultPause[0];
   if (!chain) {
     return c.json({ error: 'Session chain not found' }, 404);
   }
@@ -344,7 +350,8 @@ app.post('/:id/resume', async (c) => {
   const id = c.req.param('id');
   const db = getDb();
 
-  const chain = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).get();
+  const chainResultRes = await db.select().from(sessionChains).where(eq(sessionChains.id, id)).limit(1);
+  const chain = chainResultRes[0];
   if (!chain) {
     return c.json({ error: 'Session chain not found' }, 404);
   }
@@ -382,7 +389,8 @@ export async function updateChainAfterSession(
 ): Promise<void> {
   const db = getDb();
 
-  const chain = await db.select().from(sessionChains).where(eq(sessionChains.id, chainId)).get();
+  const chainResultUpd = await db.select().from(sessionChains).where(eq(sessionChains.id, chainId)).limit(1);
+  const chain = chainResultUpd[0];
   if (!chain) {
     console.warn(`[Chain] Chain ${chainId} not found for update`);
     return;
@@ -444,7 +452,8 @@ export async function getChainContextForSession(chainId: string, sequence: numbe
 }> {
   const db = getDb();
 
-  const chain = await db.select().from(sessionChains).where(eq(sessionChains.id, chainId)).get();
+  const chainResultCtx = await db.select().from(sessionChains).where(eq(sessionChains.id, chainId)).limit(1);
+  const chain = chainResultCtx[0];
   if (!chain) {
     return { initialMemory: undefined, chainContext: undefined };
   }

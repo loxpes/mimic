@@ -19,7 +19,8 @@ export const DEFAULT_LLM_CONFIG = {
  */
 export async function getGlobalLLMConfig() {
   const db = getDb();
-  const settings = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).get();
+  const settingsResult = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).limit(1);
+  const settings = settingsResult[0];
 
   if (settings) {
     return {
