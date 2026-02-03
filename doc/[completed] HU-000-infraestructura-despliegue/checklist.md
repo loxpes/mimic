@@ -44,20 +44,20 @@
 - [x] Verificar deploy automático
 
 ## Dominio y SSL (Opcional)
-- [ ] Configurar DNS (registro A)
-- [ ] Añadir dominio en Coolify
-- [ ] Verificar SSL automático
+- [x] Configurar DNS (registro A)
+- [x] Añadir dominio en Coolify
+- [x] Verificar SSL automático
 
 ## Corrección de Configuración LLM
-- [ ] Verificar provider actual con `pnpm config:check`
-- [ ] Corregir a claude-cli con `pnpm config:fix` o desde Settings
-- [ ] Verificar que CLAUDE_CODE_OAUTH_TOKEN esté en Coolify
-- [ ] Probar creación de sesión con claude-cli
+- [x] Verificar provider actual con `pnpm config:check`
+- [x] Corregir a claude-cli con `pnpm config:fix` o desde Settings
+- [x] Verificar que CLAUDE_CODE_OAUTH_TOKEN esté en Coolify
+- [x] Probar creación de sesión con claude-cli
 
 ## Verificación Final
 - [x] App accesible públicamente
-- [ ] Crear sesión de prueba con claude-cli
-- [ ] Verificar persistencia tras restart
+- [x] Crear sesión de prueba con claude-cli
+- [x] Verificar persistencia tras restart
 - [x] Verificar logs en Coolify
 
 ## Notas de Progreso
