@@ -23,6 +23,12 @@ RUN pnpm install --frozen-lockfile
 # Copiar código fuente
 COPY . .
 
+# Variables VITE_* necesarias en build time (Vite las inyecta en el bundle JS)
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
 # Build packages sequentially to ensure proper dependency order
 RUN pnpm -r --workspace-concurrency=1 build
 
