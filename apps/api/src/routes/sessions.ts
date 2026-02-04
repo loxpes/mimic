@@ -100,7 +100,6 @@ async function resolveApiKey(provider: string): Promise<string | undefined> {
     case 'google':
       return process.env.GOOGLE_API_KEY;
     case 'claude-cli':
-    case 'ollama':
       return undefined; // Don't need API key
     default:
       return undefined;

@@ -24,7 +24,6 @@ async function main() {
     console.log('  ID:', settings.id);
     console.log('  llmProvider:', settings.llmProvider);
     console.log('  llmModel:', settings.llmModel);
-    console.log('  ollamaBaseUrl:', settings.ollamaBaseUrl);
     console.log('  encryptedAnthropicKey:', settings.encryptedAnthropicKey ? '✓ Presente' : '✗ No configurada');
     console.log('  encryptedOpenaiKey:', settings.encryptedOpenaiKey ? '✓ Presente' : '✗ No configurada');
     console.log('  encryptedGoogleKey:', settings.encryptedGoogleKey ? '✓ Presente' : '✗ No configurada');
@@ -35,7 +34,7 @@ async function main() {
 
   // Recommendation
   console.log('🎯 Configuración que se está usando:');
-  const activeProvider = settings?.llmProvider || process.env.LLM_PROVIDER || 'anthropic';
+  const activeProvider = settings?.llmProvider || process.env.LLM_PROVIDER || 'claude-cli';
   const activeModel = settings?.llmModel || process.env.LLM_MODEL || 'claude-sonnet-4-20250514';
   console.log('  Provider:', activeProvider);
   console.log('  Model:', activeModel);

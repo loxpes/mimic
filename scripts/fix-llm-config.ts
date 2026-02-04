@@ -33,7 +33,6 @@ async function main() {
       encryptedAnthropicKey: null,
       encryptedOpenaiKey: null,
       encryptedGoogleKey: null,
-      ollamaBaseUrl: 'http://localhost:11434/v1',
     });
     console.log('✅ Configuración creada en la base de datos');
   }

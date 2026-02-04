@@ -629,9 +629,8 @@ export const sessionChainsApi = {
 // ============================================================================
 
 export interface AppSettings {
-  llmProvider: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google';
+  llmProvider: 'anthropic' | 'openai' | 'claude-cli' | 'google';
   llmModel: string;
-  ollamaBaseUrl: string;
   hasAnthropicKey: boolean;
   hasOpenaiKey: boolean;
   hasGoogleKey: boolean;
@@ -639,9 +638,8 @@ export interface AppSettings {
 }
 
 export interface UpdateSettingsInput {
-  llmProvider?: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google';
+  llmProvider?: 'anthropic' | 'openai' | 'claude-cli' | 'google';
   llmModel?: string;
-  ollamaBaseUrl?: string;
   anthropicApiKey?: string | null;
   openaiApiKey?: string | null;
   googleApiKey?: string | null;

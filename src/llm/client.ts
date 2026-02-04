@@ -24,12 +24,6 @@ function createProvider(config: LLMConfig) {
         apiKey: config.apiKey || process.env.OPENAI_API_KEY,
       });
 
-    case 'ollama':
-      return createOpenAI({
-        baseURL: config.baseUrl || 'http://localhost:11434/v1',
-        apiKey: 'ollama', // Ollama doesn't need real key
-      });
-
     case 'custom':
       return createOpenAI({
         baseURL: config.baseUrl,

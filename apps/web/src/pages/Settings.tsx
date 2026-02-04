@@ -24,11 +24,10 @@ const languages = [
 ];
 
 const providers = [
-  { value: 'anthropic', label: 'Anthropic (Claude)', description: 'Claude 3.5 Sonnet, Claude 3 Haiku' },
-  { value: 'openai', label: 'OpenAI (GPT)', description: 'GPT-4o, GPT-4 Turbo' },
-  { value: 'google', label: 'Google (Gemini)', description: 'Gemini 1.5 Pro, Gemini 1.5 Flash' },
-  { value: 'ollama', label: 'Ollama (Local)', description: 'Llama 3, Mistral, CodeLlama' },
-  { value: 'claude-cli', label: 'Claude Code CLI', description: 'Solo para desarrollo local' },
+  { value: 'claude-cli', label: 'TestFarm (Incluido)', description: 'Incluido con TestFarm, sin configuracion adicional' },
+  { value: 'anthropic', label: 'Anthropic (Claude) - Requiere API Key', description: 'Claude Sonnet, Claude Haiku' },
+  { value: 'openai', label: 'OpenAI (GPT) - Requiere API Key', description: 'GPT-4o, GPT-4 Turbo' },
+  { value: 'google', label: 'Google (Gemini) - Requiere API Key', description: 'Gemini 1.5 Pro, Gemini 1.5 Flash' },
 ];
 
 export function Settings() {
@@ -42,12 +41,11 @@ export function Settings() {
   const [languageSaved, setLanguageSaved] = useState(false);
 
   // LLM state
-  const [provider, setProvider] = useState<string>('anthropic');
+  const [provider, setProvider] = useState<string>('claude-cli');
   const [model, setModel] = useState<string>('claude-sonnet-4-20250514');
   const [anthropicKey, setAnthropicKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [googleKey, setGoogleKey] = useState('');
-  const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434/v1');
 
   // Fetch settings
   const { data: settings, isLoading } = useQuery({
@@ -68,7 +66,6 @@ export function Settings() {
     if (settings) {
       setProvider(settings.llmProvider);
       setModel(settings.llmModel);
-      setOllamaUrl(settings.ollamaBaseUrl || 'http://localhost:11434/v1');
     }
   }, [settings]);
 
@@ -91,7 +88,6 @@ export function Settings() {
     updateMutation.mutate({
       llmProvider: provider as AppSettings['llmProvider'],
       llmModel: model,
-      ollamaBaseUrl: provider === 'ollama' ? ollamaUrl : undefined,
     });
   };
 
@@ -231,18 +227,6 @@ export function Settings() {
             </div>
           </div>
 
-          {/* Ollama URL (only shown for ollama) */}
-          {provider === 'ollama' && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Ollama URL</label>
-              <Input
-                value={ollamaUrl}
-                onChange={(e) => setOllamaUrl(e.target.value)}
-                placeholder="http://localhost:11434/v1"
-              />
-            </div>
-          )}
-
           <Button
             onClick={handleSaveProvider}
             disabled={updateMutation.isPending}
@@ -264,8 +248,8 @@ export function Settings() {
         </CardContent>
       </Card>
 
-      {/* API Keys Card */}
-      <Card>
+      {/* API Keys Card (only shown for providers that need API keys) */}
+      {provider !== 'claude-cli' && <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Key className="h-5 w-5 text-primary" />
@@ -400,7 +384,7 @@ export function Settings() {
             </ul>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Info Card */}
       <Card className="bg-muted/50">

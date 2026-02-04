@@ -230,11 +230,11 @@ export interface AgentDecision {
 export type SessionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export interface LLMConfig {
-  provider: 'anthropic' | 'openai' | 'ollama' | 'custom';
+  provider: 'anthropic' | 'openai' | 'custom' | 'claude-cli' | 'google';
   model: string;
   temperature?: number;
   maxTokens?: number;
-  baseUrl?: string;         // For custom/ollama
+  baseUrl?: string;         // For custom providers
   apiKey?: string;
 }
 
