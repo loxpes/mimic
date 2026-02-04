@@ -34,7 +34,7 @@ program
   .requiredOption('-p, --persona <file>', 'Path to persona YAML file')
   .requiredOption('-o, --objective <file>', 'Path to objective YAML file')
   .option('-m, --model <model>', 'LLM model to use', 'claude-3-5-sonnet-20241022')
-  .option('--provider <provider>', 'LLM provider (anthropic, openai, ollama)', 'anthropic')
+  .option('--provider <provider>', 'LLM provider (claude-cli, anthropic, openai, google)', 'claude-cli')
   .option('--max-actions <number>', 'Maximum number of actions', '50')
   .option('--timeout <ms>', 'Session timeout in milliseconds', '300000')
   .option('--headless', 'Run browser in headless mode', true)

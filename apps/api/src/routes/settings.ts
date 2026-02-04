@@ -29,12 +29,11 @@ app.get('/', async (c) => {
     const defaultSettings = {
       id: `user_${user.id}`,
       userId: user.id,
-      llmProvider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google',
+      llmProvider: (process.env.LLM_PROVIDER || 'claude-cli') as 'anthropic' | 'openai' | 'claude-cli' | 'google',
       llmModel: process.env.LLM_MODEL || 'claude-sonnet-4-20250514',
       encryptedAnthropicKey: null,
       encryptedOpenaiKey: null,
       encryptedGoogleKey: null,
-      ollamaBaseUrl: 'http://localhost:11434/v1',
       updatedAt: null,
     };
     await db.insert(appSettings).values(defaultSettings);
@@ -46,7 +45,6 @@ app.get('/', async (c) => {
   return c.json({
     llmProvider: settings.llmProvider,
     llmModel: settings.llmModel,
-    ollamaBaseUrl: settings.ollamaBaseUrl,
     hasAnthropicKey: !!settings.encryptedAnthropicKey,
     hasOpenaiKey: !!settings.encryptedOpenaiKey,
     hasGoogleKey: !!settings.encryptedGoogleKey,
@@ -79,10 +77,6 @@ app.patch('/', async (c) => {
   if (body.llmModel !== undefined) {
     updates.llmModel = body.llmModel;
   }
-  if (body.ollamaBaseUrl !== undefined) {
-    updates.ollamaBaseUrl = body.ollamaBaseUrl;
-  }
-
   // Encrypt API keys if provided
   if (body.anthropicApiKey !== undefined) {
     if (body.anthropicApiKey === null || body.anthropicApiKey === '') {

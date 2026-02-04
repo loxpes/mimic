@@ -103,7 +103,7 @@ export const sessionChains = pgTable('session_chains', {
   targetUrl: text('target_url').notNull(),
   name: text('name'),
   llmConfig: jsonb('llm_config').$type<{
-    provider: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'custom' | 'google';
+    provider: 'anthropic' | 'openai' | 'claude-cli' | 'custom' | 'google';
     model: string;
     temperature?: number;
     maxTokens?: number;
@@ -158,7 +158,7 @@ export const sessions = pgTable('sessions', {
   objectiveId: text('objective_id').notNull().references(() => objectives.id),
   targetUrl: text('target_url').notNull(),
   llmConfig: jsonb('llm_config').notNull().$type<{
-    provider: 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'custom' | 'google';
+    provider: 'anthropic' | 'openai' | 'claude-cli' | 'custom' | 'google';
     model: string;
     temperature?: number;
     maxTokens?: number;
@@ -428,16 +428,13 @@ export const appSettings = pgTable('app_settings', {
   userId: uuid('user_id'), // null for global defaults
 
   // LLM Configuration
-  llmProvider: text('llm_provider').default('anthropic').$type<'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google'>(),
+  llmProvider: text('llm_provider').default('claude-cli').$type<'anthropic' | 'openai' | 'claude-cli' | 'google'>(),
   llmModel: text('llm_model').default('claude-sonnet-4-20250514'),
 
   // Encrypted API Keys (AES-256-GCM, base64 encoded)
   encryptedAnthropicKey: text('encrypted_anthropic_key'),
   encryptedOpenaiKey: text('encrypted_openai_key'),
   encryptedGoogleKey: text('encrypted_google_key'),
-
-  // Ollama config (no key needed)
-  ollamaBaseUrl: text('ollama_base_url').default('http://localhost:11434/v1'),
 
   // Timestamps
   updatedAt: timestamp('updated_at', { withTimezone: true }),

@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 
 // Default configurations
 export const DEFAULT_LLM_CONFIG = {
-  provider: (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'ollama' | 'claude-cli' | 'google',
+  provider: (process.env.LLM_PROVIDER || 'claude-cli') as 'anthropic' | 'openai' | 'claude-cli' | 'google',
   model: process.env.LLM_MODEL || 'claude-sonnet-4-20250514',
   temperature: 0.7,
   maxTokens: 2048,
