@@ -50,6 +50,10 @@ export function Sessions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
+    onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      window.alert(error.message);
+    },
   });
 
   const cancelMutation = useMutation({

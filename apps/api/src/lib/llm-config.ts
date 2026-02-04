@@ -15,20 +15,22 @@ export const DEFAULT_LLM_CONFIG = {
 };
 
 /**
- * Get global LLM configuration from appSettings
+ * Get LLM configuration for a user (falls back to defaults)
  */
-export async function getGlobalLLMConfig() {
+export async function getGlobalLLMConfig(userId?: string) {
   const db = getDb();
-  const settingsResult = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).limit(1);
-  const settings = settingsResult[0];
 
-  if (settings) {
-    return {
-      provider: settings.llmProvider || DEFAULT_LLM_CONFIG.provider,
-      model: settings.llmModel || DEFAULT_LLM_CONFIG.model,
-      temperature: DEFAULT_LLM_CONFIG.temperature,
-      maxTokens: DEFAULT_LLM_CONFIG.maxTokens,
-    };
+  // Try user-specific settings first
+  if (userId) {
+    const userSettings = await db.select().from(appSettings).where(eq(appSettings.userId, userId)).limit(1);
+    if (userSettings[0]) {
+      return {
+        provider: userSettings[0].llmProvider || DEFAULT_LLM_CONFIG.provider,
+        model: userSettings[0].llmModel || DEFAULT_LLM_CONFIG.model,
+        temperature: DEFAULT_LLM_CONFIG.temperature,
+        maxTokens: DEFAULT_LLM_CONFIG.maxTokens,
+      };
+    }
   }
 
   return DEFAULT_LLM_CONFIG;

@@ -124,6 +124,10 @@ export function SessionDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['session', id] });
     },
+    onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['session', id] });
+      window.alert(error.message);
+    },
   });
 
   const cancelMutation = useMutation({

@@ -67,27 +67,30 @@ const DEFAULT_VISION_CONFIG = {
 };
 
 /**
- * Resolve API key with priority: DB (encrypted) > env var
+ * Resolve API key with priority: user DB (encrypted) > env var
  */
-async function resolveApiKey(provider: string): Promise<string | undefined> {
+async function resolveApiKey(provider: string, userId?: string): Promise<string | undefined> {
   const db = getDb();
-  const settingsResult = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).limit(1);
-  const settings = settingsResult[0];
 
-  // 1. Try to get from DB (encrypted)
-  if (settings && isEncryptionConfigured()) {
-    try {
-      if (provider === 'anthropic' && settings.encryptedAnthropicKey) {
-        return decrypt(settings.encryptedAnthropicKey);
+  // 1. Try to get from user's DB settings (encrypted)
+  if (userId && isEncryptionConfigured()) {
+    const userSettings = await db.select().from(appSettings).where(eq(appSettings.userId, userId)).limit(1);
+    const settings = userSettings[0];
+
+    if (settings) {
+      try {
+        if (provider === 'anthropic' && settings.encryptedAnthropicKey) {
+          return decrypt(settings.encryptedAnthropicKey);
+        }
+        if (provider === 'openai' && settings.encryptedOpenaiKey) {
+          return decrypt(settings.encryptedOpenaiKey);
+        }
+        if (provider === 'google' && settings.encryptedGoogleKey) {
+          return decrypt(settings.encryptedGoogleKey);
+        }
+      } catch (e) {
+        console.error('Failed to decrypt API key:', e);
       }
-      if (provider === 'openai' && settings.encryptedOpenaiKey) {
-        return decrypt(settings.encryptedOpenaiKey);
-      }
-      if (provider === 'google' && settings.encryptedGoogleKey) {
-        return decrypt(settings.encryptedGoogleKey);
-      }
-    } catch (e) {
-      console.error('Failed to decrypt API key:', e);
     }
   }
 
@@ -108,11 +111,12 @@ async function resolveApiKey(provider: string): Promise<string | undefined> {
 
 // POST /api/sessions - Create new session
 app.post('/', async (c) => {
+  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
-  // Get global LLM config as base and merge with body config
-  const globalConfig = await getGlobalLLMConfig();
+  // Get user's LLM config as base and merge with body config
+  const globalConfig = await getGlobalLLMConfig(user.id);
   const llmConfig = {
     ...globalConfig,
     ...(body.llmConfig || {}),
@@ -142,13 +146,14 @@ app.post('/', async (c) => {
 
 // POST /api/sessions/batch - Create multiple sessions at once
 app.post('/batch', async (c) => {
+  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
   const { targetUrl, personaIds, objectiveIds, llmConfig, visionConfig, projectId } = body;
 
-  // Get global LLM config as base and merge with body config
-  const globalConfig = await getGlobalLLMConfig();
+  // Get user's LLM config as base and merge with body config
+  const globalConfig = await getGlobalLLMConfig(user.id);
   const mergedLlmConfig = {
     ...globalConfig,
     ...(llmConfig || {}),
@@ -257,7 +262,35 @@ app.post('/:id/start', async (c) => {
     successCriteria: objective.definition.successCriteria,
   };
 
-  // Update session status to running
+  // Get user for user-specific config resolution
+  const user = requireUser(c);
+
+  // Get LLM config - use session config or fall back to user settings
+  const baseLLMConfig = session.llmConfig || await getGlobalLLMConfig(user.id);
+  const provider = baseLLMConfig.provider;
+
+  console.log(`[Session ${id}] LLM Provider: ${provider}`);
+  console.log(`[Session ${id}] LLM Model: ${baseLLMConfig.model}`);
+  console.log(`[Session ${id}] Using session config:`, !!session.llmConfig);
+
+  // Resolve API key from user's DB settings or env vars
+  const apiKey = await resolveApiKey(provider, user.id);
+
+  console.log(`[Session ${id}] API key resolved:`, apiKey ? 'YES' : 'NO');
+
+  // Validate BEFORE marking as running (so session stays pending on failure)
+  if ((provider === 'anthropic' || provider === 'openai' || provider === 'google') && !apiKey) {
+    const envVarMap: Record<string, string> = {
+      anthropic: 'ANTHROPIC_API_KEY',
+      openai: 'OPENAI_API_KEY',
+      google: 'GOOGLE_API_KEY',
+    };
+    const errorMsg = `API key not configured for provider: ${provider}. Configure it in Settings or set ${envVarMap[provider]} environment variable.`;
+    console.error(`[Session ${id}] VALIDATION FAILED: ${errorMsg}`);
+    return c.json({ error: errorMsg }, 400);
+  }
+
+  // Update session status to running (only after validation passes)
   const maxActions = objective.config.maxActions || 50;
   await db.update(sessions).set({
     state: {
@@ -271,7 +304,6 @@ app.post('/:id/start', async (c) => {
   // Load existing findings context for deduplication
   let existingFindingsContext: ExistingFindingsContext | undefined;
   try {
-    const user = requireUser(c);
     const knownIssues = await loadKnownIssues(user.id, 50);
     if (knownIssues.length > 0) {
       existingFindingsContext = {
@@ -296,31 +328,6 @@ app.post('/:id/start', async (c) => {
     } catch (error) {
       console.warn(`[Session ${id}] Failed to load chain context:`, error);
     }
-  }
-
-  // Get LLM config - use session config or fall back to global settings
-  const baseLLMConfig = session.llmConfig || await getGlobalLLMConfig();
-  const provider = baseLLMConfig.provider;
-
-  console.log(`[Session ${id}] LLM Provider: ${provider}`);
-  console.log(`[Session ${id}] LLM Model: ${baseLLMConfig.model}`);
-  console.log(`[Session ${id}] Using session config:`, !!session.llmConfig);
-
-  // Resolve API key from DB or env vars
-  const apiKey = await resolveApiKey(provider);
-
-  console.log(`[Session ${id}] API key resolved:`, apiKey ? 'YES' : 'NO');
-
-  // Validate that we have an API key for providers that need it
-  if ((provider === 'anthropic' || provider === 'openai' || provider === 'google') && !apiKey) {
-    const envVarMap: Record<string, string> = {
-      anthropic: 'ANTHROPIC_API_KEY',
-      openai: 'OPENAI_API_KEY',
-      google: 'GOOGLE_API_KEY',
-    };
-    const errorMsg = `API key not configured for provider: ${provider}. Configure it in Settings or set ${envVarMap[provider]} environment variable.`;
-    console.error(`[Session ${id}] VALIDATION FAILED: ${errorMsg}`);
-    return c.json({ error: errorMsg }, 400);
   }
 
   // Build final LLM config with resolved API key
@@ -633,6 +640,7 @@ app.post('/:id/start', async (c) => {
 
 // POST /api/sessions/:id/retry - Clone and start a fresh session
 app.post('/:id/retry', async (c) => {
+  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
 
@@ -643,11 +651,11 @@ app.post('/:id/retry', async (c) => {
     return c.json({ error: 'Session not found' }, 404);
   }
 
-  // Use current global LLM config (don't copy old session config)
+  // Use current user's LLM config (don't copy old session config)
   // This ensures retry always uses the latest settings
-  const llmConfig = await getGlobalLLMConfig();
+  const llmConfig = await getGlobalLLMConfig(user.id);
 
-  console.log(`[Retry] Creating new session with current global config: ${llmConfig.provider}`);
+  console.log(`[Retry] Creating new session with user config: ${llmConfig.provider}`);
 
   // Create a clone with fresh state
   const newSession = {
