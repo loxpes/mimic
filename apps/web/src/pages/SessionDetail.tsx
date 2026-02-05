@@ -148,9 +148,14 @@ export function SessionDetail() {
   });
 
   const continueMutation = useMutation({
-    mutationFn: sessionsApi.continue,
+    mutationFn: async (sessionId: string) => {
+      // First reset session to pending
+      await sessionsApi.continue(sessionId);
+      // Then immediately start it
+      return sessionsApi.start(sessionId);
+    },
     onSuccess: () => {
-      // Session is reset to pending - refresh to show updated state
+      // Session is now running - refresh to show updated state
       queryClient.invalidateQueries({ queryKey: ['session', id] });
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },

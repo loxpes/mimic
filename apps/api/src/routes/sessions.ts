@@ -364,7 +364,8 @@ app.post('/:id/start', async (c) => {
     chainContext,
   };
 
-  let eventSequence = 0;
+  // Continue event sequence from where we left off (for session continuation)
+  let eventSequence = session.state.actionCount || 0;
 
   // Create agent with event handlers
   const agent = createAgent(agentConfig, {
