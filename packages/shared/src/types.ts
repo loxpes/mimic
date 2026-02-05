@@ -284,6 +284,10 @@ export interface CurrentState {
   dom: StructuredDOM;
   screenshot?: string;      // Base64, only when needed
   screenshotPath?: string;  // File path for Claude CLI vision
+  viewportSize?: {          // Viewport dimensions for coordinate reference
+    width: number;
+    height: number;
+  };
 }
 
 export interface AgentHistory {

@@ -127,6 +127,8 @@ export class Agent {
   } | null = null;
   /** Track consecutive LLM decision failures to avoid killing session on isolated errors */
   private consecutiveFailures: number = 0;
+  /** Track repeated actions to detect loops */
+  private recentActionSignatures: string[] = [];
 
   constructor(config: AgentConfig, events: AgentEvents = {}) {
     this.config = config;
@@ -177,6 +179,64 @@ export class Agent {
       llmCalls: 0,
       totalTokens: 0,
     };
+  }
+
+  // ============================================================================
+  // Loop Detection & Action Verification
+  // ============================================================================
+
+  /**
+   * Generate a signature for an action to detect repeated actions
+   */
+  private getActionSignature(decision: AgentDecision): string {
+    const { action } = decision;
+    const parts: string[] = [action.type];
+
+    if (action.target?.elementId) {
+      parts.push(`id:${action.target.elementId}`);
+    }
+    if (action.target?.coordinates) {
+      // Round coordinates to detect near-identical clicks
+      const x = Math.round(action.target.coordinates.x / 5) * 5;
+      const y = Math.round(action.target.coordinates.y / 5) * 5;
+      parts.push(`coord:${x},${y}`);
+    }
+    if (action.value) {
+      parts.push(`val:${action.value.substring(0, 20)}`);
+    }
+
+    return parts.join('|');
+  }
+
+  /**
+   * Check if the current action is part of a loop (same action repeated without progress)
+   * Returns the number of consecutive repetitions
+   */
+  private detectLoop(signature: string): number {
+    // Keep last 10 action signatures
+    this.recentActionSignatures.push(signature);
+    if (this.recentActionSignatures.length > 10) {
+      this.recentActionSignatures.shift();
+    }
+
+    // Count consecutive repetitions of this signature at the end
+    let count = 0;
+    for (let i = this.recentActionSignatures.length - 1; i >= 0; i--) {
+      if (this.recentActionSignatures[i] === signature) {
+        count++;
+      } else {
+        break;
+      }
+    }
+
+    return count;
+  }
+
+  /**
+   * Check if page state changed after an action
+   */
+  private checkForStateChange(previousUrl: string, currentUrl: string): boolean {
+    return previousUrl !== currentUrl;
   }
 
   // ============================================================================
@@ -301,6 +361,7 @@ ${persona.context}`;
         url: this.browser.getCurrentUrl(),
         pageTitle: await this.browser.getTitle(),
         dom,
+        viewportSize: this.browser.getViewportSize(),
       },
       history: this.history,
       memory: this.memory,
@@ -654,6 +715,36 @@ ${persona.context}`;
         this.consecutiveFailures = 0;
         console.log(`[Agent] LLM decision: ${decision.action.type} - ${decision.reasoning.action_reason}`);
 
+        // Detect action loops before executing
+        const actionSignature = this.getActionSignature(decision);
+        const loopCount = this.detectLoop(actionSignature);
+
+        if (loopCount >= 3) {
+          console.warn(`[Agent] Loop detected: action "${actionSignature}" repeated ${loopCount} times`);
+
+          // Add frustration to memory so LLM knows about the loop
+          const loopMessage = `Action loop detected: tried "${decision.action.target?.description || decision.action.type}" ${loopCount} times at similar coordinates without success. The element may not be clickable at these coordinates, or requires a different interaction.`;
+
+          if (!this.memory.frustrations.includes(loopMessage)) {
+            this.memory.frustrations.push(loopMessage);
+          }
+
+          // If loop count is very high, mark as blocked
+          if (loopCount >= 5) {
+            console.error(`[Agent] Severe loop detected (${loopCount} repetitions), marking as blocked`);
+            this.history.failedAttempts.push({
+              action: decision.action,
+              success: false,
+              error: `Loop detected: ${loopCount} repetitions without state change`,
+              timestamp: Date.now(),
+              url: this.browser.getCurrentUrl(),
+            });
+          }
+        }
+
+        // Store URL before action for state change detection
+        const urlBeforeAction = this.browser.getCurrentUrl();
+
         // Build element map from the DOM that the LLM saw (NOT a new extraction!)
         // This ensures element IDs match what the LLM decided to interact with
         const elementMap = new Map<string, string>();
@@ -671,6 +762,16 @@ ${persona.context}`;
         // Execute action
         const actionHistory = await this.executeAction(decision, elementMap);
         this.actionCount++;
+
+        // Check for state change after action
+        const urlAfterAction = this.browser.getCurrentUrl();
+        const stateChanged = this.checkForStateChange(urlBeforeAction, urlAfterAction);
+
+        if (!stateChanged && decision.action.type === 'click' && loopCount >= 2) {
+          console.warn(`[Agent] Click action did not change page state (URL unchanged)`);
+          // Mark action as potentially ineffective for context
+          actionHistory.error = actionHistory.error || 'No visible state change after click';
+        }
 
         // Emit events with screenshot path and elements for debugging
         this.events.onAction?.(actionHistory, decision, screenshotPath, this.unifiedElements);

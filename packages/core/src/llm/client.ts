@@ -202,6 +202,18 @@ You have TWO options for clicking:
    - Only mark "completed" when you CONFIRM the objective was achieved
    - Don't mark "completed" during a wait action - wait first, then verify
 
+## AVOIDING ACTION LOOPS
+
+**CRITICAL**: If you see in your frustrations or recent actions that you have tried the SAME action multiple times without success:
+1. **DO NOT repeat the same action** - it clearly isn't working
+2. Try a DIFFERENT approach:
+   - If clicking by coordinates failed, try clicking by element ID (or vice versa)
+   - Try different coordinates (the element might be at a slightly different position)
+   - Look for alternative ways to reach the same goal (different button, menu, navigation)
+   - Scroll the page to reveal different elements
+   - Check if there's a hover state or tooltip you need to trigger first
+3. If nothing works after trying alternatives, mark the objective as "blocked" and explain why
+
 ## Memory
 
 ${context.memory.discoveries.length > 0
@@ -392,16 +404,22 @@ function buildUserPrompt(context: AgentContext): string {
 
   // If there's a screenshot saved to disk, instruct Claude CLI to read it
   if (currentState.screenshotPath) {
+    const viewportInfo = currentState.viewportSize
+      ? `\n**Viewport Resolution**: ${currentState.viewportSize.width}x${currentState.viewportSize.height} pixels\n`
+      : '';
+
     prompt += `## Visual Context
 
 **IMPORTANTE**: Hay un screenshot de la página actual guardado en:
 \`${currentState.screenshotPath}\`
-
+${viewportInfo}
 Por favor, LEE este archivo de imagen usando el tool Read para ver el estado visual actual de la página. Esto te ayudará a:
 - Ver qué elementos están realmente visibles en pantalla
 - Entender el diseño y disposición de la página
 - Identificar botones, formularios y otros elementos interactivos
 - Detectar mensajes de error o estado que no aparecen en el DOM
+
+**IMPORTANTE sobre coordenadas**: Las coordenadas que especifiques deben estar dentro del viewport (${currentState.viewportSize?.width || 1280}x${currentState.viewportSize?.height || 720}). Asegúrate de que las coordenadas X e Y que proporciones correspondan a la posición real del elemento en la imagen.
 
 `;
   }

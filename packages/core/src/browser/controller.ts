@@ -753,6 +753,10 @@ export class BrowserController {
     return this.getPage().url();
   }
 
+  getViewportSize(): { width: number; height: number } {
+    return this.options.viewport || { width: 1280, height: 720 };
+  }
+
   async getTitle(): Promise<string> {
     return this.getPage().title();
   }
