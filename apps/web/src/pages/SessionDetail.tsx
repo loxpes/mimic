@@ -36,6 +36,7 @@ import {
   ListOrdered,
   HelpCircle,
   KeyRound,
+  PlayCircle,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
@@ -143,6 +144,15 @@ export function SessionDetail() {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
       // Navigate to the new session
       navigate(`/sessions/${data.newSession.id}`);
+    },
+  });
+
+  const continueMutation = useMutation({
+    mutationFn: sessionsApi.continue,
+    onSuccess: () => {
+      // Session is reset to pending - refresh to show updated state
+      queryClient.invalidateQueries({ queryKey: ['session', id] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
   });
 
@@ -259,14 +269,25 @@ export function SessionDetail() {
             </Button>
           )}
           {['completed', 'failed', 'cancelled'].includes(session.state.status) && (
-            <Button
-              variant="outline"
-              onClick={() => retryMutation.mutate(session.id)}
-              disabled={retryMutation.isPending}
-            >
-              <RotateCcw className="mr-1 h-4 w-4" />
-              {retryMutation.isPending ? t('sessionDetail.cloning') : t('common.retry')}
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() => retryMutation.mutate(session.id)}
+                disabled={retryMutation.isPending}
+              >
+                <RotateCcw className="mr-1 h-4 w-4" />
+                {retryMutation.isPending ? t('sessionDetail.cloning') : t('common.retry')}
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => continueMutation.mutate(session.id)}
+                disabled={continueMutation.isPending}
+                title={t('sessionDetail.continueTooltip')}
+              >
+                <PlayCircle className="mr-1 h-4 w-4" />
+                {continueMutation.isPending ? t('sessionDetail.continuing') : t('sessionDetail.continue')}
+              </Button>
+            </>
           )}
         </div>
       </div>

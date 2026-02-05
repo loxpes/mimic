@@ -223,6 +223,15 @@ export const sessionsApi = {
     request<{ message: string; newSession: Session }>(`/sessions/${id}/retry`, {
       method: 'POST',
     }),
+  /** Continue a finished session inheriting its memory */
+  continue: (id: string) =>
+    request<{
+      message: string;
+      sessionId: string;
+      inheritedMemory: { discoveries: number; frustrations: number; decisions: number };
+    }>(`/sessions/${id}/continue`, {
+      method: 'POST',
+    }),
   delete: (id: string) =>
     request<{ message: string }>(`/sessions/${id}`, {
       method: 'DELETE',

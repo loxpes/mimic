@@ -568,6 +568,15 @@ export interface AgentResult {
   duration: number;
   findings: Finding[];
   metrics: SessionMetrics;
+  // For session continuation
+  personalAssessment?: {
+    overallScore: number;
+    usabilityNotes: string[];
+    recommendations: string[];
+  };
+  memory?: AgentMemory;
+  visitedPages?: string[];
+  currentUrl?: string;
 }
 
 export interface Agent {

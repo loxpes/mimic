@@ -48,9 +48,9 @@ export type ScreenAnalysis = z.infer<typeof ScreenAnalysisSchema>;
 // ============================================================================
 
 const MODEL_MAP: Record<string, string> = {
-  sonnet: 'claude-sonnet-4-20250514',
-  haiku: 'claude-haiku-3-5-20241022',
-  opus: 'claude-opus-4-20250514',
+  sonnet: 'sonnet',
+  haiku: 'haiku',
+  opus: 'opus',
 };
 
 // ============================================================================
