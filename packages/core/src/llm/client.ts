@@ -214,7 +214,17 @@ ${context.memory.frustrations.length > 0
 
 ${context.memory.decisions.length > 0
       ? `**Decisions**: ${context.memory.decisions.join(', ')}`
-      : '**Decisions**: None yet'}${buildDuplicatePreventionSection(context.memory.frustrations)}${buildChainContextSection(context)}${buildAuthInstructions(context)}${buildKnownIssuesSection(context)}`;
+      : '**Decisions**: None yet'}${buildDuplicatePreventionSection(context.memory.frustrations)}${buildChainContextSection(context)}${buildAuthInstructions(context)}${buildKnownIssuesSection(context)}
+
+## OUTPUT FORMAT
+
+Your response will be validated against a JSON schema. Return an object with these TOP-LEVEL properties:
+- **action**: The action to perform (with type, target, etc.)
+- **reasoning**: Your reasoning (state, action_reason, confidence)
+- **progress**: Progress toward objective (objectiveStatus, completionEstimate, nextSteps)
+- **memoryUpdates**: (optional) Updates to agent memory
+
+CRITICAL: Do NOT wrap your response in any additional object. Return the JSON directly with these properties at the root level.`;
 }
 
 /**

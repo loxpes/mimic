@@ -61,6 +61,83 @@ function mapModelToCliFormat(model?: string): string | undefined {
 }
 
 /**
+ * Recursively add additionalProperties: false to all objects in a JSON schema
+ * This helps Claude CLI produce correctly structured output without extra nesting
+ */
+function addStrictAdditionalProperties(obj: unknown): unknown {
+  if (!obj || typeof obj !== 'object') return obj;
+
+  const result = { ...obj } as Record<string, unknown>;
+
+  // Add additionalProperties: false to object types
+  if (result.type === 'object' && !('additionalProperties' in result)) {
+    result.additionalProperties = false;
+  }
+
+  // Recursively process properties
+  if (result.properties && typeof result.properties === 'object') {
+    result.properties = Object.fromEntries(
+      Object.entries(result.properties as Record<string, unknown>).map(
+        ([k, v]) => [k, addStrictAdditionalProperties(v)]
+      )
+    );
+  }
+
+  // Recursively process array items
+  if (result.items) {
+    result.items = addStrictAdditionalProperties(result.items);
+  }
+
+  // Recursively process definitions/$defs
+  if (result.definitions && typeof result.definitions === 'object') {
+    result.definitions = Object.fromEntries(
+      Object.entries(result.definitions as Record<string, unknown>).map(
+        ([k, v]) => [k, addStrictAdditionalProperties(v)]
+      )
+    );
+  }
+  if (result.$defs && typeof result.$defs === 'object') {
+    result.$defs = Object.fromEntries(
+      Object.entries(result.$defs as Record<string, unknown>).map(
+        ([k, v]) => [k, addStrictAdditionalProperties(v)]
+      )
+    );
+  }
+
+  return result;
+}
+
+/**
+ * Normalize structured output that may be incorrectly nested
+ * Handles case where model wraps entire response in first property name
+ */
+function normalizeStructuredOutput(output: unknown): unknown {
+  if (!output || typeof output !== 'object') return output;
+
+  const obj = output as Record<string, unknown>;
+  const keys = Object.keys(obj);
+
+  // If output has exactly one key and that key's value is an object
+  // that has the expected AgentDecision properties, unwrap it
+  if (keys.length === 1) {
+    const firstKey = keys[0];
+    const nested = obj[firstKey];
+
+    if (nested && typeof nested === 'object') {
+      const nestedObj = nested as Record<string, unknown>;
+
+      // Check if the nested object has the expected AgentDecision properties
+      if ('reasoning' in nestedObj && 'progress' in nestedObj && 'action' in nestedObj) {
+        console.log(`[Claude CLI] Detected incorrectly nested output, unwrapping from "${firstKey}"`);
+        return nested;
+      }
+    }
+  }
+
+  return output;
+}
+
+/**
  * Parse NDJSON output from Claude CLI stream-json format
  * Returns the result line containing structured_output and usage metrics
  */
@@ -167,7 +244,9 @@ async function executeClaudeCliWithSchema<T>(
   _maxTokens?: number, // Currently unused - Claude CLI doesn't support max-tokens directly
   model?: string
 ): Promise<ClaudeCliResult<T>> {
-  const jsonSchema = zodToJsonSchema(schema, { target: 'jsonSchema7' });
+  // Convert Zod schema to JSON schema and add strict additionalProperties: false
+  const baseJsonSchema = zodToJsonSchema(schema, { target: 'jsonSchema7' });
+  const jsonSchema = addStrictAdditionalProperties(baseJsonSchema);
 
   return new Promise((resolve, reject) => {
     // Build CLI arguments with stream-json for real metrics
@@ -256,14 +335,18 @@ async function executeClaudeCliWithSchema<T>(
         }
 
         // Prioritize structured_output (from --json-schema), fallback to result
-        let object: T;
+        // Apply normalization to handle incorrectly nested output
+        let rawObject: unknown;
         if (resultLine.structuredOutput !== undefined) {
-          object = resultLine.structuredOutput as T;
+          rawObject = resultLine.structuredOutput;
         } else if (typeof resultLine.result === 'string') {
-          object = JSON.parse(resultLine.result) as T;
+          rawObject = JSON.parse(resultLine.result);
         } else {
-          object = resultLine.result as T;
+          rawObject = resultLine.result;
         }
+
+        // Normalize to handle cases where model wraps response in extra object
+        const object = normalizeStructuredOutput(rawObject) as T;
 
         resolve({
           object,
