@@ -256,7 +256,7 @@ async function executeClaudeCliWithSchema<T>(
       '--output-format', 'stream-json',
       '--verbose',
       '--dangerously-skip-permissions',
-      '--max-turns', '3',
+      '--max-turns', '6',
       '--json-schema', JSON.stringify(jsonSchema),
       '-p', '-',  // Read prompt from stdin
     ];
