@@ -330,6 +330,18 @@ app.post('/:id/start', async (c) => {
     }
   }
 
+  // If session has previous results (continuing), load memory from there
+  if (session.results?.memory && !initialMemory) {
+    initialMemory = session.results.memory;
+    chainContext = {
+      chainId: id, // Use session ID as pseudo-chain ID
+      sequence: 2, // At least second run
+      totalPreviousActions: session.results.actionsTaken || session.state.actionCount || 0,
+      visitedPages: session.results.visitedPages || [],
+    };
+    console.log(`[Session ${id}] Continuing session with ${initialMemory.discoveries?.length || 0} discoveries, ${initialMemory.frustrations?.length || 0} frustrations`);
+  }
+
   // Build final LLM config with resolved API key
   const llmConfig = {
     ...baseLLMConfig,
@@ -482,6 +494,10 @@ app.post('/:id/start', async (c) => {
           duration: result.duration,
           metrics: result.metrics,
           personalAssessment: result.personalAssessment,
+          // For session continuation
+          currentUrl: result.currentUrl,
+          memory: result.memory,
+          visitedPages: result.visitedPages,
         },
       }).where(eq(sessions.id, id));
 
@@ -681,6 +697,56 @@ app.post('/:id/retry', async (c) => {
     originalId: id,
     newSession,
   }, 201);
+});
+
+// POST /api/sessions/:id/continue - Continue a finished session (resets to pending, preserving memory)
+app.post('/:id/continue', async (c) => {
+  const id = c.req.param('id');
+  const db = getDb();
+
+  // Get session
+  const sessionResult = await db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
+  const session = sessionResult[0];
+  if (!session) {
+    return c.json({ error: 'Session not found' }, 404);
+  }
+
+  // Only allow continuing finished sessions
+  if (!['completed', 'failed', 'cancelled'].includes(session.state.status)) {
+    return c.json({ error: 'Can only continue finished sessions' }, 400);
+  }
+
+  // Get memory from previous results
+  const previousMemory = session.results?.memory || {
+    discoveries: [],
+    frustrations: [],
+    decisions: [],
+  };
+
+  console.log(`[Continue] Resetting session ${id} to pending with ${previousMemory.discoveries?.length || 0} discoveries, ${previousMemory.frustrations?.length || 0} frustrations`);
+
+  // Reset session state to pending, but keep the results (which contain memory)
+  // The /start endpoint will load memory from results
+  await db.update(sessions).set({
+    state: {
+      status: 'pending' as const,
+      actionCount: session.state.actionCount, // Keep previous action count
+      progress: 0,
+      currentUrl: session.results?.currentUrl || session.targetUrl,
+    },
+    // Update targetUrl to continue from where we left off
+    targetUrl: session.results?.currentUrl || session.targetUrl,
+  }).where(eq(sessions.id, id));
+
+  return c.json({
+    message: 'Session reset to pending - ready to continue',
+    sessionId: id,
+    inheritedMemory: {
+      discoveries: previousMemory.discoveries?.length || 0,
+      frustrations: previousMemory.frustrations?.length || 0,
+      decisions: previousMemory.decisions?.length || 0,
+    },
+  });
 });
 
 // POST /api/sessions/:id/cancel - Cancel a running session

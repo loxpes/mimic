@@ -182,6 +182,7 @@ export const sessions = pgTable('sessions', {
     summary: string;
     actionsTaken: number;
     duration: number;
+    currentUrl?: string;
     metrics: {
       totalActions: number;
       successfulActions: number;
@@ -199,6 +200,14 @@ export const sessions = pgTable('sessions', {
       negatives: string[];
       summary: string;
     };
+    // Memory state for session continuation
+    memory?: {
+      discoveries: string[];
+      frustrations: string[];
+      decisions: string[];
+    };
+    // Pages visited during session
+    visitedPages?: string[];
   }>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

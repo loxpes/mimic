@@ -97,6 +97,8 @@ export interface AgentResult {
   memory?: AgentMemory;
   /** Pages visited during this session */
   visitedPages?: string[];
+  /** Current URL at session end (for continuation) */
+  currentUrl?: string;
 }
 
 // ============================================================================
@@ -855,14 +857,17 @@ ${persona.context}`;
       outcome = 'error';
       summary = error instanceof Error ? error.message : 'Unknown error occurred';
       this.events.onError?.(error instanceof Error ? error : new Error(summary));
-    } finally {
-      // Cleanup
-      if (this.browser) {
-        await this.browser.close();
-        this.browser = null;
-      }
-      this.isRunning = false;
     }
+
+    // Get current URL before closing browser
+    const finalUrl = this.browser ? this.browser.getCurrentUrl() : this.config.targetUrl;
+
+    // Cleanup
+    if (this.browser) {
+      await this.browser.close();
+      this.browser = null;
+    }
+    this.isRunning = false;
 
     // Generate personal assessment at session end
     let personalAssessment: PersonalAssessment | undefined;
@@ -895,6 +900,7 @@ ${persona.context}`;
       personalAssessment,
       memory: this.getMemorySnapshot(),
       visitedPages: this.getVisitedPages(),
+      currentUrl: finalUrl,
     };
 
     this.events.onComplete?.(result);
