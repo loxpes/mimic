@@ -125,6 +125,8 @@ export class Agent {
     request: UserInputRequest;
     resolve: (value: string) => void;
   } | null = null;
+  /** Track consecutive LLM decision failures to avoid killing session on isolated errors */
+  private consecutiveFailures: number = 0;
 
   constructor(config: AgentConfig, events: AgentEvents = {}) {
     this.config = config;
@@ -616,9 +618,40 @@ ${persona.context}`;
         // Emit screenshot event
         this.events.onScreenshot?.(screenshot, screenshotPath);
 
-        // Get decision from LLM
+        // Get decision from LLM (with retry logic)
         console.log(`[Agent] Requesting decision from LLM (action #${this.actionCount + 1})...`);
-        const decision = await this.llmClient.decide(context);
+        const MAX_DECISION_RETRIES = 2;
+        let decision: AgentDecision | null = null;
+
+        for (let attempt = 0; attempt <= MAX_DECISION_RETRIES; attempt++) {
+          try {
+            decision = await this.llmClient.decide(context);
+            break;
+          } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            console.warn(`[Agent] LLM decision failed (attempt ${attempt + 1}/${MAX_DECISION_RETRIES + 1}): ${msg.substring(0, 300)}`);
+
+            if (attempt === MAX_DECISION_RETRIES) {
+              this.consecutiveFailures++;
+              console.error(`[Agent] All LLM retries exhausted. Consecutive failures: ${this.consecutiveFailures}`);
+
+              if (this.consecutiveFailures >= 3) {
+                throw error; // 3 consecutive failures → fail session
+              }
+              break; // Skip this action, continue loop
+            }
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
+
+        if (!decision) {
+          // Could not get a decision, skip and try next iteration
+          await new Promise(r => setTimeout(r, 1000));
+          continue;
+        }
+
+        // Reset consecutive failures on success
+        this.consecutiveFailures = 0;
         console.log(`[Agent] LLM decision: ${decision.action.type} - ${decision.reasoning.action_reason}`);
 
         // Build element map from the DOM that the LLM saw (NOT a new extraction!)

@@ -106,6 +106,7 @@ function parseNdjsonResult(stdout: string): {
 /**
  * Execute Claude CLI with structured output (JSON schema)
  * Uses Claude CLI's native --json-schema support for reliable structured output
+ * Includes retry logic for transient failures (error_max_structured_output_retries)
  */
 export async function executeClaudeCliStructured<T>(
   options: ClaudeCliOptions & { schema: ZodSchema }
@@ -117,8 +118,28 @@ export async function executeClaudeCliStructured<T>(
 
 ${options.userPrompt}`;
 
-  // Use CLI's native JSON schema support
-  return executeClaudeCliWithSchema<T>(fullPrompt, options.schema, options.maxTokens, options.model);
+  const MAX_RETRIES = 2;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`[Claude CLI] Retry attempt ${attempt}/${MAX_RETRIES}...`);
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+      return await executeClaudeCliWithSchema<T>(fullPrompt, options.schema, options.maxTokens, options.model);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const isRetryable = lastError.message.includes('error_max_structured_output_retries')
+        || (lastError.message.includes('exited with code 1') && !lastError.message.includes('ENOENT'));
+
+      if (!isRetryable || attempt === MAX_RETRIES) {
+        throw lastError;
+      }
+      console.warn(`[Claude CLI] Attempt ${attempt + 1} failed (retryable): ${lastError.message.substring(0, 200)}`);
+    }
+  }
+  throw lastError!;
 }
 
 /**
@@ -156,6 +177,7 @@ async function executeClaudeCliWithSchema<T>(
       '--output-format', 'stream-json',
       '--verbose',
       '--dangerously-skip-permissions',
+      '--max-turns', '3',
       '--json-schema', JSON.stringify(jsonSchema),
       '-p', '-',  // Read prompt from stdin
     ];
