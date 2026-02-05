@@ -144,8 +144,8 @@ app.post('/import', async (c) => {
       },
       config: {
         autonomyLevel: objectiveData.autonomy?.level || 'exploration',
-        maxActions: objectiveData.autonomy?.bounds?.maxActions || 50,
-        maxDuration: objectiveData.autonomy?.bounds?.maxDuration || 10,
+        maxActions: objectiveData.autonomy?.bounds?.maxActions || 100,
+        maxDuration: objectiveData.autonomy?.bounds?.maxDuration || 60,
         restrictions: objectiveData.restrictions || [],
         steps: objectiveData.steps || [],
       },

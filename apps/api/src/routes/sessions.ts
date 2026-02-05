@@ -291,7 +291,7 @@ app.post('/:id/start', async (c) => {
   }
 
   // Update session status to running (only after validation passes)
-  const maxActions = objective.config.maxActions || 50;
+  const maxActions = objective.config.maxActions || 100;
   await db.update(sessions).set({
     state: {
       ...session.state,
@@ -343,8 +343,8 @@ app.post('/:id/start', async (c) => {
     targetUrl: session.targetUrl,
     llm: llmConfig as AgentConfig['llm'],
     vision: session.visionConfig as AgentConfig['vision'],
-    maxActions: objective.config.maxActions || 50,
-    timeout: (objective.config.maxDuration || 10) * 60 * 1000, // Convert minutes to ms
+    maxActions: objective.config.maxActions || 100,
+    timeout: (objective.config.maxDuration || 60) * 60 * 1000, // Convert minutes to ms (default: 1 hour)
     sessionId: id,
     existingFindings: existingFindingsContext,
     // Chain continuation support
