@@ -5,7 +5,7 @@
 import { Hono } from 'hono';
 import { getDb } from '@testfarm/db';
 import { sessions, personas, objectives, events, findings, sessionReports, appSettings } from '@testfarm/db';
-import { eq, inArray, count } from 'drizzle-orm';
+import { eq, inArray, max } from 'drizzle-orm';
 import { decrypt, isEncryptionConfigured } from '../crypto.js';
 import { createAgent, loadKnownIssues, generateSessionReport, deleteSessionScreenshots, type AgentConfig } from '@testfarm/core';
 import type { Persona, Objective, ExistingFindingsContext, SessionReportData, ChainContext, AgentMemory } from '@testfarm/shared';
@@ -364,14 +364,15 @@ app.post('/:id/start', async (c) => {
     chainContext,
   };
 
-  // Continue event sequence from where we left off (count existing events in DB)
-  const eventCountResult = await db
-    .select({ count: count() })
+  // Continue event sequence from where we left off (get max sequence from existing events)
+  const maxSeqResult = await db
+    .select({ maxSeq: max(events.sequence) })
     .from(events)
     .where(eq(events.sessionId, id));
-  let eventSequence = eventCountResult[0]?.count || 0;
+  const maxSeq = maxSeqResult[0]?.maxSeq;
+  let eventSequence = maxSeq != null ? Number(maxSeq) + 1 : 0;
 
-  console.log(`[Session ${id}] Starting with eventSequence: ${eventSequence} (existing events in DB)`);
+  console.log(`[Session ${id}] Starting with eventSequence: ${eventSequence} (maxSeq in DB: ${maxSeq})`);
 
   // Create agent with event handlers
   const agent = createAgent(agentConfig, {
