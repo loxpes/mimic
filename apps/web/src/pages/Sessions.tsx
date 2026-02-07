@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { sessionsApi, personasApi, objectivesApi, type CreateSessionInput, type CreateBatchSessionInput } from '@/lib/api';
 import { PlayCircle, Plus, ExternalLink, Play, XCircle, Trash2, Eye, RotateCcw } from 'lucide-react';
+import { LocalhostWarning } from '@/components/shared/LocalhostWarning';
 
 export function Sessions() {
   const { t } = useTranslation();
@@ -442,6 +443,7 @@ function CreateSessionForm({
                 </select>
               </div>
             </div>
+            <LocalhostWarning targetUrl={targetUrl} onReplace={setTargetUrl} />
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
               <Button type="submit" disabled={isLoading || !targetUrl}>
@@ -462,6 +464,7 @@ function CreateSessionForm({
                 required
               />
             </div>
+            <LocalhostWarning targetUrl={targetUrl} onReplace={setTargetUrl} />
 
             <div className="grid gap-4 md:grid-cols-2">
               {/* Personas Selection */}
