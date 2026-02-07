@@ -5,7 +5,7 @@
 import { Hono } from 'hono';
 import { getDb } from '@testfarm/db';
 import { sessions, personas, objectives, events, findings, sessionReports, appSettings } from '@testfarm/db';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, max } from 'drizzle-orm';
 import { decrypt, isEncryptionConfigured } from '../crypto.js';
 import { createAgent, loadKnownIssues, generateSessionReport, deleteSessionScreenshots, type AgentConfig } from '@testfarm/core';
 import type { Persona, Objective, ExistingFindingsContext, SessionReportData, ChainContext, AgentMemory } from '@testfarm/shared';
@@ -364,7 +364,15 @@ app.post('/:id/start', async (c) => {
     chainContext,
   };
 
-  let eventSequence = 0;
+  // Continue event sequence from where we left off (get max sequence from existing events)
+  const maxSeqResult = await db
+    .select({ maxSeq: max(events.sequence) })
+    .from(events)
+    .where(eq(events.sessionId, id));
+  const maxSeq = maxSeqResult[0]?.maxSeq;
+  let eventSequence = maxSeq != null ? Number(maxSeq) + 1 : 0;
+
+  console.log(`[Session ${id}] Starting with eventSequence: ${eventSequence} (maxSeq in DB: ${maxSeq})`);
 
   // Create agent with event handlers
   const agent = createAgent(agentConfig, {
@@ -723,7 +731,13 @@ app.post('/:id/continue', async (c) => {
     decisions: [],
   };
 
-  console.log(`[Continue] Resetting session ${id} to pending with ${previousMemory.discoveries?.length || 0} discoveries, ${previousMemory.frustrations?.length || 0} frustrations`);
+  const continueFromUrl = session.results?.currentUrl || session.targetUrl;
+  console.log(`[Continue] Session ${id}:`);
+  console.log(`  - Previous actionCount: ${session.state.actionCount}`);
+  console.log(`  - Results currentUrl: ${session.results?.currentUrl}`);
+  console.log(`  - Original targetUrl: ${session.targetUrl}`);
+  console.log(`  - Will continue from: ${continueFromUrl}`);
+  console.log(`  - Memory: ${previousMemory.discoveries?.length || 0} discoveries, ${previousMemory.frustrations?.length || 0} frustrations`);
 
   // Reset session state to pending, but keep the results (which contain memory)
   // The /start endpoint will load memory from results
@@ -732,10 +746,10 @@ app.post('/:id/continue', async (c) => {
       status: 'pending' as const,
       actionCount: session.state.actionCount, // Keep previous action count
       progress: 0,
-      currentUrl: session.results?.currentUrl || session.targetUrl,
+      currentUrl: continueFromUrl,
     },
     // Update targetUrl to continue from where we left off
-    targetUrl: session.results?.currentUrl || session.targetUrl,
+    targetUrl: continueFromUrl,
   }).where(eq(sessions.id, id));
 
   return c.json({

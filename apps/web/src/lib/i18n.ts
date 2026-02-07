@@ -437,6 +437,17 @@ const resources = {
           critical: 'Crítica',
         },
       },
+      // Localhost detection
+      localhost: {
+        detected: 'URL local detectada',
+        explanation: 'TestFarm ejecuta el navegador en un servidor remoto, por lo que no puede acceder a tu máquina local. Expón tu app con un tunnel:',
+        cloudflaredCommand: 'cloudflared tunnel --url http://localhost:{{port}}',
+        ngrokCommand: 'ngrok http {{port}}',
+        pasteUrl: 'Pega aquí la URL del tunnel',
+        useThisUrl: 'Usar esta URL',
+        copied: '¡Copiado!',
+        copy: 'Copiar',
+      },
     },
   },
   en: {
@@ -873,6 +884,17 @@ const resources = {
           critical: 'Critical',
         },
       },
+      // Localhost detection
+      localhost: {
+        detected: 'Local URL detected',
+        explanation: 'TestFarm runs the browser on a remote server, so it cannot access your local machine. Expose your app with a tunnel:',
+        cloudflaredCommand: 'cloudflared tunnel --url http://localhost:{{port}}',
+        ngrokCommand: 'ngrok http {{port}}',
+        pasteUrl: 'Paste the tunnel URL here',
+        useThisUrl: 'Use this URL',
+        copied: 'Copied!',
+        copy: 'Copy',
+      },
     },
   },
   pt: {
@@ -1301,6 +1323,17 @@ const resources = {
           high: 'Alta',
           critical: 'Crítica',
         },
+      },
+      // Localhost detection
+      localhost: {
+        detected: 'URL local detectada',
+        explanation: 'O TestFarm executa o navegador em um servidor remoto, então não pode acessar sua máquina local. Exponha seu app com um tunnel:',
+        cloudflaredCommand: 'cloudflared tunnel --url http://localhost:{{port}}',
+        ngrokCommand: 'ngrok http {{port}}',
+        pasteUrl: 'Cole a URL do tunnel aqui',
+        useThisUrl: 'Usar esta URL',
+        copied: 'Copiado!',
+        copy: 'Copiar',
       },
     },
   },
@@ -1731,6 +1764,17 @@ const resources = {
           critical: 'Critique',
         },
       },
+      // Localhost detection
+      localhost: {
+        detected: 'URL locale détectée',
+        explanation: 'TestFarm exécute le navigateur sur un serveur distant, il ne peut donc pas accéder à votre machine locale. Exposez votre app avec un tunnel :',
+        cloudflaredCommand: 'cloudflared tunnel --url http://localhost:{{port}}',
+        ngrokCommand: 'ngrok http {{port}}',
+        pasteUrl: 'Collez l\'URL du tunnel ici',
+        useThisUrl: 'Utiliser cette URL',
+        copied: 'Copié !',
+        copy: 'Copier',
+      },
     },
   },
   de: {
@@ -2159,6 +2203,17 @@ const resources = {
           high: 'Hoch',
           critical: 'Kritisch',
         },
+      },
+      // Localhost detection
+      localhost: {
+        detected: 'Lokale URL erkannt',
+        explanation: 'TestFarm führt den Browser auf einem Remote-Server aus, daher kann er nicht auf Ihren lokalen Rechner zugreifen. Stellen Sie Ihre App mit einem Tunnel bereit:',
+        cloudflaredCommand: 'cloudflared tunnel --url http://localhost:{{port}}',
+        ngrokCommand: 'ngrok http {{port}}',
+        pasteUrl: 'Tunnel-URL hier einfügen',
+        useThisUrl: 'Diese URL verwenden',
+        copied: 'Kopiert!',
+        copy: 'Kopieren',
       },
     },
   },
