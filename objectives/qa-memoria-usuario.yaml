@@ -1,0 +1,18 @@
+name: "QA: Memoria y Perfil de Usuario"
+
+goal: |
+  Pide al agente que recuerde una preferencia:
+  "Recuerda que prefiero las reuniones por la manana".
+  Verifica que confirma que lo ha guardado.
+  Luego dile tu nombre: "Mi nombre es Lucia".
+  Verifica que actualiza el perfil.
+  En un mensaje posterior, pregunta "Como me llamo?" o "Que preferencias tengo?".
+  Verifica que el agente recuerda correctamente la informacion guardada.
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 25
+
+successCriteria:
+  type: none

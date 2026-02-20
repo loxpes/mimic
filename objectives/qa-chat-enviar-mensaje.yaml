@@ -1,0 +1,16 @@
+name: "QA: Enviar Mensaje y Recibir Respuesta"
+
+goal: |
+  Abre el chat de Evy y envia un mensaje simple como "Hola, que puedes hacer por mi?".
+  Verifica que la respuesta del agente aparece en streaming en la interfaz.
+  Comprueba que se genera un titulo automatico para el hilo de conversacion.
+  Envia un segundo mensaje para confirmar que la conversacion mantiene contexto.
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 20
+
+successCriteria:
+  type: element-present
+  condition: "[data-thread-title], .thread-title, .chat-message, [class*='message']"

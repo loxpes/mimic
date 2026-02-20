@@ -126,7 +126,7 @@ app.get('*', (c) => {
 // Start Server
 // ============================================================================
 
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || '4001', 10);
 
 async function main() {
   // Initialize database

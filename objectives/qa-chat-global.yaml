@@ -1,0 +1,17 @@
+name: "QA: Chat Global"
+
+goal: |
+  Navega al chat global si existe una seccion separada en la interfaz.
+  Envia un mensaje al chat global y verifica que la respuesta aparece.
+  Comprueba que el chat global es un unico hilo por usuario (no se crean hilos nuevos).
+  Verifica que el historial del chat global se carga correctamente.
+  Si hay resultados de tareas programadas o heartbeats, verificalos en el chat global.
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 20
+
+successCriteria:
+  type: element-present
+  condition: "[data-global-chat], .global-chat, [class*='global']"

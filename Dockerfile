@@ -81,7 +81,7 @@ RUN groupadd -r nodeuser && useradd -r -g nodeuser -m -d /home/nodeuser nodeuser
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-EXPOSE 3001
+EXPOSE 4001
 
 # Ejecutar como root para poder cambiar permisos, luego switch a nodeuser
 ENTRYPOINT ["docker-entrypoint.sh"]

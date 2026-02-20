@@ -1,0 +1,18 @@
+name: "QA: Asignar Proyecto a Hilo de Chat"
+
+goal: |
+  Si la interfaz permite asignar un proyecto a un hilo de chat, hazlo.
+  Selecciona un proyecto existente y asignalo al hilo actual.
+  Verifica que el agente tiene contexto del proyecto asignado.
+  Pregunta algo relacionado con el proyecto y comprueba que las respuestas
+  incluyen informacion especifica del proyecto.
+  Si es posible, cambia el proyecto asociado y verifica que el contexto se actualiza.
+
+autonomy:
+  level: goal-directed
+  bounds:
+    maxActions: 25
+
+successCriteria:
+  type: element-present
+  condition: "[data-project-active], .active-project, [class*='project-selector']"

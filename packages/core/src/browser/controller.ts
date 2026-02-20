@@ -63,8 +63,8 @@ export class BrowserController {
   async launch(): Promise<void> {
     const browserLauncher =
       this.options.browserType === 'firefox' ? firefox :
-      this.options.browserType === 'webkit' ? webkit :
-      chromium;
+        this.options.browserType === 'webkit' ? webkit :
+          chromium;
 
     // Use system Chromium if PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH is set
     const executablePath = this.options.browserType === 'chromium'
@@ -137,7 +137,7 @@ export class BrowserController {
   async navigate(url: string): Promise<ActionResult> {
     const start = Date.now();
     try {
-      await this.getPage().goto(url, { waitUntil: 'domcontentloaded' });
+      await this.getPage().goto(url, { waitUntil: 'networkidle' });
       return { success: true, duration: Date.now() - start };
     } catch (error) {
       return {
@@ -151,7 +151,7 @@ export class BrowserController {
   async goBack(): Promise<ActionResult> {
     const start = Date.now();
     try {
-      await this.getPage().goBack({ waitUntil: 'domcontentloaded' });
+      await this.getPage().goBack({ waitUntil: 'networkidle' });
       return { success: true, duration: Date.now() - start };
     } catch (error) {
       return {
@@ -178,7 +178,7 @@ export class BrowserController {
 
         // If strict mode violation (duplicate IDs), use first match
         if (errorMessage.includes('strict mode violation') ||
-            errorMessage.includes('resolved to') && errorMessage.includes('elements')) {
+          errorMessage.includes('resolved to') && errorMessage.includes('elements')) {
           console.log('[BrowserController] Strict mode violation - using first match');
           locator = locator.first();
           await locator.click({ timeout: 5000 });
@@ -186,15 +186,15 @@ export class BrowserController {
         // If click fails due to element interception (common in React Native Web),
         // retry with force option which bypasses actionability checks
         else if (errorMessage.includes('intercepts pointer events') ||
-            errorMessage.includes('element is not visible')) {
+          errorMessage.includes('element is not visible')) {
           console.log('[BrowserController] Retrying click with force due to interception');
           await locator.click({ timeout: 5000, force: true });
         } else {
           throw clickError;
         }
       }
-      // Wait for potential navigation or UI update
-      await this.getPage().waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+      // Wait for potential navigation or UI update safely
+      await this.getPage().waitForLoadState('networkidle', { timeout: 3000 }).catch(() => { });
       return { success: true, duration: Date.now() - start };
     } catch (error) {
       return {
@@ -320,7 +320,7 @@ export class BrowserController {
       const { centerX, centerY } = element.bbox;
       await this.getPage().mouse.click(centerX, centerY);
       // Wait for potential navigation or UI update
-      await this.getPage().waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+      await this.getPage().waitForLoadState('networkidle', { timeout: 3000 }).catch(() => { });
       return { success: true, duration: Date.now() - start };
     } catch (error) {
       return {
@@ -339,7 +339,7 @@ export class BrowserController {
     try {
       await this.getPage().mouse.click(x, y);
       // Wait for potential navigation or UI update
-      await this.getPage().waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+      await this.getPage().waitForLoadState('networkidle', { timeout: 3000 }).catch(() => { });
       return { success: true, duration: Date.now() - start };
     } catch (error) {
       return {
@@ -370,6 +370,7 @@ export class BrowserController {
       // Triple-click to select all existing text, then type to replace
       await this.getPage().mouse.click(centerX, centerY, { clickCount: 3 });
       await this.getPage().keyboard.type(value);
+      await this.getPage().waitForLoadState('networkidle', { timeout: 2000 }).catch(() => { });
       return { success: true, duration: Date.now() - start };
     } catch (error) {
       return {
