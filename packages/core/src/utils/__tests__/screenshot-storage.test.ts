@@ -7,7 +7,7 @@ import { mkdir, writeFile, rm, readdir } from 'fs/promises';
 import path from 'path';
 import { saveScreenshot, deleteSessionScreenshots } from '../screenshot-storage.js';
 
-const TEST_BASE_DIR = '/tmp/testfarm-test-screenshots';
+const TEST_BASE_DIR = `/tmp/testfarm-test-screenshots-${process.pid}-${Date.now()}`;
 
 describe('screenshot-storage', () => {
   beforeEach(async () => {

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { chromium } from 'playwright';
 import { BrowserController } from '../browser/controller.js';
 
 // Mock playwright
@@ -13,6 +14,8 @@ vi.mock('playwright', () => ({
         launch: vi.fn(),
     },
 }));
+
+const mockedChromium = vi.mocked(chromium);
 
 describe('BrowserController Navigation & Waits', () => {
     let controller: BrowserController;
@@ -63,8 +66,7 @@ describe('BrowserController Navigation & Waits', () => {
         };
 
         // Override the playwright mock to return our constructed mock implementation
-        const playwright = require('playwright');
-        playwright.chromium.launch.mockResolvedValue(mockBrowser);
+        mockedChromium.launch.mockResolvedValue(mockBrowser as any);
 
         controller = new BrowserController();
     });

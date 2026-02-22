@@ -6,6 +6,7 @@
     "lib": ["ES2022", "DOM"]
   },
   "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts", "src/**/__tests__/**"],
   "references": [
     { "path": "../shared" },
     { "path": "../db" }
