@@ -1,5 +1,5 @@
 /**
- * TestFarm API Server - Hono REST API
+ * Mimic API Server - Hono REST API
  */
 
 import { config } from 'dotenv';
@@ -41,12 +41,7 @@ import screenshots from './routes/screenshots.js';
 import projects from './routes/projects.js';
 import trello from './routes/integrations/trello.js';
 import settings from './routes/settings.js';
-import auth from './routes/auth.js';
 import { startScheduler } from './scheduler.js';
-import { setupClaudeAuth } from './lib/setup-claude.js';
-import { requireAuth } from './middleware/auth.js';
-// YAML sync removed - personas now managed 100% via DB and frontend
-// import { syncYamlToDatabase } from './sync.js';
 
 // ============================================================================
 // App Setup
@@ -61,7 +56,7 @@ app.use('*', cors());
 // Health check endpoints
 app.get('/api/info', (c) => {
   return c.json({
-    name: 'TestFarm API',
+    name: 'Mimic API',
     version: '0.1.0',
     status: 'healthy',
   });
@@ -71,22 +66,7 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
-// Public routes (no auth required)
-app.route('/api/auth', auth);
-
-// Protected routes (require authentication)
-app.use('/api/sessions/*', requireAuth);
-app.use('/api/session-chains/*', requireAuth);
-app.use('/api/personas/*', requireAuth);
-app.use('/api/objectives/*', requireAuth);
-app.use('/api/events/*', requireAuth);
-app.use('/api/findings/*', requireAuth);
-app.use('/api/reports/*', requireAuth);
-app.use('/api/projects/*', requireAuth);
-app.use('/api/integrations/*', requireAuth);
-app.use('/api/settings/*', requireAuth);
-
-// Route handlers
+// Route handlers (no authentication required)
 app.route('/api/sessions', sessions);
 app.route('/api/session-chains', sessionChains);
 app.route('/api/personas', personas);
@@ -133,27 +113,11 @@ async function main() {
   await initializeDb();
   console.log('Database initialized');
 
-  // Setup Claude CLI authentication (if CLAUDE_CODE_OAUTH_TOKEN is set)
-  try {
-    await setupClaudeAuth();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[Startup Error] Claude setup failed:', message);
-
-    // Only fail if using claude-cli provider
-    if (process.env.LLM_PROVIDER === 'claude-cli' || !process.env.LLM_PROVIDER) {
-      console.error('[Startup Error] Cannot start without Claude auth');
-      process.exit(1);
-    } else {
-      console.warn('[Startup Warning] Claude setup failed but using other provider');
-    }
-  }
-
   // Start scheduler for session chains
   startScheduler();
 
   // Start server
-  console.log(`TestFarm API running on http://localhost:${PORT}`);
+  console.log(`Mimic API running on http://localhost:${PORT}`);
   serve({
     fetch: app.fetch,
     port: PORT,

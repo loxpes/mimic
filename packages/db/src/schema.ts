@@ -1,18 +1,17 @@
 /**
- * Database Schema - Drizzle ORM definitions for PostgreSQL/Supabase
+ * Database Schema - Drizzle ORM definitions for SQLite
  */
 
-import { pgTable, text, integer, timestamp, boolean, uuid, jsonb, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import { sqliteTable, text, integer, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 
 // ============================================================================
 // Personas Table
 // ============================================================================
 
-export const personas = pgTable('personas', {
+export const personas = sqliteTable('personas', {
   id: text('id').primaryKey(),
-  userId: uuid('user_id').notNull(), // Supabase auth.uid()
   name: text('name').notNull(),
-  definition: jsonb('definition').notNull().$type<{
+  definition: text('definition', { mode: 'json' }).notNull().$type<{
     identity: string;
     techProfile: string;
     personality: string;
@@ -23,27 +22,24 @@ export const personas = pgTable('personas', {
       password: string;
     };
   }>(),
-  metadata: jsonb('metadata').$type<{
+  metadata: text('metadata', { mode: 'json' }).$type<{
     archetype?: string;
     tags?: string[];
     createdAt: number;
     updatedAt: number;
   }>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('idx_personas_user_id').on(table.userId),
-]);
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
 
 // ============================================================================
 // Objectives Table
 // ============================================================================
 
-export const objectives = pgTable('objectives', {
+export const objectives = sqliteTable('objectives', {
   id: text('id').primaryKey(),
-  userId: uuid('user_id').notNull(),
   name: text('name').notNull(),
-  definition: jsonb('definition').notNull().$type<{
+  definition: text('definition', { mode: 'json' }).notNull().$type<{
     goal: string;
     constraints?: string[];
     successCriteria?: {
@@ -51,30 +47,27 @@ export const objectives = pgTable('objectives', {
       condition?: string;
     };
   }>(),
-  config: jsonb('config').notNull().$type<{
+  config: text('config', { mode: 'json' }).notNull().$type<{
     autonomyLevel: 'exploration' | 'goal-directed' | 'restricted' | 'semi-guided';
     maxActions?: number;
     maxDuration?: number;
     restrictions?: string[];
     steps?: string[];
   }>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('idx_objectives_user_id').on(table.userId),
-]);
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
 
 // ============================================================================
 // Projects Table
 // ============================================================================
 
-export const projects = pgTable('projects', {
+export const projects = sqliteTable('projects', {
   id: text('id').primaryKey(),
-  userId: uuid('user_id').notNull(),
   name: text('name').notNull(),
   description: text('description'),
   targetUrl: text('target_url').notNull(),
-  stats: jsonb('stats').$type<{
+  stats: text('stats', { mode: 'json' }).$type<{
     totalSessions: number;
     completedSessions: number;
     failedSessions: number;
@@ -85,24 +78,22 @@ export const projects = pgTable('projects', {
     averageScore: number | null;
     averageDifficulty: string | null;
   }>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('idx_projects_user_id').on(table.userId),
-]);
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
 
 // ============================================================================
 // Session Chains Table (Multi-Day Persistent Sessions)
 // ============================================================================
 
-export const sessionChains = pgTable('session_chains', {
+export const sessionChains = sqliteTable('session_chains', {
   id: text('id').primaryKey(),
   projectId: text('project_id').references(() => projects.id),
   personaId: text('persona_id').notNull().references(() => personas.id),
   objectiveId: text('objective_id').notNull().references(() => objectives.id),
   targetUrl: text('target_url').notNull(),
   name: text('name'),
-  llmConfig: jsonb('llm_config').$type<{
+  llmConfig: text('llm_config', { mode: 'json' }).$type<{
     provider: 'anthropic' | 'openai' | 'claude-cli' | 'custom' | 'google';
     model: string;
     temperature?: number;
@@ -110,66 +101,65 @@ export const sessionChains = pgTable('session_chains', {
     baseUrl?: string;
     language?: string;
   }>(),
-  visionConfig: jsonb('vision_config').$type<{
+  visionConfig: text('vision_config', { mode: 'json' }).$type<{
     screenshotInterval: number;
     screenshotOnLowConfidence: boolean;
     confidenceThreshold: number;
   }>(),
   status: text('status').notNull().default('active').$type<'active' | 'paused' | 'completed' | 'archived'>(),
   sessionCount: integer('session_count').notNull().default(0),
-  schedule: jsonb('schedule').$type<{
+  schedule: text('schedule', { mode: 'json' }).$type<{
     enabled: boolean;
     cronExpression?: string;
     nextRunAt?: number;
     timezone?: string;
     maxSessions?: number;
   }>(),
-  persistentMemory: jsonb('persistent_memory').$type<{
+  persistentMemory: text('persistent_memory', { mode: 'json' }).$type<{
     discoveries: string[];
     frustrations: string[];
     decisions: string[];
     visitedPages: string[];
   }>(),
-  aggregatedScore: jsonb('aggregated_score').$type<{
+  aggregatedScore: text('aggregated_score', { mode: 'json' }).$type<{
     totalSessions: number;
     weightedScore: number;
     scores: Array<{ sessionId: string; score: number; weight: number; timestamp: number }>;
     trend: 'improving' | 'stable' | 'declining' | null;
   }>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('idx_session_chains_project').on(table.projectId),
-  index('idx_session_chains_status').on(table.status),
-]);
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  idx_session_chains_project: index('idx_session_chains_project').on(table.projectId),
+  idx_session_chains_status: index('idx_session_chains_status').on(table.status),
+}));
 
 // ============================================================================
 // Sessions Table
 // ============================================================================
 
-export const sessions = pgTable('sessions', {
+export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
   projectId: text('project_id').references(() => projects.id),
-  // Chain support
   parentChainId: text('parent_chain_id').references(() => sessionChains.id),
   chainSequence: integer('chain_sequence'),
-  scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
+  scheduledAt: integer('scheduled_at', { mode: 'timestamp' }),
   personaId: text('persona_id').notNull().references(() => personas.id),
   objectiveId: text('objective_id').notNull().references(() => objectives.id),
   targetUrl: text('target_url').notNull(),
-  llmConfig: jsonb('llm_config').notNull().$type<{
+  llmConfig: text('llm_config', { mode: 'json' }).notNull().$type<{
     provider: 'anthropic' | 'openai' | 'claude-cli' | 'custom' | 'google';
     model: string;
     temperature?: number;
     maxTokens?: number;
     baseUrl?: string;
   }>(),
-  visionConfig: jsonb('vision_config').notNull().$type<{
+  visionConfig: text('vision_config', { mode: 'json' }).notNull().$type<{
     screenshotInterval: number;
     screenshotOnLowConfidence: boolean;
     confidenceThreshold: number;
   }>(),
-  state: jsonb('state').notNull().$type<{
+  state: text('state', { mode: 'json' }).notNull().$type<{
     status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
     actionCount: number;
     progress: number;
@@ -177,7 +167,7 @@ export const sessions = pgTable('sessions', {
     startedAt?: number;
     completedAt?: number;
   }>(),
-  results: jsonb('results').$type<{
+  results: text('results', { mode: 'json' }).$type<{
     outcome: 'pursuing' | 'blocked' | 'completed' | 'abandoned';
     summary: string;
     actionsTaken: number;
@@ -200,56 +190,53 @@ export const sessions = pgTable('sessions', {
       negatives: string[];
       summary: string;
     };
-    // Memory state for session continuation
     memory?: {
       discoveries: string[];
       frustrations: string[];
       decisions: string[];
     };
-    // Pages visited during session
     visitedPages?: string[];
   }>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('idx_sessions_persona').on(table.personaId),
-  index('idx_sessions_objective').on(table.objectiveId),
-  index('idx_sessions_project').on(table.projectId),
-  index('idx_sessions_chain').on(table.parentChainId),
-]);
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  idx_sessions_persona: index('idx_sessions_persona').on(table.personaId),
+  idx_sessions_objective: index('idx_sessions_objective').on(table.objectiveId),
+  idx_sessions_project: index('idx_sessions_project').on(table.projectId),
+  idx_sessions_chain: index('idx_sessions_chain').on(table.parentChainId),
+}));
 
 // ============================================================================
 // Scheduled Tasks Table
 // ============================================================================
 
-export const scheduledTasks = pgTable('scheduled_tasks', {
+export const scheduledTasks = sqliteTable('scheduled_tasks', {
   id: text('id').primaryKey(),
   type: text('type').notNull().$type<'chain_continue' | 'session_start'>(),
   targetId: text('target_id').notNull(),
-  scheduledAt: timestamp('scheduled_at', { withTimezone: true }).notNull(),
+  scheduledAt: integer('scheduled_at', { mode: 'timestamp' }).notNull(),
   status: text('status').notNull().default('pending').$type<'pending' | 'running' | 'completed' | 'failed' | 'cancelled'>(),
   attempts: integer('attempts').notNull().default(0),
-  lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
+  lastAttemptAt: integer('last_attempt_at', { mode: 'timestamp' }),
   error: text('error'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('idx_scheduled_tasks_status').on(table.status),
-  index('idx_scheduled_tasks_scheduled_at').on(table.scheduledAt),
-]);
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  idx_scheduled_tasks_status: index('idx_scheduled_tasks_status').on(table.status),
+  idx_scheduled_tasks_scheduled_at: index('idx_scheduled_tasks_scheduled_at').on(table.scheduledAt),
+}));
 
 // ============================================================================
 // Events Table (Action History)
 // ============================================================================
 
-export const events = pgTable('events', {
+export const events = sqliteTable('events', {
   id: text('id').primaryKey(),
   sessionId: text('session_id').notNull().references(() => sessions.id),
   sequence: integer('sequence').notNull(),
-  context: jsonb('context').notNull().$type<{
+  context: text('context', { mode: 'json' }).notNull().$type<{
     url: string;
     pageTitle: string;
     elementCount: number;
-    /** DOM elements extracted at this action (for debugging) */
     elements?: Array<{
       id: string;
       name: string;
@@ -271,7 +258,7 @@ export const events = pgTable('events', {
       };
     }>;
   }>(),
-  decision: jsonb('decision').notNull().$type<{
+  decision: text('decision', { mode: 'json' }).notNull().$type<{
     action: {
       type: string;
       target?: {
@@ -294,24 +281,23 @@ export const events = pgTable('events', {
       nextSteps: string[];
     };
   }>(),
-  outcome: jsonb('outcome').notNull().$type<{
+  outcome: text('outcome', { mode: 'json' }).notNull().$type<{
     success: boolean;
     error?: string;
     duration: number;
   }>(),
-  screenshot: text('screenshot'), // Base64 or file path
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('idx_events_session').on(table.sessionId),
-]);
+  screenshot: text('screenshot'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  idx_events_session: index('idx_events_session').on(table.sessionId),
+}));
 
 // ============================================================================
 // Finding Groups Table (for deduplication)
 // ============================================================================
 
-export const findingGroups = pgTable('finding_groups', {
+export const findingGroups = sqliteTable('finding_groups', {
   id: text('id').primaryKey(),
-  userId: uuid('user_id').notNull(),
   fingerprint: text('fingerprint').notNull(),
   type: text('type').notNull().$type<'ux-issue' | 'bug' | 'accessibility' | 'performance' | 'content' | 'visual-design'>(),
   severity: text('severity').notNull().$type<'low' | 'medium' | 'high' | 'critical'>(),
@@ -321,23 +307,22 @@ export const findingGroups = pgTable('finding_groups', {
   occurrenceCount: integer('occurrence_count').notNull().default(1),
   sessionCount: integer('session_count').notNull().default(1),
   status: text('status').notNull().default('open').$type<'open' | 'acknowledged' | 'resolved' | 'wont-fix'>(),
-  firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull(),
-  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  uniqueIndex('idx_finding_groups_fingerprint_user').on(table.fingerprint, table.userId),
-  index('idx_finding_groups_user_id').on(table.userId),
-  index('idx_finding_groups_type').on(table.type),
-  index('idx_finding_groups_severity').on(table.severity),
-  index('idx_finding_groups_status').on(table.status),
-]);
+  firstSeenAt: integer('first_seen_at', { mode: 'timestamp' }).notNull(),
+  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  idx_finding_groups_fingerprint: uniqueIndex('idx_finding_groups_fingerprint').on(table.fingerprint),
+  idx_finding_groups_type: index('idx_finding_groups_type').on(table.type),
+  idx_finding_groups_severity: index('idx_finding_groups_severity').on(table.severity),
+  idx_finding_groups_status: index('idx_finding_groups_status').on(table.status),
+}));
 
 // ============================================================================
 // Findings Table
 // ============================================================================
 
-export const findings = pgTable('findings', {
+export const findings = sqliteTable('findings', {
   id: text('id').primaryKey(),
   sessionId: text('session_id').notNull().references(() => sessions.id),
   eventId: text('event_id').references(() => events.id),
@@ -345,12 +330,12 @@ export const findings = pgTable('findings', {
   type: text('type').notNull().$type<'ux-issue' | 'bug' | 'accessibility' | 'performance' | 'content' | 'visual-design'>(),
   severity: text('severity').notNull().$type<'low' | 'medium' | 'high' | 'critical'>(),
   description: text('description').notNull(),
-  personaPerspective: text('persona_perspective').notNull(), // "Maria se frustro porque..."
+  personaPerspective: text('persona_perspective').notNull(),
   url: text('url').notNull(),
   elementId: text('element_id'),
   fingerprint: text('fingerprint'),
-  isDuplicate: boolean('is_duplicate').notNull().default(false),
-  evidence: jsonb('evidence').$type<{
+  isDuplicate: integer('is_duplicate', { mode: 'boolean' }).notNull().default(false),
+  evidence: text('evidence', { mode: 'json' }).$type<{
     screenshot?: string;
     selector?: string;
     errorMessage?: string;
@@ -358,22 +343,22 @@ export const findings = pgTable('findings', {
   }>(),
   trelloCardId: text('trello_card_id'),
   trelloCardUrl: text('trello_card_url'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('idx_findings_session').on(table.sessionId),
-  index('idx_findings_group').on(table.groupId),
-  index('idx_findings_fingerprint').on(table.fingerprint),
-]);
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  idx_findings_session: index('idx_findings_session').on(table.sessionId),
+  idx_findings_group: index('idx_findings_group').on(table.groupId),
+  idx_findings_fingerprint: index('idx_findings_fingerprint').on(table.fingerprint),
+}));
 
 // ============================================================================
 // Session Reports Table
 // ============================================================================
 
-export const sessionReports = pgTable('session_reports', {
+export const sessionReports = sqliteTable('session_reports', {
   id: text('id').primaryKey(),
   sessionId: text('session_id').notNull().references(() => sessions.id),
   summary: text('summary').notNull(),
-  findingsSummary: jsonb('findings_summary').notNull().$type<{
+  findingsSummary: text('findings_summary', { mode: 'json' }).notNull().$type<{
     total: number;
     byType: Record<string, number>;
     bySeverity: Record<string, number>;
@@ -381,7 +366,7 @@ export const sessionReports = pgTable('session_reports', {
     duplicateFindings: number;
   }>(),
   markdownReport: text('markdown_report').notNull(),
-  metrics: jsonb('metrics').$type<{
+  metrics: text('metrics', { mode: 'json' }).$type<{
     totalActions: number;
     successfulActions: number;
     failedActions: number;
@@ -390,11 +375,11 @@ export const sessionReports = pgTable('session_reports', {
     llmCalls: number;
     totalTokens: number;
   }>(),
-  recommendations: jsonb('recommendations').$type<string[]>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  uniqueIndex('idx_session_reports_session').on(table.sessionId),
-]);
+  recommendations: text('recommendations', { mode: 'json' }).$type<string[]>(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  idx_session_reports_session: uniqueIndex('idx_session_reports_session').on(table.sessionId),
+}));
 
 // ============================================================================
 // Integrations Table
@@ -416,40 +401,28 @@ export interface TrelloConfig {
   boardStructure?: TrelloBoardStructure;
 }
 
-export const integrations = pgTable('integrations', {
+export const integrations = sqliteTable('integrations', {
   id: text('id').primaryKey(),
   projectId: text('project_id').notNull().references(() => projects.id),
-  type: text('type').notNull(),  // 'trello', 'jira', etc.
-  config: jsonb('config').$type<TrelloConfig>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('idx_integrations_project').on(table.projectId),
-  index('idx_integrations_type').on(table.type),
-]);
+  type: text('type').notNull(),
+  config: text('config', { mode: 'json' }).$type<TrelloConfig>(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  idx_integrations_project: index('idx_integrations_project').on(table.projectId),
+  idx_integrations_type: index('idx_integrations_type').on(table.type),
+}));
 
 // ============================================================================
-// App Settings Table (Per-User Configuration)
+// App Settings Table (Global Configuration)
 // ============================================================================
 
-export const appSettings = pgTable('app_settings', {
-  id: text('id').primaryKey(), // Format: "user_{userId}" or "global" for defaults
-  userId: uuid('user_id'), // null for global defaults
-
-  // LLM Configuration
-  llmProvider: text('llm_provider').default('claude-cli').$type<'anthropic' | 'openai' | 'claude-cli' | 'google'>(),
+export const appSettings = sqliteTable('app_settings', {
+  id: text('id').primaryKey().default('global'),
+  llmProvider: text('llm_provider').default('anthropic').$type<'anthropic' | 'openai' | 'claude-cli' | 'google'>(),
   llmModel: text('llm_model').default('claude-sonnet-4-20250514'),
-
-  // Encrypted API Keys (AES-256-GCM, base64 encoded)
-  encryptedAnthropicKey: text('encrypted_anthropic_key'),
-  encryptedOpenaiKey: text('encrypted_openai_key'),
-  encryptedGoogleKey: text('encrypted_google_key'),
-
-  // Timestamps
-  updatedAt: timestamp('updated_at', { withTimezone: true }),
-}, (table) => [
-  index('idx_app_settings_user_id').on(table.userId),
-]);
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+});
 
 // ============================================================================
 // Type Exports

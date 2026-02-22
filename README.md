@@ -2,59 +2,66 @@
 
 **AI Agents That Think Like Your Users**
 
-Stop writing test scripts. Let AI personas explore your app the way real humans would.
-
-Mimic deploys intelligent browser agents with distinct personalities, technical skills, and behaviors. They navigate your web app autonomously, make decisions based on context, and surface UX issues, accessibility problems, and confusing flows before your users encounter them.
+Mimic deploys intelligent browser agents with distinct personalities, technical skills, and behaviors. They navigate your web app autonomously, make decisions based on context, and surface UX issues, accessibility problems, and confusing flows — before your users encounter them.
 
 ## Features
 
-- **Persona-driven testing** - Create AI users with unique personalities, goals, and behaviors
-- **LLM-powered decisions** - Agents powered by Claude, GPT, or Ollama
-- **Automatic issue detection** - Finds UX problems, accessibility issues, and confusing flows
-- **Evidence collection** - Screenshots and DOM snapshots for every finding
-- **Session chains** - Multi-day persistent sessions with memory continuity
-- **Integrations** - Trello, Jira (coming soon), and CI/CD pipelines
+- **Persona-driven testing** — Create AI users with unique personalities, goals, and behaviors
+- **LLM-powered decisions** — Agents powered by Claude, GPT, or Gemini
+- **Automatic issue detection** — Finds UX problems, accessibility issues, and confusing flows
+- **Evidence collection** — Screenshots and DOM snapshots for every finding
+- **Session chains** — Multi-day persistent sessions with memory continuity
+- **Web dashboard** — Monitor sessions, review findings, and manage personas in real-time
+- **Integrations** — Export findings to Trello (more coming soon)
+
+## Quick Start
+
+```bash
+# 1. Clone and install
+git clone https://github.com/your-org/mimic.git
+cd mimic
+pnpm install
+
+# 2. Configure your LLM API key
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY (or OPENAI_API_KEY)
+
+# 3. Build and run
+pnpm build
+pnpm dev:api    # API + dashboard on http://localhost:4001
+```
+
+That's it. The SQLite database is created automatically on first run.
+
+For development with hot reload on both API and frontend:
+
+```bash
+pnpm dev:api    # API server on localhost:4001
+pnpm dev:web    # Frontend dev server on localhost:5173 (in another terminal)
+```
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Mimic                                │
+│                         Mimic                                │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐                 │
-│  │ Persona │ →  │   LLM   │ →  │ Browser │                 │
-│  │ Config  │    │ (Brain) │    │ (Hands) │                 │
-│  └─────────┘    └─────────┘    └─────────┘                 │
-│       ↓              ↓              ↓                       │
-│  "Who am I?"    "What should    "Execute                   │
-│                  I do next?"     action"                    │
+│  ┌─────────┐    ┌─────────┐    ┌─────────┐                  │
+│  │ Persona │ →  │   LLM   │ →  │ Browser │                  │
+│  │ Config  │    │ (Brain) │    │ (Hands) │                  │
+│  └─────────┘    └─────────┘    └─────────┘                  │
+│       ↓              ↓              ↓                        │
+│  "Who am I?"    "What should    "Execute                    │
+│                  I do next?"     action"                     │
 ├─────────────────────────────────────────────────────────────┤
-│                  Observe → Decide → Act                     │
+│                  Observe → Decide → Act                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
-
-```bash
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Start API server (localhost:3001)
-pnpm dev:api
-
-# Start web dashboard (localhost:5173)
-pnpm dev:web
-```
-
-## Tech Stack
-
-- **Runtime**: Node.js 20+, TypeScript 5.7
-- **Backend**: Hono, SQLite + Drizzle ORM, Playwright
-- **Frontend**: React 18, Vite, TanStack Query, Tailwind CSS
-- **LLM**: Vercel AI SDK (Claude, GPT, Ollama)
+The agent loop:
+1. **Observe** — Extract actionable elements from the DOM + optional screenshots
+2. **Decide** — LLM analyzes context (persona + objective + page state)
+3. **Act** — Playwright executes the chosen action
 
 ## Project Structure
 
@@ -62,82 +69,72 @@ pnpm dev:web
 packages/
 ├── shared/     # TypeScript interfaces
 ├── db/         # Drizzle ORM schema + SQLite
-└── core/       # Main agent logic (observe-decide-act)
+└── core/       # Agent logic (observe-decide-act loop)
 
 apps/
-├── api/        # Hono REST server
-├── web/        # React SPA dashboard
+├── api/        # Hono REST server + serves frontend
+├── web/        # React SPA dashboard (Vite + TanStack Query + Tailwind)
 └── cli/        # Command-line interface
 ```
 
-## Environment Variables
+## Configuration
 
-### LLM Provider Configuration
+### Environment Variables
 
 ```bash
-# Option 1: Use env vars for API providers (fallback, invisible to users)
-ANTHROPIC_API_KEY=sk-ant-...   # For Claude via API
-OPENAI_API_KEY=sk-...          # For GPT via API
-GOOGLE_API_KEY=AIza...         # For Google Gemini
+# LLM Provider (at least one required)
+ANTHROPIC_API_KEY=sk-ant-...     # For Claude
+OPENAI_API_KEY=sk-...            # For GPT
+GOOGLE_API_KEY=AIza...           # For Gemini
 
-# Option 2: Claude CLI (Docker/CI/CD - Recommended)
-CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...  # Generate with: claude setup-token
-LLM_PROVIDER=claude-cli
-LLM_MODEL=claude-sonnet-4-20250514
-
-# Server configuration
-PORT=3001                       # API server port
-ENCRYPTION_KEY=...              # For encrypting user API keys in DB
+# Optional
+LLM_PROVIDER=anthropic           # Default provider (anthropic|openai|google)
+LLM_MODEL=claude-sonnet-4-20250514  # Default model
+PORT=4001                        # API server port
 ```
 
-### Claude CLI Setup for Docker/Coolify
+You can also change the LLM provider and model from the **Settings** page in the web dashboard.
 
-The `claude-cli` provider requires authentication. For automated deployments:
+## Tech Stack
 
-1. **Generate token locally:**
-   ```bash
-   # Install Claude CLI
-   npm install -g @anthropic-ai/claude-code
+- **Runtime**: Node.js 20+, TypeScript 5.7
+- **Backend**: Hono, SQLite + Drizzle ORM, Playwright
+- **Frontend**: React 18, Vite, TanStack Query, Tailwind CSS
+- **LLM**: Vercel AI SDK (Claude, GPT, Gemini)
 
-   # Generate OAuth token (requires Claude Pro/Max)
-   claude setup-token
-   # Copy the generated token
-   ```
+## Docker
 
-2. **Configure in deployment:**
-   - Add environment variable: `CLAUDE_CODE_OAUTH_TOKEN=your-token`
-   - API will automatically create `~/.claude.json` on startup
+```bash
+docker build -t mimic .
+docker run -p 4001:4001 \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -v mimic-data:/app/data \
+  mimic
+```
 
-3. **Verify in logs:**
-   ```
-   [Claude Setup] Token detected, configuring automated auth...
-   [Claude Setup] ✅ Successfully configured for automated auth
-   ```
+Open `http://localhost:4001` to access the dashboard.
 
-**Local development:** Run `claude auth login` instead (browser-based)
+## Development
 
-### User Credentials Override
+```bash
+pnpm install          # Install dependencies
+pnpm build            # Build all packages
+pnpm dev:api          # API server with hot reload
+pnpm dev:web          # Frontend dev server
+pnpm typecheck        # Type check all packages
+```
 
-Users can configure their own API keys in Settings (stored encrypted in DB). These take priority over system env vars:
-- DB keys: Visible to user, stored encrypted
-- Env vars: Invisible fallback, used when no DB key exists
+### Adding a New Feature
 
-## Documentation
+This project follows **TDD** (Test-Driven Development):
+1. Write a failing test
+2. Write the minimum code to make it pass
+3. Refactor while keeping tests green
 
-See `/doc` for user stories and technical documentation:
+## Contributing
 
-- `HU-000` - Infrastructure & Deployment
-- `HU-001` - Authentication System
-- `HU-002` - Billing System (Stripe)
-- `HU-003` - Usage Limits by Tier
-- `HU-004` - Landing Page & Pricing
-- `HU-005` - Onboarding Flow
-- `HU-006` - Jira Integration
-- `HU-007` - Report Export
-- `HU-008` - Custom Personas
-- `HU-009` - Public API for CI/CD
-- `HU-010` - Session Replay
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT
+[MIT](LICENSE)

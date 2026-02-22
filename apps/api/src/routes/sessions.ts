@@ -4,15 +4,13 @@
 
 import { Hono } from 'hono';
 import { getDb } from '@testfarm/db';
-import { sessions, personas, objectives, events, findings, sessionReports, appSettings } from '@testfarm/db';
+import { sessions, personas, objectives, events, findings, sessionReports } from '@testfarm/db';
 import { eq, inArray, max } from 'drizzle-orm';
-import { decrypt, isEncryptionConfigured } from '../crypto.js';
 import { createAgent, loadKnownIssues, generateSessionReport, deleteSessionScreenshots, type AgentConfig } from '@testfarm/core';
 import type { Persona, Objective, ExistingFindingsContext, SessionReportData, ChainContext, AgentMemory } from '@testfarm/shared';
 import { broadcastSessionEvent } from './events.js';
 import { getChainContextForSession, updateChainAfterSession } from './session-chains.js';
 import { getGlobalLLMConfig } from '../lib/llm-config.js';
-import { requireUser } from '../middleware/auth.js';
 
 // Store running agents to allow cancellation
 const runningAgents = new Map<string, ReturnType<typeof createAgent>>();
@@ -67,34 +65,9 @@ const DEFAULT_VISION_CONFIG = {
 };
 
 /**
- * Resolve API key with priority: user DB (encrypted) > env var
+ * Resolve API key from environment variables
  */
-async function resolveApiKey(provider: string, userId?: string): Promise<string | undefined> {
-  const db = getDb();
-
-  // 1. Try to get from user's DB settings (encrypted)
-  if (userId && isEncryptionConfigured()) {
-    const userSettings = await db.select().from(appSettings).where(eq(appSettings.userId, userId)).limit(1);
-    const settings = userSettings[0];
-
-    if (settings) {
-      try {
-        if (provider === 'anthropic' && settings.encryptedAnthropicKey) {
-          return decrypt(settings.encryptedAnthropicKey);
-        }
-        if (provider === 'openai' && settings.encryptedOpenaiKey) {
-          return decrypt(settings.encryptedOpenaiKey);
-        }
-        if (provider === 'google' && settings.encryptedGoogleKey) {
-          return decrypt(settings.encryptedGoogleKey);
-        }
-      } catch (e) {
-        console.error('Failed to decrypt API key:', e);
-      }
-    }
-  }
-
-  // 2. Fallback to env vars
+function resolveApiKey(provider: string): string | undefined {
   switch (provider) {
     case 'anthropic':
       return process.env.ANTHROPIC_API_KEY;
@@ -111,12 +84,11 @@ async function resolveApiKey(provider: string, userId?: string): Promise<string 
 
 // POST /api/sessions - Create new session
 app.post('/', async (c) => {
-  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
-  // Get user's LLM config as base and merge with body config
-  const globalConfig = await getGlobalLLMConfig(user.id);
+  // Get LLM config as base and merge with body config
+  const globalConfig = await getGlobalLLMConfig();
   const llmConfig = {
     ...globalConfig,
     ...(body.llmConfig || {}),
@@ -146,14 +118,13 @@ app.post('/', async (c) => {
 
 // POST /api/sessions/batch - Create multiple sessions at once
 app.post('/batch', async (c) => {
-  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
   const { targetUrl, personaIds, objectiveIds, llmConfig, visionConfig, projectId } = body;
 
-  // Get user's LLM config as base and merge with body config
-  const globalConfig = await getGlobalLLMConfig(user.id);
+  // Get LLM config as base and merge with body config
+  const globalConfig = await getGlobalLLMConfig();
   const mergedLlmConfig = {
     ...globalConfig,
     ...(llmConfig || {}),
@@ -262,19 +233,16 @@ app.post('/:id/start', async (c) => {
     successCriteria: objective.definition.successCriteria,
   };
 
-  // Get user for user-specific config resolution
-  const user = requireUser(c);
-
-  // Get LLM config - use session config or fall back to user settings
-  const baseLLMConfig = session.llmConfig || await getGlobalLLMConfig(user.id);
+  // Get LLM config - use session config or fall back to global settings
+  const baseLLMConfig = session.llmConfig || await getGlobalLLMConfig();
   const provider = baseLLMConfig.provider;
 
   console.log(`[Session ${id}] LLM Provider: ${provider}`);
   console.log(`[Session ${id}] LLM Model: ${baseLLMConfig.model}`);
   console.log(`[Session ${id}] Using session config:`, !!session.llmConfig);
 
-  // Resolve API key from user's DB settings or env vars
-  const apiKey = await resolveApiKey(provider, user.id);
+  // Resolve API key from env vars
+  const apiKey = resolveApiKey(provider);
 
   console.log(`[Session ${id}] API key resolved:`, apiKey ? 'YES' : 'NO');
 
@@ -285,7 +253,7 @@ app.post('/:id/start', async (c) => {
       openai: 'OPENAI_API_KEY',
       google: 'GOOGLE_API_KEY',
     };
-    const errorMsg = `API key not configured for provider: ${provider}. Configure it in Settings or set ${envVarMap[provider]} environment variable.`;
+    const errorMsg = `API key not configured for provider: ${provider}. Set ${envVarMap[provider]} environment variable.`;
     console.error(`[Session ${id}] VALIDATION FAILED: ${errorMsg}`);
     return c.json({ error: errorMsg }, 400);
   }
@@ -304,7 +272,7 @@ app.post('/:id/start', async (c) => {
   // Load existing findings context for deduplication
   let existingFindingsContext: ExistingFindingsContext | undefined;
   try {
-    const knownIssues = await loadKnownIssues(user.id, 50);
+    const knownIssues = await loadKnownIssues(50);
     if (knownIssues.length > 0) {
       existingFindingsContext = {
         knownIssues,
@@ -664,7 +632,6 @@ app.post('/:id/start', async (c) => {
 
 // POST /api/sessions/:id/retry - Clone and start a fresh session
 app.post('/:id/retry', async (c) => {
-  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
 
@@ -675,11 +642,10 @@ app.post('/:id/retry', async (c) => {
     return c.json({ error: 'Session not found' }, 404);
   }
 
-  // Use current user's LLM config (don't copy old session config)
-  // This ensures retry always uses the latest settings
-  const llmConfig = await getGlobalLLMConfig(user.id);
+  // Use current LLM config (don't copy old session config)
+  const llmConfig = await getGlobalLLMConfig();
 
-  console.log(`[Retry] Creating new session with user config: ${llmConfig.provider}`);
+  console.log(`[Retry] Creating new session with config: ${llmConfig.provider}`);
 
   // Create a clone with fresh state
   const newSession = {

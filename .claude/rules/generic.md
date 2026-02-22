@@ -1,33 +1,3 @@
-# Workflow de Git
-
-**SIEMPRE** trabaja en ramas separadas, nunca directamente en `main`:
-
-1. **CREAR RAMA**: Antes de empezar cualquier trabajo, crea una rama desde `main` con nombre descriptivo
-2. **TRABAJAR**: Realiza todos los cambios en la rama de feature
-3. **MERGE**: Una vez completado y verificado, vuelve a `main` y fusiona los cambios
-4. **LIMPIAR**: Opcional - Elimina la rama de feature después del merge
-
-```bash
-# Ejemplo de workflow
-git checkout main
-git pull
-git checkout -b feature/nombre-descriptivo
-# ... trabajar ...
-git add .
-git commit -m "mensaje descriptivo"
-git checkout main
-git merge feature/nombre-descriptivo
-git push
-```
-
-**Nombres de ramas sugeridos:**
-- `feature/nombre` - Para nuevas funcionalidades
-- `fix/nombre` - Para corrección de bugs
-- `docs/nombre` - Para documentación
-- `refactor/nombre` - Para refactorizaciones
-
----
-
 # TDD Obligatorio
 
 **SIEMPRE** sigue Test-Driven Development (TDD) al escribir código:
@@ -49,7 +19,7 @@ Cuando se ejecute un plan que implique nuevas funcionalidades o cambios signific
 ### Estructura de carpetas
 
 ```
-doc/
+doc/hu/en-curso/
 └── HU-XXX-nombre-descriptivo/
     ├── detalle.md      # Descripción completa de la HU
     ├── checklist.md    # Lista de tareas para seguimiento
@@ -79,5 +49,36 @@ doc/
 1. Marca las tareas completadas con `[x]`
 2. Añade notas de progreso con fecha
 3. Actualiza el estado general cuando corresponda
-4. Si surgen nuevas tareas, añádelas a la lista                                           
-                                                                                                    
+4. Si surgen nuevas tareas, añádelas a la lista
+
+---
+
+# Commits y Pull Requests
+
+## Commits
+
+**SIEMPRE** pregunta al usuario antes de hacer un commit.
+
+### Formato de commit
+
+```
+<tipo>(EVY-XX): descripción
+```
+
+- **tipo**: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, etc.
+- **EVY-XX**: Número de la historia de usuario (extraer de la rama actual)
+- **descripción**: Descripción breve del cambio
+
+Si no se conoce el número de la HU, **preguntar al usuario** antes de proceder.
+
+## Pull Requests
+
+Al finalizar una HU, **preguntar al usuario** si desea generar una PR.
+
+### Formato de PR
+
+```
+<tipo>(EVY-XX): descripción corta
+```
+
+El formato es idéntico al de commits.

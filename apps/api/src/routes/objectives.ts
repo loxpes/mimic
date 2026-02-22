@@ -5,32 +5,28 @@
 import { Hono } from 'hono';
 import { getDb } from '@testfarm/db';
 import { objectives } from '@testfarm/db';
-import { eq, and } from 'drizzle-orm';
-import { requireUser } from '../middleware/auth.js';
+import { eq } from 'drizzle-orm';
 
 const app = new Hono();
 
-// GET /api/objectives - List all objectives for current user
+// GET /api/objectives - List all objectives
 app.get('/', async (c) => {
-  const user = requireUser(c);
   const db = getDb();
   const allObjectives = await db
     .select()
     .from(objectives)
-    .where(eq(objectives.userId, user.id))
     .orderBy(objectives.name);
   return c.json(allObjectives);
 });
 
 // GET /api/objectives/:id - Get objective by ID
 app.get('/:id', async (c) => {
-  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
   const result = await db
     .select()
     .from(objectives)
-    .where(and(eq(objectives.id, id), eq(objectives.userId, user.id)))
+    .where(eq(objectives.id, id))
     .limit(1);
 
   if (result.length === 0) {
@@ -42,13 +38,11 @@ app.get('/:id', async (c) => {
 
 // POST /api/objectives - Create new objective
 app.post('/', async (c) => {
-  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
   const newObjective = {
     id: crypto.randomUUID(),
-    userId: user.id,
     name: body.name,
     definition: body.definition,
     config: body.config,
@@ -61,16 +55,14 @@ app.post('/', async (c) => {
 
 // PUT /api/objectives/:id - Update objective
 app.put('/:id', async (c) => {
-  const user = requireUser(c);
   const id = c.req.param('id');
   const body = await c.req.json();
   const db = getDb();
 
-  // Verify ownership
   const existing = await db
     .select()
     .from(objectives)
-    .where(and(eq(objectives.id, id), eq(objectives.userId, user.id)))
+    .where(eq(objectives.id, id))
     .limit(1);
 
   if (existing.length === 0) {
@@ -84,7 +76,7 @@ app.put('/:id', async (c) => {
       config: body.config,
       updatedAt: new Date(),
     })
-    .where(and(eq(objectives.id, id), eq(objectives.userId, user.id)));
+    .where(eq(objectives.id, id));
 
   const updated = await db
     .select()
@@ -96,29 +88,26 @@ app.put('/:id', async (c) => {
 
 // DELETE /api/objectives/:id - Delete objective
 app.delete('/:id', async (c) => {
-  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
 
-  // Verify ownership
   const existing = await db
     .select()
     .from(objectives)
-    .where(and(eq(objectives.id, id), eq(objectives.userId, user.id)))
+    .where(eq(objectives.id, id))
     .limit(1);
 
   if (existing.length === 0) {
     return c.json({ error: 'Objective not found' }, 404);
   }
 
-  await db.delete(objectives).where(and(eq(objectives.id, id), eq(objectives.userId, user.id)));
+  await db.delete(objectives).where(eq(objectives.id, id));
 
   return c.json({ message: 'Objective deleted' });
 });
 
 // POST /api/objectives/import - Batch import objectives
 app.post('/import', async (c) => {
-  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
@@ -130,20 +119,19 @@ app.post('/import', async (c) => {
 
   for (const objectiveData of body.objectives) {
     if (!objectiveData.name) {
-      continue; // Skip invalid entries
+      continue;
     }
 
     const newObjective = {
       id: crypto.randomUUID(),
-      userId: user.id,
       name: objectiveData.name,
       definition: {
         goal: objectiveData.goal || '',
         constraints: objectiveData.constraints || [],
-        successCriteria: objectiveData.successCriteria || { type: 'none' },
+        successCriteria: objectiveData.successCriteria || { type: 'none' as const },
       },
       config: {
-        autonomyLevel: objectiveData.autonomy?.level || 'exploration',
+        autonomyLevel: objectiveData.autonomy?.level || 'exploration' as const,
         maxActions: objectiveData.autonomy?.bounds?.maxActions || 100,
         maxDuration: objectiveData.autonomy?.bounds?.maxDuration || 60,
         restrictions: objectiveData.restrictions || [],

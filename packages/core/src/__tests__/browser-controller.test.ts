@@ -108,12 +108,11 @@ describe('BrowserController Navigation & Waits', () => {
         // Register element to be found
         controller.registerElements([{
             ref: 'el_123',
-            id: 'test-el',
-            nodeName: 'button',
-            text: 'Click',
-            selector: 'button',
-            bbox: { top: 0, left: 0, bottom: 200, right: 200, width: 200, height: 200, centerX: 100, centerY: 100 },
-            isVisible: true
+            role: 'button',
+            name: 'Click',
+            backendNodeId: 1,
+            bbox: { x: 0, y: 0, width: 200, height: 200, centerX: 100, centerY: 100 },
+            state: { focused: false, disabled: false },
         }]);
 
         await controller.clickByRef('el_123');

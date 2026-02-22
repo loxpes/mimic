@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Settings as SettingsIcon, Globe, Check, Terminal, Key, AlertCircle, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Check, Terminal, Key, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { settingsApi, type AppSettings, type UpdateSettingsInput } from '@/lib/api';
 
@@ -24,10 +24,9 @@ const languages = [
 ];
 
 const providers = [
-  { value: 'claude-cli', label: 'TestFarm (Incluido)', description: 'Incluido con TestFarm, sin configuracion adicional' },
-  { value: 'anthropic', label: 'Anthropic (Claude) - Requiere API Key', description: 'Claude Sonnet, Claude Haiku' },
-  { value: 'openai', label: 'OpenAI (GPT) - Requiere API Key', description: 'GPT-4o, GPT-4 Turbo' },
-  { value: 'google', label: 'Google (Gemini) - Requiere API Key', description: 'Gemini 1.5 Pro, Gemini 1.5 Flash' },
+  { value: 'anthropic', label: 'Anthropic (Claude)', description: 'Claude Sonnet, Claude Haiku' },
+  { value: 'openai', label: 'OpenAI (GPT)', description: 'GPT-4o, GPT-4 Turbo' },
+  { value: 'google', label: 'Google (Gemini)', description: 'Gemini 1.5 Pro, Gemini 1.5 Flash' },
 ];
 
 export function Settings() {
@@ -41,11 +40,8 @@ export function Settings() {
   const [languageSaved, setLanguageSaved] = useState(false);
 
   // LLM state
-  const [provider, setProvider] = useState<string>('claude-cli');
+  const [provider, setProvider] = useState<string>('anthropic');
   const [model, setModel] = useState<string>('claude-sonnet-4-20250514');
-  const [anthropicKey, setAnthropicKey] = useState('');
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [googleKey, setGoogleKey] = useState('');
 
   // Fetch settings
   const { data: settings, isLoading } = useQuery({
@@ -89,22 +85,6 @@ export function Settings() {
       llmProvider: provider as AppSettings['llmProvider'],
       llmModel: model,
     });
-  };
-
-  // Handle save API key
-  const handleSaveAnthropicKey = () => {
-    updateMutation.mutate({ anthropicApiKey: anthropicKey || null });
-    setAnthropicKey(''); // Clear input after save
-  };
-
-  const handleSaveOpenaiKey = () => {
-    updateMutation.mutate({ openaiApiKey: openaiKey || null });
-    setOpenaiKey(''); // Clear input after save
-  };
-
-  const handleSaveGoogleKey = () => {
-    updateMutation.mutate({ googleApiKey: googleKey || null });
-    setGoogleKey(''); // Clear input after save
   };
 
   const selectedLanguage = languages.find(l => l.value === language);
@@ -215,14 +195,14 @@ export function Settings() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Modelo</label>
+              <label className="text-sm font-medium">Model</label>
               <Input
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="ej: claude-sonnet-4-20250514, gpt-4o, gemini-1.5-pro"
+                placeholder="e.g. claude-sonnet-4-20250514, gpt-4o, gemini-1.5-pro"
               />
               <p className="text-xs text-muted-foreground">
-                Introduce el ID del modelo del proveedor seleccionado
+                Enter the model ID for the selected provider
               </p>
             </div>
           </div>
@@ -236,155 +216,79 @@ export function Settings() {
             ) : (
               <Check className="h-4 w-4 mr-2" />
             )}
-            Guardar configuracion
+            Save configuration
           </Button>
 
           {updateMutation.isSuccess && (
             <p className="text-sm text-green-600 flex items-center gap-1">
               <Check className="h-4 w-4" />
-              Configuracion guardada
+              Configuration saved
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* API Keys Card (only shown for providers that need API keys) */}
-      {provider !== 'claude-cli' && <Card>
+      {/* API Keys Status Card */}
+      <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Key className="h-5 w-5 text-primary" />
             <CardTitle>API Keys</CardTitle>
           </div>
           <CardDescription>
-            Las API keys se almacenan encriptadas en el servidor con AES-256.
+            API keys are configured via environment variables on the server.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Encryption warning */}
-          {settings && !settings.encryptionConfigured && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-              <div className="text-sm text-yellow-800 dark:text-yellow-200">
-                <p className="font-medium">Encriptacion no configurada</p>
-                <p>El servidor no tiene configurada la variable ENCRYPTION_KEY. Las API keys no se pueden guardar de forma segura.</p>
-              </div>
-            </div>
-          )}
-
-          {/* Anthropic Key */}
-          <div className="space-y-3 p-4 rounded-lg border">
-            <div className="flex items-center justify-between">
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 rounded-lg border">
               <div>
-                <h4 className="font-medium">Anthropic API Key</h4>
-                <p className="text-sm text-muted-foreground">Para usar Claude (Anthropic)</p>
+                <h4 className="font-medium">Anthropic</h4>
+                <p className="text-sm text-muted-foreground">ANTHROPIC_API_KEY</p>
               </div>
               {settings?.hasAnthropicKey ? (
                 <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                  Configurada
+                  Configured
                 </Badge>
               ) : (
-                <Badge variant="secondary">No configurada</Badge>
+                <Badge variant="secondary">Not configured</Badge>
               )}
             </div>
-            <div className="flex gap-2">
-              <Input
-                type="password"
-                value={anthropicKey}
-                onChange={(e) => setAnthropicKey(e.target.value)}
-                placeholder="sk-ant-api03-..."
-                className="font-mono"
-                disabled={!settings?.encryptionConfigured}
-              />
-              <Button
-                onClick={handleSaveAnthropicKey}
-                disabled={updateMutation.isPending || !settings?.encryptionConfigured}
-                variant="outline"
-              >
-                {anthropicKey ? 'Guardar' : 'Borrar'}
-              </Button>
-            </div>
-          </div>
 
-          {/* OpenAI Key */}
-          <div className="space-y-3 p-4 rounded-lg border">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-3 rounded-lg border">
               <div>
-                <h4 className="font-medium">OpenAI API Key</h4>
-                <p className="text-sm text-muted-foreground">Para usar GPT-4 (OpenAI)</p>
+                <h4 className="font-medium">OpenAI</h4>
+                <p className="text-sm text-muted-foreground">OPENAI_API_KEY</p>
               </div>
               {settings?.hasOpenaiKey ? (
                 <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                  Configurada
+                  Configured
                 </Badge>
               ) : (
-                <Badge variant="secondary">No configurada</Badge>
+                <Badge variant="secondary">Not configured</Badge>
               )}
             </div>
-            <div className="flex gap-2">
-              <Input
-                type="password"
-                value={openaiKey}
-                onChange={(e) => setOpenaiKey(e.target.value)}
-                placeholder="sk-..."
-                className="font-mono"
-                disabled={!settings?.encryptionConfigured}
-              />
-              <Button
-                onClick={handleSaveOpenaiKey}
-                disabled={updateMutation.isPending || !settings?.encryptionConfigured}
-                variant="outline"
-              >
-                {openaiKey ? 'Guardar' : 'Borrar'}
-              </Button>
-            </div>
-          </div>
 
-          {/* Google Key */}
-          <div className="space-y-3 p-4 rounded-lg border">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-3 rounded-lg border">
               <div>
-                <h4 className="font-medium">Google API Key</h4>
-                <p className="text-sm text-muted-foreground">Para usar Gemini (Google)</p>
+                <h4 className="font-medium">Google</h4>
+                <p className="text-sm text-muted-foreground">GOOGLE_API_KEY</p>
               </div>
               {settings?.hasGoogleKey ? (
                 <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                  Configurada
+                  Configured
                 </Badge>
               ) : (
-                <Badge variant="secondary">No configurada</Badge>
+                <Badge variant="secondary">Not configured</Badge>
               )}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                type="password"
-                value={googleKey}
-                onChange={(e) => setGoogleKey(e.target.value)}
-                placeholder="AIza..."
-                className="font-mono"
-                disabled={!settings?.encryptionConfigured}
-              />
-              <Button
-                onClick={handleSaveGoogleKey}
-                disabled={updateMutation.isPending || !settings?.encryptionConfigured}
-                variant="outline"
-              >
-                {googleKey ? 'Guardar' : 'Borrar'}
-              </Button>
             </div>
           </div>
 
-          {/* Info about env vars */}
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-            <p className="font-medium mb-1">Alternativa: Variables de entorno</p>
-            <p>Tambien puedes configurar las API keys en el servidor via variables de entorno:</p>
-            <ul className="list-disc list-inside mt-1 space-y-1 font-mono text-xs">
-              <li>ANTHROPIC_API_KEY</li>
-              <li>OPENAI_API_KEY</li>
-              <li>GOOGLE_API_KEY</li>
-            </ul>
+            <p>Set API keys in your <code className="text-xs bg-muted px-1 py-0.5 rounded">.env</code> file or as environment variables before starting the server.</p>
           </div>
         </CardContent>
-      </Card>}
+      </Card>
 
       {/* Info Card */}
       <Card className="bg-muted/50">

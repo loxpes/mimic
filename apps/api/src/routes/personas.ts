@@ -5,32 +5,28 @@
 import { Hono } from 'hono';
 import { getDb } from '@testfarm/db';
 import { personas } from '@testfarm/db';
-import { eq, and } from 'drizzle-orm';
-import { requireUser } from '../middleware/auth.js';
+import { eq } from 'drizzle-orm';
 
 const app = new Hono();
 
-// GET /api/personas - List all personas for current user
+// GET /api/personas - List all personas
 app.get('/', async (c) => {
-  const user = requireUser(c);
   const db = getDb();
   const allPersonas = await db
     .select()
     .from(personas)
-    .where(eq(personas.userId, user.id))
     .orderBy(personas.name);
   return c.json(allPersonas);
 });
 
 // GET /api/personas/:id - Get persona by ID
 app.get('/:id', async (c) => {
-  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
   const result = await db
     .select()
     .from(personas)
-    .where(and(eq(personas.id, id), eq(personas.userId, user.id)))
+    .where(eq(personas.id, id))
     .limit(1);
 
   if (result.length === 0) {
@@ -42,13 +38,11 @@ app.get('/:id', async (c) => {
 
 // POST /api/personas - Create new persona
 app.post('/', async (c) => {
-  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
   const newPersona = {
     id: crypto.randomUUID(),
-    userId: user.id,
     name: body.name,
     definition: body.definition,
     metadata: body.metadata || {},
@@ -61,16 +55,14 @@ app.post('/', async (c) => {
 
 // PUT /api/personas/:id - Update persona
 app.put('/:id', async (c) => {
-  const user = requireUser(c);
   const id = c.req.param('id');
   const body = await c.req.json();
   const db = getDb();
 
-  // Verify ownership
   const existing = await db
     .select()
     .from(personas)
-    .where(and(eq(personas.id, id), eq(personas.userId, user.id)))
+    .where(eq(personas.id, id))
     .limit(1);
 
   if (existing.length === 0) {
@@ -84,7 +76,7 @@ app.put('/:id', async (c) => {
       metadata: body.metadata,
       updatedAt: new Date(),
     })
-    .where(and(eq(personas.id, id), eq(personas.userId, user.id)));
+    .where(eq(personas.id, id));
 
   const updated = await db
     .select()
@@ -96,29 +88,26 @@ app.put('/:id', async (c) => {
 
 // DELETE /api/personas/:id - Delete persona
 app.delete('/:id', async (c) => {
-  const user = requireUser(c);
   const id = c.req.param('id');
   const db = getDb();
 
-  // Verify ownership
   const existing = await db
     .select()
     .from(personas)
-    .where(and(eq(personas.id, id), eq(personas.userId, user.id)))
+    .where(eq(personas.id, id))
     .limit(1);
 
   if (existing.length === 0) {
     return c.json({ error: 'Persona not found' }, 404);
   }
 
-  await db.delete(personas).where(and(eq(personas.id, id), eq(personas.userId, user.id)));
+  await db.delete(personas).where(eq(personas.id, id));
 
   return c.json({ message: 'Persona deleted' });
 });
 
 // POST /api/personas/import - Batch import personas
 app.post('/import', async (c) => {
-  const user = requireUser(c);
   const body = await c.req.json();
   const db = getDb();
 
@@ -130,12 +119,11 @@ app.post('/import', async (c) => {
 
   for (const personaData of body.personas) {
     if (!personaData.name) {
-      continue; // Skip invalid entries
+      continue;
     }
 
     const newPersona = {
       id: crypto.randomUUID(),
-      userId: user.id,
       name: personaData.name,
       definition: {
         identity: personaData.identity || '',

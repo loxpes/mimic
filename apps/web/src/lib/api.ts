@@ -162,21 +162,11 @@ export interface ImportObjectiveInput {
 // API Functions
 // ============================================================================
 
-import { getAccessToken } from './supabase';
-
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  // Get access token for authenticated requests
-  const token = await getAccessToken();
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options?.headers as Record<string, string>),
   };
-
-  // Add Authorization header if we have a token
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -185,12 +175,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-
-    // If unauthorized, the auth context will handle redirect
-    if (response.status === 401) {
-      throw new Error('Session expired. Please sign in again.');
-    }
-
     throw new Error(error.error || error.message || `HTTP ${response.status}`);
   }
 
@@ -638,20 +622,16 @@ export const sessionChainsApi = {
 // ============================================================================
 
 export interface AppSettings {
-  llmProvider: 'anthropic' | 'openai' | 'claude-cli' | 'google';
+  llmProvider: 'anthropic' | 'openai' | 'google';
   llmModel: string;
   hasAnthropicKey: boolean;
   hasOpenaiKey: boolean;
   hasGoogleKey: boolean;
-  encryptionConfigured: boolean;
 }
 
 export interface UpdateSettingsInput {
-  llmProvider?: 'anthropic' | 'openai' | 'claude-cli' | 'google';
+  llmProvider?: 'anthropic' | 'openai' | 'google';
   llmModel?: string;
-  anthropicApiKey?: string | null;
-  openaiApiKey?: string | null;
-  googleApiKey?: string | null;
 }
 
 export const settingsApi = {

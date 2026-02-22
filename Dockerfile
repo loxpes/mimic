@@ -2,13 +2,13 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Forzar NODE_ENV=development para instalar devDependencies (typescript, etc.)
+# Force NODE_ENV=development to install devDependencies (typescript, etc.)
 ENV NODE_ENV=development
 
-# Instalar pnpm
+# Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-# Copiar archivos de dependencias
+# Copy dependency files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
@@ -17,17 +17,11 @@ COPY packages/core/package.json ./packages/core/
 COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
 
-# Instalar TODAS las dependencias (incluyendo devDependencies para tsc)
+# Install ALL dependencies (including devDependencies for tsc)
 RUN pnpm install --frozen-lockfile
 
-# Copiar código fuente
+# Copy source code
 COPY . .
-
-# Variables VITE_* necesarias en build time (Vite las inyecta en el bundle JS)
-ARG VITE_SUPABASE_URL
-ARG VITE_SUPABASE_ANON_KEY
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
 # Build packages sequentially to ensure proper dependency order
 RUN pnpm -r --workspace-concurrency=1 build
@@ -35,7 +29,7 @@ RUN pnpm -r --workspace-concurrency=1 build
 # --- Production stage ---
 FROM node:20-slim AS runner
 
-# Dependencias para Playwright/Chromium + gosu para entrypoint
+# Dependencies for Playwright/Chromium + gosu for entrypoint
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -57,32 +51,28 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-# Instalar pnpm
+# Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-# Instalar Claude CLI globalmente
-RUN npm install -g @anthropic-ai/claude-code
-
-# Copiar desde builder
+# Copy from builder
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps ./apps
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/config ./config
 
-# Crear directorio para datos persistentes
+# Create persistent data directory
 RUN mkdir -p /app/data
 
-# Crear usuario no-root con home directory y dar permisos
+# Create non-root user with home directory
 RUN groupadd -r nodeuser && useradd -r -g nodeuser -m -d /home/nodeuser nodeuser \
     && chown -R nodeuser:nodeuser /app /home/nodeuser
 
-# Copiar y configurar entrypoint script
+# Copy and configure entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 4001
 
-# Ejecutar como root para poder cambiar permisos, luego switch a nodeuser
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "apps/api/dist/index.js"]

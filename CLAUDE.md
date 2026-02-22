@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TestFarm is an AI-powered browser testing agent farm. The LLM serves as the "brain" that decides how to interact with websites using an **Observe-Decide-Act** loop:
+Mimic is an AI-powered browser testing agent farm. The LLM serves as the "brain" that decides how to interact with websites using an **Observe-Decide-Act** loop:
 - **OBSERVE**: Extract structured DOM + optional screenshots
 - **DECIDE**: LLM analyzes context (persona + objective + page state)
 - **ACT**: Playwright executes the LLM's decision
@@ -29,12 +29,11 @@ pnpm build                # Build all packages (tsc compilation)
 pnpm typecheck            # Type check all packages (tsc --noEmit)
 
 # Development servers
-pnpm dev:api              # API server on localhost:3001 (hot reload)
+pnpm dev:api              # API server on localhost:4001 (hot reload)
 pnpm dev:web              # Web dashboard on localhost:5173 (Vite)
 
 # Database
 pnpm db:generate          # Drizzle schema generation
-pnpm db:migrate           # Run migrations
 pnpm db:studio            # Drizzle Studio UI
 
 # Package-specific builds
@@ -66,15 +65,13 @@ apps/
 
 ### Key Patterns
 
-1. **Multi-Provider LLM Client**: Vercel AI SDK abstracts Anthropic, OpenAI, Ollama, and custom providers. Claude CLI provider uses subprocess for token counting.
+1. **Multi-Provider LLM Client**: Vercel AI SDK abstracts Anthropic, OpenAI, and Google providers. Claude CLI provider uses subprocess for token counting.
 
-2. **Token-Efficient DOM Extraction**: Vision system extracts actionable elements with IDs ("e15"), maps to page regions, and summarizes text to save tokens.
+2. **Token-Efficient DOM Extraction**: Vision system extracts actionable elements with IDs, maps to page regions, and summarizes text to save tokens.
 
 3. **Real-time SSE**: API streams session events (action, finding, heartbeat) to frontend with 30-second heartbeat.
 
-4. **Configuration as Code**: Personas and objectives defined in YAML files under `config/personas/` and `config/objectives/`.
-
-5. **Database Schema**: `personas → sessions ← objectives` with related `events` and `findings` tables.
+4. **Database**: SQLite via better-sqlite3 + Drizzle ORM. Auto-created at `data/testfarm.db`. No authentication — single-user local tool.
 
 ### Technology Stack
 
@@ -101,7 +98,7 @@ apps/
 
 ### Adding Database Table
 1. Update `packages/db/src/schema.ts`
-2. Delete `data/testfarm.db` to reset (or run migrations)
+2. Add CREATE TABLE to `packages/db/src/client.ts` initializeDb()
 3. Rebuild: `pnpm --filter @testfarm/db build`
 
 ### Adding Agent Action
@@ -120,56 +117,13 @@ apps/
 ## Environment Variables
 
 ```bash
-# LLM Providers
-ANTHROPIC_API_KEY=sk-ant-...   # For Anthropic API provider
-OPENAI_API_KEY=sk-...          # For OpenAI provider
-GOOGLE_API_KEY=AIza...         # For Google Gemini
-OLLAMA_BASE_URL=http://localhost:11434/v1
+# LLM Providers (at least one required)
+ANTHROPIC_API_KEY=sk-ant-...   # For Claude
+OPENAI_API_KEY=sk-...          # For GPT
+GOOGLE_API_KEY=AIza...         # For Gemini
 
-# Claude CLI Provider (Recommended for Docker)
-CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...  # OAuth token for automated auth
-LLM_PROVIDER=claude-cli                    # Default provider
-LLM_MODEL=claude-sonnet-4-20250514         # Default model
-
-# Server
-PORT=3001                       # API server port
-ENCRYPTION_KEY=...              # For encrypting user API keys in DB
+# Optional
+LLM_PROVIDER=anthropic         # Default provider
+LLM_MODEL=claude-sonnet-4-20250514  # Default model
+PORT=4001                      # API server port
 ```
-
-### Authentication Strategy
-
-**System credentials (env vars):**
-- Invisible to users
-- Used as fallback when user has no DB key
-- Configured in deployment (Coolify/Docker)
-
-**User credentials (DB):**
-- Configured in Settings UI
-- Stored encrypted
-- Take priority over system credentials
-
-### Claude CLI Authentication in Docker/Coolify
-
-The `claude-cli` provider requires authentication. For deployments:
-
-1. **Generate token locally:**
-   ```bash
-   npm install -g @anthropic-ai/claude-code
-   claude setup-token
-   # Copy the generated token
-   ```
-
-2. **Configure in Coolify:**
-   - Add environment variable: `CLAUDE_CODE_OAUTH_TOKEN=your-token`
-   - API will create `~/.claude.json` automatically on startup
-
-3. **Verify in logs:**
-   ```
-   [Claude Setup] Token detected, configuring automated auth...
-   [Claude Setup] ✅ Successfully configured for automated auth
-   ```
-
-**Troubleshooting:**
-- `Permission denied ~/.claude.json` → User lacks permissions in home directory
-- Token set but still asks for auth → Check `[Claude Setup]` logs
-- `Claude CLI not found` → CLI not installed in Docker image

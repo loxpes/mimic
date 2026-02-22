@@ -1,8 +1,8 @@
 {
   "name": "@testfarm/db",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Database layer for TestFarm (PostgreSQL/Supabase)",
+  "description": "Database layer for Mimic (SQLite)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,11 +27,11 @@
     "studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.0",
-    "drizzle-orm": "^0.36.0",
-    "postgres": "^3.4.4"
+    "better-sqlite3": "^11.0.0",
+    "drizzle-orm": "^0.36.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
     "drizzle-kit": "^0.28.0",
     "typescript": "^5.7.0"
   }
