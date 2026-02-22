@@ -14,7 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { projectsApi, type Project } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
@@ -23,6 +22,7 @@ import {
   Plus,
   ExternalLink,
   Trash2,
+  Pencil,
   AlertTriangle,
   CheckCircle2,
   XCircle,
@@ -34,8 +34,9 @@ import {
 export function Projects() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', targetUrl: '', description: '' });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [formData, setFormData] = useState({ name: '', targetUrl: '', description: '' });
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
@@ -46,8 +47,19 @@ export function Projects() {
     mutationFn: projectsApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      setIsCreateOpen(false);
-      setNewProject({ name: '', targetUrl: '', description: '' });
+      setIsDialogOpen(false);
+      setFormData({ name: '', targetUrl: '', description: '' });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { name?: string; description?: string; targetUrl?: string } }) =>
+      projectsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setIsDialogOpen(false);
+      setSelectedProject(null);
+      setFormData({ name: '', targetUrl: '', description: '' });
     },
   });
 
@@ -59,10 +71,39 @@ export function Projects() {
   });
 
   const handleCreate = () => {
-    if (newProject.name && newProject.targetUrl) {
-      createMutation.mutate(newProject);
+    setSelectedProject(null);
+    setFormData({ name: '', targetUrl: '', description: '' });
+    setIsDialogOpen(true);
+  };
+
+  const handleEdit = (project: Project) => {
+    setSelectedProject(project);
+    setFormData({
+      name: project.name,
+      targetUrl: project.targetUrl,
+      description: project.description || '',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name || !formData.targetUrl) return;
+
+    if (selectedProject) {
+      updateMutation.mutate({
+        id: selectedProject.id,
+        data: {
+          name: formData.name,
+          targetUrl: formData.targetUrl,
+          description: formData.description,
+        },
+      });
+    } else {
+      createMutation.mutate(formData);
     }
   };
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   if (isLoading) {
     return (
@@ -79,64 +120,65 @@ export function Projects() {
           <h1 className="text-3xl font-bold">{t('projects.title')}</h1>
           <p className="text-muted-foreground">{t('projects.subtitle')}</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              {t('projects.newProject')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('projects.createProject')}</DialogTitle>
-              <DialogDescription>
-                {t('projects.noProjectsDesc')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('projects.projectName')}</Label>
-                <Input
-                  id="name"
-                  value={newProject.name}
-                  onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                  placeholder="e.g., Evy Chat Testing"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="targetUrl">{t('projects.targetUrl')}</Label>
-                <Input
-                  id="targetUrl"
-                  value={newProject.targetUrl}
-                  onChange={(e) => setNewProject({ ...newProject, targetUrl: e.target.value })}
-                  placeholder="https://app.example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">{t('common.description')}</Label>
-                <Input
-                  id="description"
-                  value={newProject.description}
-                  onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                  placeholder={t('common.description')}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button
-                onClick={handleCreate}
-                disabled={!newProject.name || !newProject.targetUrl || createMutation.isPending}
-              >
-                {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {t('projects.createProject')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={handleCreate}>
+          <Plus className="h-4 w-4 mr-2" />
+          {t('projects.newProject')}
+        </Button>
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedProject ? t('projects.editProject') : t('projects.createProject')}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedProject ? t('projects.editProjectDesc') : t('projects.noProjectsDesc')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">{t('projects.projectName')}</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Evy Chat Testing"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="targetUrl">{t('projects.targetUrl')}</Label>
+              <Input
+                id="targetUrl"
+                value={formData.targetUrl}
+                onChange={(e) => setFormData({ ...formData, targetUrl: e.target.value })}
+                placeholder="https://app.example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">{t('common.description')}</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder={t('common.description')}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!formData.name || !formData.targetUrl || isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {selectedProject ? t('common.save') : t('projects.createProject')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {projects.length === 0 ? (
         <Card>
@@ -146,7 +188,7 @@ export function Projects() {
             <p className="text-muted-foreground text-center mb-4">
               {t('projects.noProjectsDesc')}
             </p>
-            <Button onClick={() => setIsCreateOpen(true)}>
+            <Button onClick={handleCreate}>
               <Plus className="h-4 w-4 mr-2" />
               {t('projects.createProject')}
             </Button>
@@ -158,6 +200,7 @@ export function Projects() {
             <ProjectCard
               key={project.id}
               project={project}
+              onEdit={() => handleEdit(project)}
               onDelete={() => deleteMutation.mutate(project.id)}
             />
           ))}
@@ -167,7 +210,7 @@ export function Projects() {
   );
 }
 
-function ProjectCard({ project, onDelete }: { project: Project; onDelete: () => void }) {
+function ProjectCard({ project, onEdit, onDelete }: { project: Project; onEdit: () => void; onDelete: () => void }) {
   const { t } = useTranslation();
   const stats = project.stats;
 
@@ -266,6 +309,13 @@ function ProjectCard({ project, onDelete }: { project: Project; onDelete: () => 
               {t('common.view')}
             </Button>
           </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onEdit}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

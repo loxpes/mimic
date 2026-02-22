@@ -159,6 +159,7 @@ app.patch('/:id', async (c) => {
   };
 
   if (body.name !== undefined) updates.name = body.name;
+  if (body.targetUrl !== undefined) updates.targetUrl = body.targetUrl;
   if (body.status !== undefined) updates.status = body.status;
   if (body.schedule !== undefined) updates.schedule = body.schedule;
   if (body.projectId !== undefined) updates.projectId = body.projectId;

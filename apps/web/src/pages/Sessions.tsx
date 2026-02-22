@@ -5,8 +5,26 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { sessionsApi, personasApi, objectivesApi, type CreateSessionInput, type CreateBatchSessionInput } from '@/lib/api';
-import { Rocket, ExternalLink, Play, XCircle, Trash2, Eye, RotateCcw } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  sessionsApi,
+  personasApi,
+  objectivesApi,
+  type Session,
+  type CreateSessionInput,
+  type CreateBatchSessionInput,
+  type UpdateSessionInput,
+} from '@/lib/api';
+import { Rocket, ExternalLink, Play, XCircle, Trash2, Eye, RotateCcw, Pencil, Loader2 } from 'lucide-react';
 import { LocalhostWarning } from '@/components/shared/LocalhostWarning';
 import { toast } from '@/components/shared/Toast';
 
@@ -15,6 +33,8 @@ export function Sessions() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [editForm, setEditForm] = useState<UpdateSessionInput>({});
 
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ['sessions'],
@@ -44,6 +64,16 @@ export function Sessions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
       setShowCreate(false);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateSessionInput }) =>
+      sessionsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      setEditingSession(null);
+      setEditForm({});
     },
   });
 
@@ -109,6 +139,21 @@ export function Sessions() {
     }
   };
 
+  const handleEdit = (session: Session) => {
+    setEditingSession(session);
+    setEditForm({
+      targetUrl: session.targetUrl,
+      personaId: session.personaId,
+      objectiveId: session.objectiveId,
+    });
+  };
+
+  const handleEditSubmit = () => {
+    if (editingSession && editForm.targetUrl) {
+      updateMutation.mutate({ id: editingSession.id, data: editForm });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -155,6 +200,63 @@ export function Sessions() {
           isLoading={createMutation.isPending || createBatchMutation.isPending}
         />
       )}
+
+      {/* Edit Session Dialog */}
+      <Dialog open={!!editingSession} onOpenChange={(open) => { if (!open) setEditingSession(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('sessions.editSession')}</DialogTitle>
+            <DialogDescription>{t('sessions.editSessionDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{t('sessions.targetUrl')}</Label>
+              <Input
+                type="url"
+                value={editForm.targetUrl || ''}
+                onChange={(e) => setEditForm({ ...editForm, targetUrl: e.target.value })}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('sessions.persona')}</Label>
+              <select
+                value={editForm.personaId || ''}
+                onChange={(e) => setEditForm({ ...editForm, personaId: e.target.value })}
+                className="w-full px-3 py-2 rounded-md border bg-background"
+              >
+                {personas.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('sessions.objective')}</Label>
+              <select
+                value={editForm.objectiveId || ''}
+                onChange={(e) => setEditForm({ ...editForm, objectiveId: e.target.value })}
+                className="w-full px-3 py-2 rounded-md border bg-background"
+              >
+                {objectives.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSession(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleEditSubmit}
+              disabled={!editForm.targetUrl || updateMutation.isPending}
+            >
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Sessions List */}
       {isLoading ? (
@@ -239,15 +341,25 @@ export function Sessions() {
                   {/* Actions */}
                   <div className="col-span-2 flex items-center justify-end gap-1">
                     {session.state.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => startMutation.mutate(session.id)}
-                        disabled={startMutation.isPending}
-                        title={t('common.start')}
-                      >
-                        <Play className="h-4 w-4" />
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEdit(session)}
+                          title={t('sessions.editSession')}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => startMutation.mutate(session.id)}
+                          disabled={startMutation.isPending}
+                          title={t('common.start')}
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                     {session.state.status === 'running' && (
                       <Button

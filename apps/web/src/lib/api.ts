@@ -182,9 +182,20 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 // Sessions
+export interface UpdateSessionInput {
+  targetUrl?: string;
+  personaId?: string;
+  objectiveId?: string;
+}
+
 export const sessionsApi = {
   list: () => request<Session[]>('/sessions'),
   get: (id: string) => request<Session>(`/sessions/${id}`),
+  update: (id: string, data: UpdateSessionInput) =>
+    request<Session>(`/sessions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   create: (data: CreateSessionInput) =>
     request<Session>('/sessions', {
       method: 'POST',
@@ -343,7 +354,7 @@ export const projectsApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (id: string, data: { name?: string; description?: string }) =>
+  update: (id: string, data: { name?: string; description?: string; targetUrl?: string }) =>
     request<Project>(`/projects/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -567,6 +578,7 @@ export interface CreateSessionChainInput {
 
 export interface UpdateSessionChainInput {
   name?: string;
+  targetUrl?: string;
   status?: 'active' | 'paused' | 'completed' | 'archived';
   schedule?: ChainSchedule;
   projectId?: string | null;

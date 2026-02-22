@@ -164,6 +164,33 @@ app.post('/batch', async (c) => {
   }, 201);
 });
 
+// PATCH /api/sessions/:id - Update a pending session
+app.patch('/:id', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  const db = getDb();
+
+  const sessionResult = await db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
+  const session = sessionResult[0];
+  if (!session) {
+    return c.json({ error: 'Session not found' }, 404);
+  }
+
+  if (session.state.status !== 'pending') {
+    return c.json({ error: 'Only pending sessions can be edited' }, 400);
+  }
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (body.targetUrl) updates.targetUrl = body.targetUrl;
+  if (body.personaId) updates.personaId = body.personaId;
+  if (body.objectiveId) updates.objectiveId = body.objectiveId;
+
+  await db.update(sessions).set(updates).where(eq(sessions.id, id));
+
+  const updated = await db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
+  return c.json(updated[0]);
+});
+
 // POST /api/sessions/:id/start - Start a session
 app.post('/:id/start', async (c) => {
   const id = c.req.param('id');

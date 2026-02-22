@@ -221,6 +221,7 @@ app.patch('/:id', async (c) => {
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (name) updates.name = name;
   if (description !== undefined) updates.description = description;
+  if (body.targetUrl) updates.targetUrl = body.targetUrl;
 
   await getDb().update(projects).set(updates).where(eq(projects.id, id));
 

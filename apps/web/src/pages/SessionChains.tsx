@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import {
   objectivesApi,
   projectsApi,
   type CreateSessionChainInput,
+  type UpdateSessionChainInput,
   type SessionChain,
   type Project,
 } from '@/lib/api';
@@ -24,6 +25,7 @@ import {
   PlayCircle,
   Trash2,
   Eye,
+  Pencil,
   Calendar,
   TrendingUp,
   TrendingDown,
@@ -35,6 +37,7 @@ export function SessionChains() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+  const [editingChain, setEditingChain] = useState<SessionChain | null>(null);
 
   const { data: chains = [], isLoading } = useQuery({
     queryKey: ['session-chains'],
@@ -61,6 +64,15 @@ export function SessionChains() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['session-chains'] });
       setShowCreate(false);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateSessionChainInput }) =>
+      sessionChainsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['session-chains'] });
+      setEditingChain(null);
     },
   });
 
@@ -98,6 +110,16 @@ export function SessionChains() {
     },
   });
 
+  const handleEdit = (chain: SessionChain) => {
+    setShowCreate(false);
+    setEditingChain(chain);
+  };
+
+  const handleCreate = () => {
+    setEditingChain(null);
+    setShowCreate(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -106,7 +128,7 @@ export function SessionChains() {
           <h1 className="text-3xl font-bold tracking-tight">{t('sessionChains.title')}</h1>
           <p className="text-muted-foreground">{t('sessionChains.subtitle')}</p>
         </div>
-        <Button onClick={() => setShowCreate(!showCreate)}>
+        <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
           {t('sessionChains.newChain')}
         </Button>
@@ -139,6 +161,20 @@ export function SessionChains() {
         />
       )}
 
+      {/* Edit Form */}
+      {editingChain && (
+        <CreateChainForm
+          personas={personas}
+          objectives={objectives}
+          projects={projects}
+          chain={editingChain}
+          onSubmit={() => {}}
+          onUpdate={(data) => updateMutation.mutate({ id: editingChain.id, data })}
+          onCancel={() => setEditingChain(null)}
+          isLoading={updateMutation.isPending}
+        />
+      )}
+
       {/* Chains List */}
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">{t('common.loading')}</div>
@@ -150,7 +186,7 @@ export function SessionChains() {
             <p className="text-sm text-muted-foreground mt-1">
               {t('sessionChains.noChainsDesc')}
             </p>
-            <Button className="mt-4" onClick={() => setShowCreate(true)}>
+            <Button className="mt-4" onClick={handleCreate}>
               <Plus className="mr-2 h-4 w-4" />
               {t('sessionChains.newChain')}
             </Button>
@@ -165,6 +201,7 @@ export function SessionChains() {
               onContinue={() => continueMutation.mutate(chain.id)}
               onPause={() => pauseMutation.mutate(chain.id)}
               onResume={() => resumeMutation.mutate(chain.id)}
+              onEdit={() => handleEdit(chain)}
               onDelete={() => deleteMutation.mutate(chain.id)}
               isLoading={
                 continueMutation.isPending ||
@@ -185,11 +222,12 @@ interface ChainCardProps {
   onContinue: () => void;
   onPause: () => void;
   onResume: () => void;
+  onEdit: () => void;
   onDelete: () => void;
   isLoading: boolean;
 }
 
-function ChainCard({ chain, onContinue, onPause, onResume, onDelete, isLoading }: ChainCardProps) {
+function ChainCard({ chain, onContinue, onPause, onResume, onEdit, onDelete, isLoading }: ChainCardProps) {
   const { t } = useTranslation();
 
   const getTrendIcon = (trend: string | null | undefined) => {
@@ -306,6 +344,9 @@ function ChainCard({ chain, onContinue, onPause, onResume, onDelete, isLoading }
               <Eye className="h-4 w-4" />
             </Link>
           </Button>
+          <Button size="sm" variant="ghost" onClick={onEdit} disabled={isLoading}>
+            <Pencil className="h-4 w-4" />
+          </Button>
           <Button size="sm" variant="ghost" onClick={onDelete} disabled={isLoading}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
@@ -319,23 +360,41 @@ interface CreateChainFormProps {
   personas: { id: string; name: string }[];
   objectives: { id: string; name: string }[];
   projects: Project[];
+  chain?: SessionChain;
   onSubmit: (data: CreateSessionChainInput) => void;
+  onUpdate?: (data: UpdateSessionChainInput) => void;
   onCancel: () => void;
   isLoading: boolean;
   defaultProjectId?: string;
 }
 
-function CreateChainForm({ personas, objectives, projects, onSubmit, onCancel, isLoading, defaultProjectId }: CreateChainFormProps) {
+function CreateChainForm({ personas, objectives, projects, chain, onSubmit, onUpdate, onCancel, isLoading, defaultProjectId }: CreateChainFormProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState('');
-  const [targetUrl, setTargetUrl] = useState('');
-  const [personaId, setPersonaId] = useState(personas[0]?.id || '');
-  const [objectiveId, setObjectiveId] = useState(objectives[0]?.id || '');
-  const [projectId, setProjectId] = useState(defaultProjectId || '');
+  const isEditMode = !!chain;
+  const [name, setName] = useState(chain?.name || '');
+  const [targetUrl, setTargetUrl] = useState(chain?.targetUrl || '');
+  const [personaId, setPersonaId] = useState(chain?.personaId || personas[0]?.id || '');
+  const [objectiveId, setObjectiveId] = useState(chain?.objectiveId || objectives[0]?.id || '');
+  const [projectId, setProjectId] = useState(chain?.projectId || defaultProjectId || '');
+
+  useEffect(() => {
+    if (chain) {
+      setName(chain.name || '');
+      setTargetUrl(chain.targetUrl || '');
+      setPersonaId(chain.personaId || '');
+      setObjectiveId(chain.objectiveId || '');
+      setProjectId(chain.projectId || '');
+    }
+  }, [chain]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (targetUrl && personaId && objectiveId) {
+    if (isEditMode && onUpdate) {
+      onUpdate({
+        name: name || undefined,
+        targetUrl,
+      });
+    } else if (targetUrl && personaId && objectiveId) {
       const language = localStorage.getItem('testfarm_language') || 'es';
       onSubmit({
         name: name || undefined,
@@ -351,8 +410,8 @@ function CreateChainForm({ personas, objectives, projects, onSubmit, onCancel, i
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('sessionChains.createChain')}</CardTitle>
-        <CardDescription>{t('sessionChains.createChainDesc')}</CardDescription>
+        <CardTitle>{isEditMode ? t('sessionChains.editChain') : t('sessionChains.createChain')}</CardTitle>
+        <CardDescription>{isEditMode ? t('sessionChains.editChainDesc') : t('sessionChains.createChainDesc')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -378,58 +437,62 @@ function CreateChainForm({ personas, objectives, projects, onSubmit, onCancel, i
                 required
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('sessions.persona')}</label>
-              <select
-                value={personaId}
-                onChange={(e) => setPersonaId(e.target.value)}
-                className="w-full px-3 py-2 rounded-md border bg-background"
-                required
-              >
-                {personas.length === 0 ? (
-                  <option value="">{t('sessions.noPersonas')}</option>
-                ) : (
-                  personas.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))
-                )}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('sessions.objective')}</label>
-              <select
-                value={objectiveId}
-                onChange={(e) => setObjectiveId(e.target.value)}
-                className="w-full px-3 py-2 rounded-md border bg-background"
-                required
-              >
-                {objectives.length === 0 ? (
-                  <option value="">{t('sessions.noObjectives')}</option>
-                ) : (
-                  objectives.map((o) => (
-                    <option key={o.id} value={o.id}>{o.name}</option>
-                  ))
-                )}
-              </select>
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-medium">{t('projectDetail.project')}</label>
-              <select
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                className="w-full px-3 py-2 rounded-md border bg-background"
-              >
-                <option value="">{t('projectDetail.noProject')}</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
+            {!isEditMode && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t('sessions.persona')}</label>
+                  <select
+                    value={personaId}
+                    onChange={(e) => setPersonaId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md border bg-background"
+                    required
+                  >
+                    {personas.length === 0 ? (
+                      <option value="">{t('sessions.noPersonas')}</option>
+                    ) : (
+                      personas.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t('sessions.objective')}</label>
+                  <select
+                    value={objectiveId}
+                    onChange={(e) => setObjectiveId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md border bg-background"
+                    required
+                  >
+                    {objectives.length === 0 ? (
+                      <option value="">{t('sessions.noObjectives')}</option>
+                    ) : (
+                      objectives.map((o) => (
+                        <option key={o.id} value={o.id}>{o.name}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm font-medium">{t('projectDetail.project')}</label>
+                  <select
+                    value={projectId}
+                    onChange={(e) => setProjectId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md border bg-background"
+                  >
+                    <option value="">{t('projectDetail.noProject')}</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
             <Button type="submit" disabled={isLoading || !targetUrl}>
-              {isLoading ? t('common.creating') : t('sessionChains.createChain')}
+              {isEditMode ? t('common.save') : isLoading ? t('sessions.creating') : t('sessionChains.createChain')}
             </Button>
           </div>
         </form>
