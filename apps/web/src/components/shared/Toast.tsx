@@ -65,10 +65,10 @@ export function Toaster() {
       {currentToasts.map((t) => (
         <div
           key={t.id}
-          className={`pointer-events-auto rounded-lg border px-4 py-3 shadow-lg text-sm flex items-start gap-3 animate-in slide-in-from-right-full duration-300 ${
+          className={`pointer-events-auto rounded-lcars-sm bg-lcars-panel px-4 py-3 shadow-lg text-sm flex items-start gap-3 animate-in slide-in-from-right-full duration-300 ${
             t.type === 'error'
-              ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-200'
-              : 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-200'
+              ? 'border-l-4 border-destructive text-destructive'
+              : 'border-l-4 border-lcars-cyan text-lcars-cyan'
           }`}
           role="alert"
         >
@@ -83,10 +83,10 @@ export function Toaster() {
               </svg>
             )}
           </span>
-          <span className="flex-1 break-words">{t.message}</span>
+          <span className="flex-1 break-words text-lcars-cream">{t.message}</span>
           <button
             onClick={() => handleDismiss(t.id)}
-            className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"
+            className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity text-lcars-cream"
             aria-label="Dismiss notification"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

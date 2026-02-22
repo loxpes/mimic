@@ -31,21 +31,27 @@ const resources = {
         type: 'Tipo',
         severity: 'Severidad',
       },
+      // Navigation groups
+      navGroup: {
+        command: 'Operaciones',
+        personnel: 'Agentes',
+        ship: 'Sistema',
+      },
       // Navigation
       nav: {
         dashboard: 'Panel',
         projects: 'Proyectos',
         sessions: 'Sesiones',
-        sessionChains: 'Cadenas de Sesión',
+        sessionChains: 'Cadenas',
         personas: 'Personas',
         objectives: 'Objetivos',
-        features: 'Características',
+        features: 'Funcionalidades',
         settings: 'Configuración',
       },
       // Dashboard
       dashboard: {
         title: 'Panel',
-        welcome: 'Bienvenido a TestFarm - Granja de agentes de pruebas con IA',
+        welcome: 'Bienvenido a Mimic — Plataforma de pruebas de navegador con IA',
         totalSessions: 'Total Sesiones',
         activeSessions: 'Sesiones Activas',
         personas: 'Personas',
@@ -260,7 +266,7 @@ const resources = {
       // Settings
       settings: {
         title: 'Configuración',
-        subtitle: 'Configura las preferencias de TestFarm',
+        subtitle: 'Configura las preferencias de Mimic',
         language: 'Idioma',
         agentLanguage: 'Idioma del Agente',
         agentLanguageDesc: 'Selecciona el idioma para las respuestas del agente. El agente de IA usará este idioma para todo su razonamiento, descubrimientos, frustraciones e informes.',
@@ -282,8 +288,8 @@ const resources = {
       },
       // Features
       features: {
-        title: 'Características de TestFarm',
-        subtitle: 'Pruebas de navegador con IA donde el LLM es el cerebro. Agentes con personalidades únicas interactúan con sitios web naturalmente, descubriendo problemas reales de experiencia de usuario.',
+        title: 'Funcionalidades de Mimic',
+        subtitle: 'Pruebas de navegador con IA donde el LLM es el cerebro. Agentes con personalidades únicas interactúan con sitios web, descubriendo problemas reales de experiencia de usuario.',
         startTesting: 'Comenzar a Probar',
         viewSource: 'Ver Código',
         coreFeatures: 'Características Principales',
@@ -478,12 +484,18 @@ const resources = {
         type: 'Type',
         severity: 'Severity',
       },
+      // Navigation groups
+      navGroup: {
+        command: 'Operations',
+        personnel: 'Agents',
+        ship: 'System',
+      },
       // Navigation
       nav: {
         dashboard: 'Dashboard',
         projects: 'Projects',
         sessions: 'Sessions',
-        sessionChains: 'Session Chains',
+        sessionChains: 'Chains',
         personas: 'Personas',
         objectives: 'Objectives',
         features: 'Features',
@@ -492,7 +504,7 @@ const resources = {
       // Dashboard
       dashboard: {
         title: 'Dashboard',
-        welcome: 'Welcome to TestFarm - AI-powered browser testing agent farm',
+        welcome: 'Welcome to Mimic — AI-powered browser testing agent farm',
         totalSessions: 'Total Sessions',
         activeSessions: 'Active Sessions',
         personas: 'Personas',
@@ -707,7 +719,7 @@ const resources = {
       // Settings
       settings: {
         title: 'Settings',
-        subtitle: 'Configure TestFarm preferences',
+        subtitle: 'Configure Mimic preferences',
         language: 'Language',
         agentLanguage: 'Agent Language',
         agentLanguageDesc: 'Select the language for agent responses. The AI agent will use this language for all its reasoning, discoveries, frustrations, and reports.',
@@ -729,7 +741,7 @@ const resources = {
       },
       // Features
       features: {
-        title: 'TestFarm Features',
+        title: 'Mimic Features',
         subtitle: 'AI-powered browser testing where the LLM is the brain. Agents with unique personalities interact with websites naturally, discovering real user experience issues.',
         startTesting: 'Start Testing',
         viewSource: 'View Source',
@@ -925,21 +937,27 @@ const resources = {
         type: 'Tipo',
         severity: 'Severidade',
       },
+      // Navigation groups
+      navGroup: {
+        command: 'Operações',
+        personnel: 'Agentes',
+        ship: 'Sistema',
+      },
       // Navigation
       nav: {
         dashboard: 'Painel',
         projects: 'Projetos',
         sessions: 'Sessões',
-        sessionChains: 'Cadeias de Sessão',
+        sessionChains: 'Cadeias',
         personas: 'Personas',
         objectives: 'Objetivos',
-        features: 'Recursos',
+        features: 'Funcionalidades',
         settings: 'Configurações',
       },
       // Dashboard
       dashboard: {
         title: 'Painel',
-        welcome: 'Bem-vindo ao TestFarm - Fazenda de agentes de teste com IA',
+        welcome: 'Bem-vindo ao Mimic — Plataforma de testes de navegador com IA',
         totalSessions: 'Total de Sessões',
         activeSessions: 'Sessões Ativas',
         personas: 'Personas',
@@ -1154,7 +1172,7 @@ const resources = {
       // Settings
       settings: {
         title: 'Configurações',
-        subtitle: 'Configure as preferências do TestFarm',
+        subtitle: 'Configure as preferências do Mimic',
         language: 'Idioma',
         agentLanguage: 'Idioma do Agente',
         agentLanguageDesc: 'Selecione o idioma para as respostas do agente. O agente de IA usará este idioma para todo seu raciocínio, descobertas, frustrações e relatórios.',
@@ -1176,7 +1194,7 @@ const resources = {
       },
       // Features
       features: {
-        title: 'Recursos do TestFarm',
+        title: 'Funcionalidades do Mimic',
         subtitle: 'Testes de navegador com IA onde o LLM é o cérebro. Agentes com personalidades únicas interagem com sites naturalmente, descobrindo problemas reais de experiência do usuário.',
         startTesting: 'Começar a Testar',
         viewSource: 'Ver Código',
@@ -1365,12 +1383,18 @@ const resources = {
         type: 'Type',
         severity: 'Sévérité',
       },
+      // Navigation groups
+      navGroup: {
+        command: 'Opérations',
+        personnel: 'Agents',
+        ship: 'Système',
+      },
       // Navigation
       nav: {
         dashboard: 'Tableau de bord',
         projects: 'Projets',
         sessions: 'Sessions',
-        sessionChains: 'Chaînes de Session',
+        sessionChains: 'Chaînes',
         personas: 'Personas',
         objectives: 'Objectifs',
         features: 'Fonctionnalités',
@@ -1379,7 +1403,7 @@ const resources = {
       // Dashboard
       dashboard: {
         title: 'Tableau de bord',
-        welcome: 'Bienvenue sur TestFarm - Ferme d\'agents de test alimentée par l\'IA',
+        welcome: 'Bienvenue sur Mimic — Plateforme de tests de navigateur avec IA',
         totalSessions: 'Total Sessions',
         activeSessions: 'Sessions Actives',
         personas: 'Personas',
@@ -1594,7 +1618,7 @@ const resources = {
       // Settings
       settings: {
         title: 'Paramètres',
-        subtitle: 'Configurez les préférences TestFarm',
+        subtitle: 'Configurez les préférences Mimic',
         language: 'Langue',
         agentLanguage: 'Langue de l\'Agent',
         agentLanguageDesc: 'Sélectionnez la langue pour les réponses de l\'agent. L\'agent IA utilisera cette langue pour tous ses raisonnements, découvertes, frustrations et rapports.',
@@ -1616,7 +1640,7 @@ const resources = {
       },
       // Features
       features: {
-        title: 'Fonctionnalités TestFarm',
+        title: 'Fonctionnalités Mimic',
         subtitle: 'Tests de navigateur alimentés par l\'IA où le LLM est le cerveau. Des agents avec des personnalités uniques interagissent naturellement avec les sites web, découvrant de vrais problèmes d\'expérience utilisateur.',
         startTesting: 'Commencer les Tests',
         viewSource: 'Voir le Code',
@@ -1805,12 +1829,18 @@ const resources = {
         type: 'Typ',
         severity: 'Schweregrad',
       },
+      // Navigation groups
+      navGroup: {
+        command: 'Operationen',
+        personnel: 'Agenten',
+        ship: 'System',
+      },
       // Navigation
       nav: {
         dashboard: 'Dashboard',
         projects: 'Projekte',
         sessions: 'Sitzungen',
-        sessionChains: 'Sitzungsketten',
+        sessionChains: 'Ketten',
         personas: 'Personas',
         objectives: 'Ziele',
         features: 'Funktionen',
@@ -1819,7 +1849,7 @@ const resources = {
       // Dashboard
       dashboard: {
         title: 'Dashboard',
-        welcome: 'Willkommen bei TestFarm - KI-gestützte Browser-Test-Agenten-Farm',
+        welcome: 'Willkommen bei Mimic — KI-gestützte Browser-Test-Plattform',
         totalSessions: 'Gesamte Sitzungen',
         activeSessions: 'Aktive Sitzungen',
         personas: 'Personas',
@@ -2034,7 +2064,7 @@ const resources = {
       // Settings
       settings: {
         title: 'Einstellungen',
-        subtitle: 'TestFarm-Einstellungen konfigurieren',
+        subtitle: 'Konfigurieren Sie die Mimic-Einstellungen',
         language: 'Sprache',
         agentLanguage: 'Agenten-Sprache',
         agentLanguageDesc: 'Wählen Sie die Sprache für Agentenantworten. Der KI-Agent wird diese Sprache für alle seine Überlegungen, Entdeckungen, Frustrationen und Berichte verwenden.',
@@ -2056,7 +2086,7 @@ const resources = {
       },
       // Features
       features: {
-        title: 'TestFarm Funktionen',
+        title: 'Mimic Funktionen',
         subtitle: 'KI-gestützte Browser-Tests, bei denen das LLM das Gehirn ist. Agenten mit einzigartigen Persönlichkeiten interagieren natürlich mit Websites und entdecken echte Benutzererfahrungsprobleme.',
         startTesting: 'Tests starten',
         viewSource: 'Quellcode ansehen',

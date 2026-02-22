@@ -6,7 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { sessionsApi, personasApi, objectivesApi } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { PlayCircle, Users, Target, Activity, Plus, ArrowRight } from 'lucide-react';
+import { Rocket, Users, Target, Activity, ArrowRight } from 'lucide-react';
+
+const statColors = [
+  'border-lcars-orange/50 text-lcars-orange',
+  'border-lcars-cyan/50 text-lcars-cyan',
+  'border-lcars-lavender/50 text-lcars-lavender',
+  'border-lcars-blue/50 text-lcars-blue',
+];
 
 export function Dashboard() {
   const { t } = useTranslation();
@@ -32,14 +39,13 @@ export function Dashboard() {
     {
       key: 'totalSessions',
       value: sessions.length,
-      icon: PlayCircle,
+      icon: Rocket,
       href: '/sessions',
     },
     {
       key: 'activeSessions',
       value: activeSessions.length,
       icon: Activity,
-      color: activeSessions.length > 0 ? 'text-green-500' : undefined,
     },
     {
       key: 'personas',
@@ -60,33 +66,36 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
+          <h1 className="text-3xl font-lcars tracking-wider uppercase text-lcars-orange">{t('dashboard.title')}</h1>
           <p className="text-muted-foreground">
             {t('dashboard.welcome')}
           </p>
         </div>
         <Button asChild>
           <Link to="/sessions">
-            <Plus className="mr-2 h-4 w-4" />
+            <Rocket className="mr-2 h-4 w-4" />
             {t('sessions.newSession')}
           </Link>
         </Button>
       </div>
 
+      {/* LCARS header bar */}
+      <div className="lcars-header-bar" />
+
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.key}>
+        {stats.map((stat, i) => (
+          <Card key={stat.key} className={`border-l-4 ${statColors[i]}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{t(`dashboard.${stat.key}`)}</CardTitle>
-              <stat.icon className={`h-4 w-4 text-muted-foreground ${stat.color || ''}`} />
+              <stat.icon className={`h-4 w-4 ${statColors[i].split(' ')[1]} ${activeSessions.length > 0 && stat.key === 'activeSessions' ? 'lcars-blink' : ''}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="text-2xl font-lcars">{stat.value}</div>
               {stat.href && (
                 <Link
                   to={stat.href}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                  className="text-xs text-muted-foreground hover:text-lcars-orange transition-colors"
                 >
                   {t('common.view')} →
                 </Link>
@@ -113,7 +122,7 @@ export function Dashboard() {
         <CardContent>
           {recentSessions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <PlayCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <Rocket className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>{t('sessions.noSessions')}</p>
               <p className="text-sm">{t('sessions.noSessionsDesc')}</p>
             </div>
@@ -123,14 +132,14 @@ export function Dashboard() {
                 <Link
                   key={session.id}
                   to={`/sessions/${session.id}`}
-                  className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent transition-colors"
+                  className="flex items-center justify-between p-4 rounded-lcars-sm border border-lcars-bar hover:border-lcars-orange/30 hover:bg-lcars-orange/5 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <PlayCircle className="h-5 w-5 text-primary" />
+                    <div className="h-10 w-10 rounded-full bg-lcars-orange/10 flex items-center justify-center">
+                      <Rocket className="h-5 w-5 text-lcars-orange" />
                     </div>
                     <div>
-                      <p className="font-medium">{session.targetUrl}</p>
+                      <p className="font-medium text-lcars-cream">{session.targetUrl}</p>
                       <p className="text-sm text-muted-foreground">
                         {session.state.actionCount} {t('common.actions').toLowerCase()} • {formatDate(session.createdAt)}
                       </p>
@@ -154,11 +163,11 @@ export function Dashboard() {
           <CardContent>
             <div className="space-y-2">
               {personas.slice(0, 3).map((persona) => (
-                <div key={persona.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent">
-                  <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-                    <Users className="h-4 w-4" />
+                <div key={persona.id} className="flex items-center gap-3 p-2 rounded-lcars-sm hover:bg-lcars-lavender/10">
+                  <div className="h-8 w-8 rounded-full bg-lcars-lavender/20 flex items-center justify-center">
+                    <Users className="h-4 w-4 text-lcars-lavender" />
                   </div>
-                  <span className="font-medium">{persona.name}</span>
+                  <span className="font-medium text-lcars-cream">{persona.name}</span>
                 </div>
               ))}
               {personas.length === 0 && (
@@ -176,11 +185,11 @@ export function Dashboard() {
           <CardContent>
             <div className="space-y-2">
               {objectives.slice(0, 3).map((objective) => (
-                <div key={objective.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent">
-                  <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-                    <Target className="h-4 w-4" />
+                <div key={objective.id} className="flex items-center gap-3 p-2 rounded-lcars-sm hover:bg-lcars-blue/10">
+                  <div className="h-8 w-8 rounded-full bg-lcars-blue/20 flex items-center justify-center">
+                    <Target className="h-4 w-4 text-lcars-blue" />
                   </div>
-                  <span className="font-medium">{objective.name}</span>
+                  <span className="font-medium text-lcars-cream">{objective.name}</span>
                 </div>
               ))}
               {objectives.length === 0 && (
@@ -204,5 +213,12 @@ function StatusBadge({ status }: { status: string }) {
     cancelled: 'warning',
   };
 
-  return <Badge variant={variants[status] || 'secondary'}>{t(`status.${status}`)}</Badge>;
+  return (
+    <Badge
+      variant={variants[status] || 'secondary'}
+      className={status === 'running' ? 'lcars-blink' : ''}
+    >
+      {t(`status.${status}`)}
+    </Badge>
+  );
 }

@@ -4,48 +4,76 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    /* LCARS is always dark — black background is fundamental */
+    --background: 0 0% 0%;
+    --foreground: 36 100% 80%;
+
+    --card: 240 20% 8%;
+    --card-foreground: 36 100% 80%;
+
+    --popover: 240 20% 8%;
+    --popover-foreground: 36 100% 80%;
+
+    --primary: 36 100% 50%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 270 33% 71%;
+    --secondary-foreground: 0 0% 0%;
+
+    --muted: 240 10% 14%;
+    --muted-foreground: 36 30% 60%;
+
+    --accent: 220 33% 71%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 36 100% 50% / 0.2;
+    --input: 240 10% 20%;
+    --ring: 36 100% 50%;
     --radius: 0.5rem;
+
+    /* LCARS custom palette */
+    --lcars-orange: 36 100% 50%;
+    --lcars-lavender: 270 33% 71%;
+    --lcars-blue: 220 33% 71%;
+    --lcars-cyan: 180 60% 55%;
+    --lcars-cream: 36 100% 80%;
+    --lcars-gold: 45 100% 58%;
+    --lcars-panel: 240 20% 8%;
+    --lcars-bar: 240 10% 20%;
   }
 
+  /* LCARS is always dark — .dark identical to :root */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --background: 0 0% 0%;
+    --foreground: 36 100% 80%;
+
+    --card: 240 20% 8%;
+    --card-foreground: 36 100% 80%;
+
+    --popover: 240 20% 8%;
+    --popover-foreground: 36 100% 80%;
+
+    --primary: 36 100% 50%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 270 33% 71%;
+    --secondary-foreground: 0 0% 0%;
+
+    --muted: 240 10% 14%;
+    --muted-foreground: 36 30% 60%;
+
+    --accent: 220 33% 71%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 36 100% 50% / 0.2;
+    --input: 240 10% 20%;
+    --ring: 36 100% 50%;
   }
 }
 
@@ -55,5 +83,52 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Antonio', sans-serif;
+  }
+}
+
+/* LCARS status pulse animation */
+@keyframes lcars-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes lcars-scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@layer utilities {
+  .lcars-blink {
+    animation: lcars-pulse 1.5s ease-in-out infinite;
+  }
+
+  .lcars-header-bar {
+    @apply h-2 rounded-full;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--lcars-orange)) 0%,
+      hsl(var(--lcars-orange)) 40%,
+      hsl(var(--lcars-lavender)) 40%,
+      hsl(var(--lcars-lavender)) 70%,
+      hsl(var(--lcars-blue)) 70%,
+      hsl(var(--lcars-blue)) 100%
+    );
+  }
+
+  /* LCARS scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--lcars-panel));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--lcars-orange) / 0.4);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--lcars-orange) / 0.7);
   }
 }

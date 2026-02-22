@@ -2,8 +2,26 @@
 export default {
   darkMode: ['class'],
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  safelist: [
+    // LCARS navigation dynamic color classes
+    'bg-lcars-orange',
+    'bg-lcars-lavender',
+    'bg-lcars-blue',
+    'bg-lcars-orange/15',
+    'bg-lcars-lavender/15',
+    'bg-lcars-blue/15',
+    'text-lcars-orange',
+    'text-lcars-lavender',
+    'text-lcars-blue',
+    'border-lcars-orange',
+    'border-lcars-lavender',
+    'border-lcars-blue',
+  ],
   theme: {
     extend: {
+      fontFamily: {
+        lcars: ['Antonio', 'sans-serif'],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -38,11 +56,23 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        lcars: {
+          orange: 'hsl(var(--lcars-orange))',
+          lavender: 'hsl(var(--lcars-lavender))',
+          blue: 'hsl(var(--lcars-blue))',
+          cyan: 'hsl(var(--lcars-cyan))',
+          cream: 'hsl(var(--lcars-cream))',
+          gold: 'hsl(var(--lcars-gold))',
+          panel: 'hsl(var(--lcars-panel))',
+          bar: 'hsl(var(--lcars-bar))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        lcars: '2rem',
+        'lcars-sm': '0.75rem',
       },
     },
   },

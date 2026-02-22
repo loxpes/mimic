@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { sessionsApi, personasApi, objectivesApi, type CreateSessionInput, type CreateBatchSessionInput } from '@/lib/api';
-import { PlayCircle, Plus, ExternalLink, Play, XCircle, Trash2, Eye, RotateCcw } from 'lucide-react';
+import { Rocket, ExternalLink, Play, XCircle, Trash2, Eye, RotateCcw } from 'lucide-react';
 import { LocalhostWarning } from '@/components/shared/LocalhostWarning';
 import { toast } from '@/components/shared/Toast';
 
@@ -138,7 +138,7 @@ export function Sessions() {
             </>
           )}
           <Button onClick={() => setShowCreate(!showCreate)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Rocket className="mr-2 h-4 w-4" />
             {t('sessions.newSession')}
           </Button>
         </div>
@@ -162,7 +162,7 @@ export function Sessions() {
       ) : sessions.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
-            <PlayCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <Rocket className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground">{t('sessions.noSessions')}</p>
             <p className="text-sm text-muted-foreground">
               {t('sessions.noSessionsDesc')}
