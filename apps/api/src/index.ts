@@ -109,6 +109,13 @@ app.get('*', (c) => {
 const PORT = parseInt(process.env.PORT || '4001', 10);
 
 async function main() {
+  // Validate environment
+  const hasLLMKey = !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GOOGLE_API_KEY);
+  if (!hasLLMKey) {
+    console.warn('[WARN] No LLM API key found. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY in your .env file.');
+    console.warn('[WARN] Mimic will start but agent sessions will fail without an LLM key.');
+  }
+
   // Initialize database
   await initializeDb();
   console.log('Database initialized');

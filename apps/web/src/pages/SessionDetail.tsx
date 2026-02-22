@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { sessionsApi, eventsApi, trelloApi, type SessionEvent, type Finding } from '@/lib/api';
+import { toast } from '@/components/shared/Toast';
 import { formatDate, formatDuration } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -127,7 +128,7 @@ export function SessionDetail() {
     },
     onError: (error: Error) => {
       queryClient.invalidateQueries({ queryKey: ['session', id] });
-      window.alert(error.message);
+      toast.error(error.message);
     },
   });
 

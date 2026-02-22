@@ -1,6 +1,6 @@
 # API Reference
 
-TestFarm REST API documentation. Base URL: `http://localhost:3001`
+TestFarm REST API documentation. Base URL: `http://localhost:4001`
 
 ---
 
@@ -452,7 +452,7 @@ No rate limiting currently implemented. Be reasonable with request frequency.
 
 ```bash
 # Create session
-curl -X POST http://localhost:3001/api/sessions \
+curl -X POST http://localhost:4001/api/sessions \
   -H "Content-Type: application/json" \
   -d '{
     "personaId": "maria-jardinera",
@@ -461,14 +461,14 @@ curl -X POST http://localhost:3001/api/sessions \
   }'
 
 # Start session (use returned ID)
-curl -X POST http://localhost:3001/api/sessions/session_abc123/start
+curl -X POST http://localhost:4001/api/sessions/session_abc123/start
 ```
 
 ### Subscribe to Events (JavaScript)
 
 ```javascript
 const eventSource = new EventSource(
-  'http://localhost:3001/api/events/session_abc123/stream'
+  'http://localhost:4001/api/events/session_abc123/stream'
 );
 
 eventSource.addEventListener('update', (event) => {

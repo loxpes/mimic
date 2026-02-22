@@ -228,7 +228,7 @@ app.route('/api/reports', reports);
 pnpm --filter @testfarm/api build
 
 # Test endpoint
-curl http://localhost:3001/api/reports/session_abc123
+curl http://localhost:4001/api/reports/session_abc123
 ```
 
 ---

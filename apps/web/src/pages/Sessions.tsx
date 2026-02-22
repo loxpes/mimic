@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { sessionsApi, personasApi, objectivesApi, type CreateSessionInput, type CreateBatchSessionInput } from '@/lib/api';
 import { PlayCircle, Plus, ExternalLink, Play, XCircle, Trash2, Eye, RotateCcw } from 'lucide-react';
 import { LocalhostWarning } from '@/components/shared/LocalhostWarning';
+import { toast } from '@/components/shared/Toast';
 
 export function Sessions() {
   const { t } = useTranslation();
@@ -53,7 +54,7 @@ export function Sessions() {
     },
     onError: (error: Error) => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      window.alert(error.message);
+      toast.error(error.message);
     },
   });
 

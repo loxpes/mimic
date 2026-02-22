@@ -1,8 +1,28 @@
 # Mimic
 
+[![CI](https://github.com/loxpes/mimic/actions/workflows/ci.yml/badge.svg)](https://github.com/loxpes/mimic/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
+
 **AI Agents That Think Like Your Users**
 
 Mimic deploys intelligent browser agents with distinct personalities, technical skills, and behaviors. They navigate your web app autonomously, make decisions based on context, and surface UX issues, accessibility problems, and confusing flows — before your users encounter them.
+
+<!-- TODO: Add GIF/screenshot of the dashboard here -->
+<!-- ![Mimic Dashboard](docs/assets/dashboard-screenshot.png) -->
+
+## Why Mimic?
+
+| | Manual QA | Traditional E2E | Mimic |
+|---|---|---|---|
+| **Setup time** | None | Hours writing scripts | Minutes configuring personas |
+| **Finds unexpected issues** | Sometimes | Never (only tests what you write) | Yes (AI explores freely) |
+| **Adapts to UI changes** | Yes | Breaks constantly | Yes (AI understands context) |
+| **Tests like real users** | Depends on tester | No (rigid scripts) | Yes (persona-driven behavior) |
+| **Scales** | Expensive | Yes | Yes |
+
+Mimic doesn't replace your test suite — it complements it by finding the issues that scripted tests can't.
 
 ## Features
 
@@ -18,15 +38,18 @@ Mimic deploys intelligent browser agents with distinct personalities, technical 
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/your-org/mimic.git
+git clone https://github.com/loxpes/mimic.git
 cd mimic
 pnpm install
 
-# 2. Configure your LLM API key
-cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY (or OPENAI_API_KEY)
+# 2. Install Playwright browsers
+pnpm --filter @testfarm/core exec playwright install chromium
 
-# 3. Build and run
+# 3. Configure your LLM API key
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY (or OPENAI_API_KEY, or GOOGLE_API_KEY)
+
+# 4. Build and run
 pnpm build
 pnpm dev:api    # API + dashboard on http://localhost:4001
 ```
@@ -44,17 +67,17 @@ pnpm dev:web    # Frontend dev server on localhost:5173 (in another terminal)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                         Mimic                                │
+│                         Mimic                               │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐                  │
-│  │ Persona │ →  │   LLM   │ →  │ Browser │                  │
-│  │ Config  │    │ (Brain) │    │ (Hands) │                  │
-│  └─────────┘    └─────────┘    └─────────┘                  │
-│       ↓              ↓              ↓                        │
+│  ┌─────────┐    ┌─────────┐    ┌─────────┐                 │
+│  │ Persona │ →  │   LLM   │ →  │ Browser │                 │
+│  │ Config  │    │ (Brain) │    │ (Hands) │                 │
+│  └─────────┘    └─────────┘    └─────────┘                 │
+│       ↓              ↓              ↓                       │
 │  "Who am I?"    "What should    "Execute                    │
-│                  I do next?"     action"                     │
+│                  I do next?"     action"                    │
 ├─────────────────────────────────────────────────────────────┤
-│                  Observe → Decide → Act                      │
+│                  Observe → Decide → Act                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -95,14 +118,17 @@ PORT=4001                        # API server port
 
 You can also change the LLM provider and model from the **Settings** page in the web dashboard.
 
-## Tech Stack
-
-- **Runtime**: Node.js 20+, TypeScript 5.7
-- **Backend**: Hono, SQLite + Drizzle ORM, Playwright
-- **Frontend**: React 18, Vite, TanStack Query, Tailwind CSS
-- **LLM**: Vercel AI SDK (Claude, GPT, Gemini)
-
 ## Docker
+
+### Using Docker Compose (recommended)
+
+```bash
+cp .env.example .env
+# Edit .env with your API keys
+docker compose up -d
+```
+
+### Using Docker directly
 
 ```bash
 docker build -t mimic .
@@ -122,6 +148,7 @@ pnpm build            # Build all packages
 pnpm dev:api          # API server with hot reload
 pnpm dev:web          # Frontend dev server
 pnpm typecheck        # Type check all packages
+pnpm test             # Run tests
 ```
 
 ### Adding a New Feature
@@ -131,9 +158,13 @@ This project follows **TDD** (Test-Driven Development):
 2. Write the minimum code to make it pass
 3. Refactor while keeping tests green
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
+
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+Before contributing, please read our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

@@ -1,0 +1,14 @@
+name: Confused Elderly User
+description: An older user who struggles with modern web interfaces
+ageRange: "65-80"
+techLevel: beginner
+personality: patient, confused by jargon, prefers simple layouts
+interests:
+  - basic functionality
+  - reading content
+  - finding help
+behavior:
+  - Reads everything before clicking
+  - Gets confused by pop-ups and modals
+  - Looks for help or support links
+  - Struggles with small text and low contrast

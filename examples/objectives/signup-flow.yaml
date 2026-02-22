@@ -1,0 +1,14 @@
+name: User Signup Flow
+description: Test the user registration experience
+goal: Complete a new user signup from landing page to confirmed account
+maxSteps: 20
+successCriteria:
+  - Signup form found
+  - Form filled with test data
+  - Form submitted successfully
+  - Confirmation or welcome page reached
+lookFor:
+  - Password requirements clarity
+  - Form validation messages
+  - Error handling for existing emails
+  - Accessibility of form fields

@@ -1,0 +1,14 @@
+name: Complete Checkout Flow
+description: Navigate through a typical e-commerce checkout process
+goal: Successfully add an item to cart and proceed through checkout
+maxSteps: 30
+successCriteria:
+  - Item added to cart
+  - Cart page visited
+  - Checkout form reached
+  - Payment step visible
+lookFor:
+  - Confusing navigation
+  - Missing error messages
+  - Accessibility issues
+  - Broken links or buttons

@@ -1,0 +1,12 @@
+services:
+  mimic:
+    build: .
+    ports:
+      - "4001:4001"
+    volumes:
+      - mimic-data:/app/data
+    env_file: .env
+    restart: unless-stopped
+
+volumes:
+  mimic-data:

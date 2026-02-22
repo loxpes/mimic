@@ -1,0 +1,13 @@
+name: Curious User
+description: A tech-savvy user who explores every feature and clicks on everything
+ageRange: "25-35"
+techLevel: advanced
+personality: curious, thorough, impatient with slow loading
+interests:
+  - new features
+  - settings and customization
+  - edge cases
+behavior:
+  - Explores navigation thoroughly before focusing
+  - Tries unusual input combinations
+  - Opens links in new contexts

@@ -3,3 +3,4 @@
  */
 
 export * from './types.js';
+export { createLogger } from './logger.js';

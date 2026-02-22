@@ -171,7 +171,7 @@ pnpm --filter @testfarm/api dev
 pnpm --filter @testfarm/web dev
 ```
 
-- API runs on `http://localhost:3001`
+- API runs on `http://localhost:4001`
 - Web runs on `http://localhost:5173` (proxies to API)
 
 ### 2. Make Changes
@@ -213,7 +213,7 @@ OPENAI_API_KEY=sk-...
 OLLAMA_BASE_URL=http://localhost:11434/v1
 
 # API Configuration
-PORT=3001
+PORT=4001
 ```
 
 ---
@@ -282,8 +282,8 @@ See [Adding Features Guide](./guides/adding-features.md) for detailed instructio
 DEBUG=* pnpm --filter @testfarm/api dev
 
 # Test endpoints
-curl http://localhost:3001/api/sessions
-curl http://localhost:3001/api/personas
+curl http://localhost:4001/api/sessions
+curl http://localhost:4001/api/personas
 ```
 
 ### LLM Debugging
