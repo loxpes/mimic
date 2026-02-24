@@ -11,6 +11,7 @@ import {
   Cpu,
   Globe,
   Swords,
+  BookOpen,
   Menu,
   X,
 } from 'lucide-react';
@@ -43,6 +44,7 @@ const navGroups: NavGroup[] = [
     groupKey: 'ship',
     color: 'blue',
     items: [
+      { key: 'guide', href: '/guide', icon: BookOpen },
       { key: 'projects', href: '/projects', icon: Globe },
       { key: 'features', href: '/features', icon: Cpu },
       { key: 'settings', href: '/settings', icon: Settings },

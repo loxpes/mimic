@@ -12,6 +12,7 @@ import { Projects } from './pages/Projects';
 import { ProjectDetail } from './pages/ProjectDetail';
 import { TrelloCallback } from './pages/TrelloCallback';
 import { Settings } from './pages/Settings';
+import { Guide } from './pages/Guide';
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/integrations/trello/callback" element={<TrelloCallback />} />
+              <Route path="/guide" element={<Guide />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
           </Layout>
