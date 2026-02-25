@@ -17,8 +17,8 @@
     "@testfarm/core": "workspace:*",
     "@testfarm/db": "workspace:*",
     "@testfarm/shared": "workspace:*",
-    "drizzle-orm": "^0.36.0",
-    "hono": "^4.11.10",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.12.2",
     "yaml": "^2.6.0"
   },
   "devDependencies": {
