@@ -32,7 +32,6 @@ doc/hu/en-curso/
 - Funcionalidades detalladas
 - Criterios de aceptación (checkboxes)
 - Modelo de datos (si aplica)
-- Estimación
 - Dependencias
 - Notas técnicas
 
@@ -62,11 +61,11 @@ doc/hu/en-curso/
 ### Formato de commit
 
 ```
-<tipo>(EVY-XX): descripción
+<tipo>(ID-TAREA): descripción
 ```
 
 - **tipo**: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, etc.
-- **EVY-XX**: Número de la historia de usuario (extraer de la rama actual)
+- **ID-TAREA**: ID de la tarea (extraer de la rama actual)
 - **descripción**: Descripción breve del cambio
 
 Si no se conoce el número de la HU, **preguntar al usuario** antes de proceder.
@@ -78,7 +77,7 @@ Al finalizar una HU, **preguntar al usuario** si desea generar una PR.
 ### Formato de PR
 
 ```
-<tipo>(EVY-XX): descripción corta
+<tipo>(ID-TAREA): descripción corta
 ```
 
 El formato es idéntico al de commits.

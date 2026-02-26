@@ -66,7 +66,6 @@ async function testDOMExtraction() {
       { name: 'Gemini dropdown', match: (el: any) => el.text.toLowerCase().includes('gemini') },
       { name: 'E-commerce dropdown', match: (el: any) => el.text.toLowerCase().includes('commerce') || el.text.toLowerCase().includes('techstore') },
       { name: 'Avatar (J)', match: (el: any) => el.text === 'J' },
-      { name: 'Icon buttons (Evy/plus/mic)', match: (el: any) => el.text.includes('button') || el.text.includes('icon') },
     ];
 
     for (const expected of expectedElements) {

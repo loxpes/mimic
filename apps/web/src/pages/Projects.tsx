@@ -143,7 +143,7 @@ export function Projects() {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Evy Chat Testing"
+                placeholder="e.g., Chat Testing"
               />
             </div>
             <div className="space-y-2">
