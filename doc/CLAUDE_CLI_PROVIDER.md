@@ -1,10 +1,10 @@
 # Claude CLI Provider
 
-This document describes the Claude CLI provider implementation for TestFarm, which allows using Claude Max subscription instead of paying for Anthropic API separately.
+This document describes the Claude CLI provider implementation for Mimic, which allows using Claude Max subscription instead of paying for Anthropic API separately.
 
 ## Overview
 
-The `claude-cli` provider executes Claude through the Claude Code CLI (`claude`) instead of making direct API calls. This is useful for users who have a Claude Max subscription and want to use it for TestFarm operations.
+The `claude-cli` provider executes Claude through the Claude Code CLI (`claude`) instead of making direct API calls. This is useful for users who have a Claude Max subscription and want to use it for Mimic operations.
 
 ## Why Use Claude CLI?
 
@@ -191,4 +191,4 @@ Check if Claude CLI is installed and accessible.
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture overview
 - [API.md](./API.md) - API endpoints reference
-- [DEVELOPMENT.md](./DEVELOPMENT.md) - Development setup guide
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Development setup guide

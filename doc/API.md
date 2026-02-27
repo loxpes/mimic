@@ -1,16 +1,12 @@
 # API Reference
 
-TestFarm REST API documentation. Base URL: `http://localhost:4001`
+Mimic REST API documentation. Base URL: `http://localhost:4001`
 
 ---
 
 ## Overview
 
-The API provides endpoints for managing testing sessions, personas, objectives, and real-time event streaming.
-
-### Authentication
-
-Currently no authentication required. Planned for future versions.
+The API provides endpoints for managing testing sessions, personas, objectives, projects, and real-time event streaming.
 
 ### Response Format
 
@@ -41,7 +37,7 @@ GET /api/sessions
     "personaId": "persona_xyz",
     "objectiveId": "objective_123",
     "targetUrl": "https://example.com",
-    "llmConfig": { "provider": "anthropic", "model": "claude-3-5-sonnet-20241022" },
+    "llmConfig": { "provider": "anthropic", "model": "claude-sonnet-4-20250514" },
     "visionConfig": { "includeScreenshots": true },
     "state": {
       "status": "completed",
@@ -49,8 +45,8 @@ GET /api/sessions
       "progress": 1.0
     },
     "results": { "outcome": "completed", "findings": 3 },
-    "createdAt": "2024-01-15T10:30:00Z",
-    "updatedAt": "2024-01-15T10:45:00Z"
+    "createdAt": "2025-01-15T10:30:00Z",
+    "updatedAt": "2025-01-15T10:45:00Z"
   }
 ]
 ```
@@ -63,23 +59,6 @@ GET /api/sessions/:id
 
 **Parameters:**
 - `id` (path) - Session ID
-
-**Response:**
-
-```json
-{
-  "id": "session_abc123",
-  "personaId": "persona_xyz",
-  "objectiveId": "objective_123",
-  "targetUrl": "https://example.com",
-  "llmConfig": { ... },
-  "visionConfig": { ... },
-  "state": { ... },
-  "results": { ... },
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": "2024-01-15T10:45:00Z"
-}
-```
 
 ### Create Session
 
@@ -97,7 +76,7 @@ Content-Type: application/json
   "targetUrl": "https://example.com",
   "llmConfig": {
     "provider": "anthropic",
-    "model": "claude-3-5-sonnet-20241022",
+    "model": "claude-sonnet-4-20250514",
     "temperature": 0.7
   },
   "visionConfig": {
@@ -120,7 +99,7 @@ Content-Type: application/json
     "actionCount": 0,
     "progress": 0
   },
-  "createdAt": "2024-01-15T12:00:00Z"
+  "createdAt": "2025-01-15T12:00:00Z"
 }
 ```
 
@@ -132,17 +111,6 @@ POST /api/sessions/:id/start
 
 Starts agent execution for a pending session.
 
-**Parameters:**
-- `id` (path) - Session ID
-
-**Response:**
-
-```json
-{
-  "message": "Session started"
-}
-```
-
 ### Cancel Session
 
 ```http
@@ -151,15 +119,54 @@ POST /api/sessions/:id/cancel
 
 Cancels a running session.
 
-**Parameters:**
-- `id` (path) - Session ID
+---
 
-**Response:**
+## Projects
+
+### List Projects
+
+```http
+GET /api/projects
+```
+
+### Get Project
+
+```http
+GET /api/projects/:id
+```
+
+### Create Project
+
+```http
+POST /api/projects
+Content-Type: application/json
+```
+
+**Request Body:**
 
 ```json
 {
-  "message": "Session cancelled"
+  "name": "My Project",
+  "description": "Project description",
+  "targetUrl": "https://example.com"
 }
+```
+
+---
+
+## Session Chains
+
+### List Session Chains
+
+```http
+GET /api/session-chains
+```
+
+### Create Session Chain
+
+```http
+POST /api/session-chains
+Content-Type: application/json
 ```
 
 ---
@@ -178,9 +185,9 @@ GET /api/personas
 [
   {
     "id": "maria-jardinera",
-    "name": "María García",
+    "name": "Maria Garcia",
     "definition": {
-      "identity": "Profesora de primaria de 45 años...",
+      "identity": "Profesora de primaria de 45 anos...",
       "techProfile": "Escribes lento y con cuidado...",
       "personality": "Paciente leyendo, pero frustrada...",
       "tendencies": ["Leer descripciones a fondo", "Buscar opiniones"]
@@ -189,7 +196,7 @@ GET /api/personas
       "archetype": "elderly-shopper",
       "tags": ["cautious", "low-tech"]
     },
-    "createdAt": "2024-01-01T00:00:00Z"
+    "createdAt": "2025-01-01T00:00:00Z"
   }
 ]
 ```
@@ -198,21 +205,6 @@ GET /api/personas
 
 ```http
 GET /api/personas/:id
-```
-
-**Parameters:**
-- `id` (path) - Persona ID
-
-**Response:**
-
-```json
-{
-  "id": "maria-jardinera",
-  "name": "María García",
-  "definition": { ... },
-  "metadata": { ... },
-  "createdAt": "2024-01-01T00:00:00Z"
-}
 ```
 
 ---
@@ -234,14 +226,14 @@ GET /api/objectives
     "name": "Add Product to Cart",
     "definition": {
       "goal": "Find and add a gardening product to shopping cart",
-      "constraints": ["Budget max 50€", "No account creation"],
+      "constraints": ["Budget max 50EUR", "No account creation"],
       "successCriteria": "Cart contains at least one item"
     },
     "config": {
       "autonomyLevel": "goal-directed",
       "maxActions": 50
     },
-    "createdAt": "2024-01-01T00:00:00Z"
+    "createdAt": "2025-01-01T00:00:00Z"
   }
 ]
 ```
@@ -250,21 +242,6 @@ GET /api/objectives
 
 ```http
 GET /api/objectives/:id
-```
-
-**Parameters:**
-- `id` (path) - Objective ID
-
-**Response:**
-
-```json
-{
-  "id": "add-to-cart",
-  "name": "Add Product to Cart",
-  "definition": { ... },
-  "config": { ... },
-  "createdAt": "2024-01-01T00:00:00Z"
-}
 ```
 
 ---
@@ -278,9 +255,6 @@ GET /api/events/:sessionId
 ```
 
 Returns all events for a session in chronological order.
-
-**Parameters:**
-- `sessionId` (path) - Session ID
 
 **Response:**
 
@@ -301,7 +275,7 @@ Returns all events for a session in chronological order.
       },
       "reasoning": {
         "observation": "I see a search bar at the top",
-        "thought": "María would search for gardening products",
+        "thought": "Maria would search for gardening products",
         "confidence": 0.85
       }
     },
@@ -309,39 +283,7 @@ Returns all events for a session in chronological order.
       "success": true,
       "duration": 1200
     },
-    "createdAt": "2024-01-15T10:31:00Z"
-  }
-]
-```
-
-### Get Session Findings
-
-```http
-GET /api/events/:sessionId/findings
-```
-
-Returns findings discovered during a session.
-
-**Parameters:**
-- `sessionId` (path) - Session ID
-
-**Response:**
-
-```json
-[
-  {
-    "id": "finding_1",
-    "sessionId": "session_abc123",
-    "eventId": "event_5",
-    "type": "ux-issue",
-    "severity": "medium",
-    "description": "Search results page loads slowly",
-    "personaPerspective": "María got frustrated waiting for the page to load",
-    "evidence": {
-      "url": "https://example.com/search?q=garden",
-      "loadTime": 4500
-    },
-    "createdAt": "2024-01-15T10:35:00Z"
+    "createdAt": "2025-01-15T10:31:00Z"
   }
 ]
 ```
@@ -354,9 +296,6 @@ Accept: text/event-stream
 ```
 
 Server-Sent Events stream for real-time session updates.
-
-**Parameters:**
-- `sessionId` (path) - Session ID
 
 **Events:**
 
@@ -394,19 +333,117 @@ data: {"type":"complete","data":{"outcome":"completed","findings":3}}
 
 ---
 
-## Health Check
+## Findings
 
-### API Health
+### List Findings
 
 ```http
-GET /
+GET /api/findings
+```
+
+Returns findings, optionally filtered by session.
+
+**Response:**
+
+```json
+[
+  {
+    "id": "finding_1",
+    "sessionId": "session_abc123",
+    "eventId": "event_5",
+    "type": "ux-issue",
+    "severity": "medium",
+    "description": "Search results page loads slowly",
+    "personaPerspective": "Maria got frustrated waiting for the page to load",
+    "evidence": {
+      "url": "https://example.com/search?q=garden",
+      "loadTime": 4500
+    },
+    "createdAt": "2025-01-15T10:35:00Z"
+  }
+]
+```
+
+---
+
+## Reports
+
+### List Session Reports
+
+```http
+GET /api/reports
+```
+
+Returns generated session reports with summaries and analysis.
+
+---
+
+## Screenshots
+
+### Get Screenshot
+
+```http
+GET /api/screenshots/:id
+```
+
+Returns a screenshot image captured during a session.
+
+---
+
+## Settings
+
+### Get App Settings
+
+```http
+GET /api/settings
+```
+
+Returns application-wide settings (LLM provider, model, etc.).
+
+### Update App Settings
+
+```http
+PUT /api/settings
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "llmProvider": "anthropic",
+  "llmModel": "claude-sonnet-4-20250514",
+  "llmApiKey": "sk-ant-..."
+}
+```
+
+---
+
+## Integrations
+
+### Trello
+
+```http
+GET /api/integrations/trello
+```
+
+Trello integration endpoints for syncing findings to Trello boards.
+
+---
+
+## Health Check
+
+### API Info
+
+```http
+GET /api/info
 ```
 
 **Response:**
 
 ```json
 {
-  "name": "TestFarm API",
+  "name": "Mimic API",
   "version": "0.1.0",
   "status": "healthy"
 }
@@ -437,12 +474,6 @@ GET /health
 | 400 | Bad Request - Invalid parameters |
 | 404 | Not Found - Resource doesn't exist |
 | 500 | Internal Server Error |
-
----
-
-## Rate Limiting
-
-No rate limiting currently implemented. Be reasonable with request frequency.
 
 ---
 

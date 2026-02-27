@@ -1,18 +1,18 @@
-# TestFarm Architecture
+# Mimic Architecture
 
 ## System Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         TESTFARM ARCHITECTURE                           │
+│                          MIMIC ARCHITECTURE                             │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  ┌─────────────┐     ┌──────────────────┐     ┌─────────────────────┐  │
 │  │   CONFIG    │────►│   ORCHESTRATOR   │◄────│    API / CLI        │  │
-│  │   (YAML)    │     │                  │     │                     │  │
+│  │  (Database) │     │                  │     │                     │  │
 │  │ - Personas  │     │ - Session mgmt   │     │ - Start sessions    │  │
 │  │ - Objectives│     │ - Lifecycle      │     │ - Monitor progress  │  │
-│  │ - LLM config│     │ - Data collection│     │ - View reports      │  │
+│  │ - Projects  │     │ - Data collection│     │ - View reports      │  │
 │  └─────────────┘     └────────┬─────────┘     └─────────────────────┘  │
 │                               │                                         │
 │                               ▼                                         │
@@ -31,8 +31,8 @@
 │                                                                         │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
 │  │                        DATA LAYER                                 │  │
-│  │  Sessions │ Events │ Findings │ Reports                          │  │
-│  │  Storage: SQLite (dev) / PostgreSQL (prod)                       │  │
+│  │  Sessions │ Events │ Findings │ Reports │ Projects                │  │
+│  │  Storage: SQLite (better-sqlite3 + Drizzle ORM)                   │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -114,7 +114,7 @@ class LLMClient {
 }
 
 // Supported providers
-type Provider = 'anthropic' | 'openai' | 'ollama' | 'custom' | 'claude-cli'
+type Provider = 'anthropic' | 'openai' | 'custom' | 'claude-cli' | 'google'
 ```
 
 ### 3. Browser Controller (`@testfarm/core/browser/controller.ts`)
@@ -213,45 +213,66 @@ Frontend ───────────────────────�
 ## Database Schema
 
 ```
-┌─────────────────┐     ┌─────────────────┐
-│    personas     │     │   objectives    │
-├─────────────────┤     ├─────────────────┤
-│ id              │     │ id              │
-│ name            │     │ name            │
-│ definition (JSON)     │ definition (JSON)
-│ metadata (JSON) │     │ config (JSON)   │
-│ timestamps      │     │ timestamps      │
-└────────┬────────┘     └────────┬────────┘
-         │                       │
-         │    ┌──────────────────┘
-         │    │
-         ▼    ▼
-┌─────────────────┐
-│    sessions     │
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│    personas     │     │   objectives    │     │    projects     │
+├─────────────────┤     ├─────────────────┤     ├─────────────────┤
+│ id              │     │ id              │     │ id              │
+│ name            │     │ name            │     │ name            │
+│ definition (JSON)     │ definition (JSON)     │ description     │
+│ metadata (JSON) │     │ config (JSON)   │     │ targetUrl       │
+│ timestamps      │     │ timestamps      │     │ timestamps      │
+└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
+         │                       │                       │
+         │    ┌──────────────────┘                       │
+         │    │    ┌─────────────────────────────────────┘
+         ▼    ▼    ▼
+┌─────────────────────┐     ┌─────────────────┐
+│      sessions       │     │  sessionChains  │
+├─────────────────────┤     ├─────────────────┤
+│ id                  │     │ id              │
+│ personaId (FK)      │     │ projectId (FK)  │
+│ objectiveId (FK)    │     │ name            │
+│ projectId (FK)      │     │ config (JSON)   │
+│ targetUrl           │     │ timestamps      │
+│ llmConfig (JSON)    │     └─────────────────┘
+│ state (JSON)        │
+│ results (JSON)      │     ┌─────────────────┐
+│ timestamps          │     │ scheduledTasks  │
+└────────┬────────────┘     ├─────────────────┤
+         │                  │ id              │
+         ├──────────────┐   │ chainId (FK)    │
+         ▼              ▼   │ schedule        │
+┌─────────────────┐         │ timestamps      │
+│     events      │         └─────────────────┘
 ├─────────────────┤
-│ id              │
-│ personaId (FK)  │
-│ objectiveId (FK)│
-│ targetUrl       │
-│ llmConfig (JSON)│
-│ state (JSON)    │
-│ results (JSON)  │
-│ timestamps      │
-└────────┬────────┘
-         │
-         ├──────────────────┐
-         ▼                  ▼
-┌─────────────────┐ ┌─────────────────┐
-│     events      │ │    findings     │
-├─────────────────┤ ├─────────────────┤
-│ id              │ │ id              │
-│ sessionId (FK)  │ │ sessionId (FK)  │
-│ sequence        │ │ eventId (FK)    │
-│ context (JSON)  │ │ type            │
-│ decision (JSON) │ │ severity        │
-│ outcome (JSON)  │ │ description     │
-│ timestamp       │ │ evidence (JSON) │
-└─────────────────┘ └─────────────────┘
+│ id              │         ┌─────────────────┐
+│ sessionId (FK)  │         │  findingGroups  │
+│ sequence        │         ├─────────────────┤
+│ context (JSON)  │         │ id              │
+│ decision (JSON) │         │ projectId (FK)  │
+│ outcome (JSON)  │         │ title           │
+│ timestamp       │         │ status          │
+└─────────────────┘         │ timestamps      │
+                            └─────────────────┘
+
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│    findings     │     │ sessionReports   │     │  integrations   │
+├─────────────────┤     ├──────────────────┤     ├─────────────────┤
+│ id              │     │ id               │     │ id              │
+│ sessionId (FK)  │     │ sessionId (FK)   │     │ type            │
+│ eventId (FK)    │     │ summary          │     │ config (JSON)   │
+│ groupId (FK)    │     │ content (JSON)   │     │ timestamps      │
+│ type            │     │ timestamps       │     └─────────────────┘
+│ severity        │     └──────────────────┘
+│ description     │                              ┌─────────────────┐
+│ evidence (JSON) │                              │   appSettings   │
+└─────────────────┘                              ├─────────────────┤
+                                                 │ id              │
+                                                 │ llmProvider     │
+                                                 │ llmModel        │
+                                                 │ llmApiKey       │
+                                                 │ timestamps      │
+                                                 └─────────────────┘
 ```
 
 ---
@@ -260,16 +281,34 @@ Frontend ───────────────────────�
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/api/info` | API information |
+| GET | `/health` | Health check |
+| GET | `/api/projects` | List projects |
+| POST | `/api/projects` | Create project |
+| GET | `/api/projects/:id` | Get project details |
 | GET | `/api/sessions` | List all sessions |
 | POST | `/api/sessions` | Create new session |
 | GET | `/api/sessions/:id` | Get session details |
 | POST | `/api/sessions/:id/start` | Start session execution |
 | POST | `/api/sessions/:id/cancel` | Cancel running session |
+| GET | `/api/session-chains` | List session chains |
+| POST | `/api/session-chains` | Create session chain |
 | GET | `/api/personas` | List personas |
+| POST | `/api/personas` | Create persona |
+| GET | `/api/personas/:id` | Get persona details |
 | GET | `/api/objectives` | List objectives |
+| POST | `/api/objectives` | Create objective |
+| GET | `/api/objectives/:id` | Get objective details |
 | GET | `/api/events/:sessionId` | Get session events |
 | GET | `/api/events/:sessionId/stream` | SSE stream |
-| GET | `/api/events/:sessionId/findings` | Get findings |
+| GET | `/api/findings` | List findings |
+| GET | `/api/reports` | List session reports |
+| GET | `/api/screenshots/:id` | Get screenshot |
+| GET | `/api/settings` | Get app settings |
+| PUT | `/api/settings` | Update app settings |
+| * | `/api/integrations/trello` | Trello integration |
+
+See [API.md](./API.md) for detailed request/response documentation.
 
 ---
 
@@ -280,15 +319,42 @@ apps/web/src/
 ├── main.tsx              # Entry point, providers setup
 ├── App.tsx               # Router configuration
 ├── components/
-│   ├── ui/               # shadcn/ui components (button, card, badge)
-│   └── layout/           # Layout wrapper with navigation
+│   ├── ui/               # shadcn/ui components
+│   │   ├── button.tsx
+│   │   ├── card.tsx
+│   │   ├── input.tsx
+│   │   ├── label.tsx
+│   │   ├── textarea.tsx
+│   │   ├── checkbox.tsx
+│   │   ├── select.tsx
+│   │   ├── dropdown-menu.tsx
+│   │   ├── dialog.tsx
+│   │   └── badge.tsx
+│   ├── shared/           # Shared components
+│   │   ├── Layout.tsx
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── DeleteConfirmDialog.tsx
+│   │   ├── ImportDialog.tsx
+│   │   ├── Toast.tsx
+│   │   └── LocalhostWarning.tsx
+│   ├── personas/
+│   │   └── PersonaForm.tsx
+│   └── objectives/
+│       └── ObjectiveForm.tsx
 ├── pages/
-│   ├── Dashboard.tsx     # Overview, stats, recent sessions
-│   ├── Sessions.tsx      # Session list, create form
-│   ├── SessionDetail.tsx # Timeline, findings, real-time updates
-│   ├── Personas.tsx      # Persona cards
-│   ├── Objectives.tsx    # Objective cards
-│   └── Features.tsx      # Product features page
+│   ├── Dashboard.tsx
+│   ├── Projects.tsx
+│   ├── ProjectDetail.tsx
+│   ├── Personas.tsx
+│   ├── Objectives.tsx
+│   ├── Sessions.tsx
+│   ├── SessionDetail.tsx
+│   ├── SessionChains.tsx
+│   ├── SessionChainDetail.tsx
+│   ├── Features.tsx
+│   ├── Guide.tsx
+│   ├── Settings.tsx
+│   └── TrelloCallback.tsx
 ├── lib/
 │   ├── api.ts            # API client functions
 │   └── utils.ts          # Utility functions
@@ -311,10 +377,10 @@ apps/web/src/
 
 ```typescript
 interface LLMConfig {
-  provider: 'anthropic' | 'openai' | 'ollama' | 'custom' | 'claude-cli'
+  provider: 'anthropic' | 'openai' | 'custom' | 'claude-cli' | 'google'
   model: string           // e.g., 'claude-sonnet-4-20250514'
   apiKey?: string         // Falls back to env vars
-  baseUrl?: string        // For custom/Ollama providers
+  baseUrl?: string        // For custom provider
   temperature?: number    // Default: 0.7
   maxTokens?: number      // Default: 2048
 }
@@ -324,7 +390,7 @@ interface LLMConfig {
 
 ## LLM Providers
 
-TestFarm supports multiple LLM providers. The default is `claude-cli` which uses the Claude Code CLI.
+Mimic supports multiple LLM providers. The default is `claude-cli` which uses the Claude Code CLI.
 
 ### Provider Comparison
 
@@ -333,7 +399,7 @@ TestFarm supports multiple LLM providers. The default is `claude-cli` which uses
 | `claude-cli` | No (uses CLI auth) | Claude Max subscribers, default choice |
 | `anthropic` | Yes | Direct API access with full control |
 | `openai` | Yes | GPT-4 and other OpenAI models |
-| `ollama` | No | Local models, self-hosted |
+| `google` | Yes | Gemini models |
 | `custom` | Depends | OpenAI-compatible APIs |
 
 ### claude-cli (Default)
@@ -383,15 +449,15 @@ OpenAI API access.
 }
 ```
 
-### ollama
+### google
 
-Local Ollama models.
+Google Gemini API access.
 
 ```typescript
 {
-  provider: 'ollama',
-  model: 'llama2',
-  baseUrl: 'http://localhost:11434/v1'
+  provider: 'google',
+  model: 'gemini-pro',
+  apiKey: process.env.GOOGLE_API_KEY
 }
 ```
 
@@ -418,12 +484,3 @@ interface VisionConfig {
   maxElements: number         // Max elements to extract
 }
 ```
-
----
-
-## Security Considerations
-
-- API keys stored in environment variables, never committed
-- CORS enabled for API (configurable origins)
-- SQLite file in `data/` directory (gitignored)
-- No authentication yet (planned for future)

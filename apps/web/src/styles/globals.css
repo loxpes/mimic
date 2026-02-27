@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.js";
 
 @layer base {
   :root {
@@ -79,10 +78,11 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: 'Antonio', sans-serif;
   }
 }
@@ -104,7 +104,8 @@
   }
 
   .lcars-header-bar {
-    @apply h-2 rounded-full;
+    height: 0.5rem;
+    border-radius: 9999px;
     background: linear-gradient(
       90deg,
       hsl(var(--lcars-orange)) 0%,
