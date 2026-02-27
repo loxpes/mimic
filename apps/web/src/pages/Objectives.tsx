@@ -286,6 +286,7 @@ export function Objectives() {
 
       {/* Dialogs */}
       <ObjectiveForm
+        key={selectedObjective?.id ?? 'new'}
         open={formOpen}
         onOpenChange={setFormOpen}
         onSubmit={handleSubmit}

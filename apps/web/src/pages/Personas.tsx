@@ -271,6 +271,7 @@ export function Personas() {
 
       {/* Dialogs */}
       <PersonaForm
+        key={selectedPersona?.id ?? 'new'}
         open={formOpen}
         onOpenChange={setFormOpen}
         onSubmit={handleSubmit}
