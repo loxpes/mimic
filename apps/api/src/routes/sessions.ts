@@ -260,8 +260,14 @@ app.post('/:id/start', async (c) => {
     successCriteria: objective.definition.successCriteria,
   };
 
-  // Get LLM config - use session config or fall back to global settings
-  const baseLLMConfig = session.llmConfig || await getGlobalLLMConfig();
+  // Always use current global provider/model — they're infrastructure settings.
+  // Session-level fields (language, temperature, etc.) are preserved via spread.
+  const globalConfig = await getGlobalLLMConfig();
+  const baseLLMConfig = {
+    ...(session.llmConfig || {}),
+    provider: globalConfig.provider,
+    model: globalConfig.model,
+  };
   const provider = baseLLMConfig.provider;
 
   console.log(`[Session ${id}] LLM Provider: ${provider}`);

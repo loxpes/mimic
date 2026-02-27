@@ -4,8 +4,14 @@
  */
 
 import { spawn } from 'child_process';
-import { zodToJsonSchema } from 'zod-to-json-schema';
-import type { ZodSchema } from 'zod';
+import { type ZodSchema, toJSONSchema } from 'zod';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const CLI_PROCESS_TIMEOUT_MS = 120_000; // 2 minutes per CLI invocation
+const CLI_MAX_TURNS = 3; // 1 for response + 2 for stop-hook corrections
 
 // ============================================================================
 // Types
@@ -37,13 +43,14 @@ export interface ClaudeCliResult<T = unknown> {
 /**
  * Map model names to Claude CLI format
  * Claude CLI accepts: sonnet, opus, haiku (not full model IDs)
+ * Returns undefined to omit the --model flag and let CLI use its own default
  */
 function mapModelToCliFormat(model?: string): string | undefined {
-  if (!model || model === 'default') {
-    return 'sonnet'; // Default to Sonnet 4.5
-  }
+  if (!model) return undefined;
 
   const lowerModel = model.toLowerCase();
+
+  if (lowerModel === 'default') return undefined;
 
   // Already in CLI format
   if (['sonnet', 'opus', 'haiku'].includes(lowerModel)) {
@@ -55,56 +62,9 @@ function mapModelToCliFormat(model?: string): string | undefined {
   if (lowerModel.includes('opus')) return 'opus';
   if (lowerModel.includes('haiku')) return 'haiku';
 
-  // Unknown model, let CLI use default
-  console.warn(`[Claude CLI] Unknown model "${model}", using sonnet`);
-  return 'sonnet';
-}
-
-/**
- * Recursively add additionalProperties: false to all objects in a JSON schema
- * This helps Claude CLI produce correctly structured output without extra nesting
- */
-function addStrictAdditionalProperties(obj: unknown): unknown {
-  if (!obj || typeof obj !== 'object') return obj;
-
-  const result = { ...obj } as Record<string, unknown>;
-
-  // Add additionalProperties: false to object types
-  if (result.type === 'object' && !('additionalProperties' in result)) {
-    result.additionalProperties = false;
-  }
-
-  // Recursively process properties
-  if (result.properties && typeof result.properties === 'object') {
-    result.properties = Object.fromEntries(
-      Object.entries(result.properties as Record<string, unknown>).map(
-        ([k, v]) => [k, addStrictAdditionalProperties(v)]
-      )
-    );
-  }
-
-  // Recursively process array items
-  if (result.items) {
-    result.items = addStrictAdditionalProperties(result.items);
-  }
-
-  // Recursively process definitions/$defs
-  if (result.definitions && typeof result.definitions === 'object') {
-    result.definitions = Object.fromEntries(
-      Object.entries(result.definitions as Record<string, unknown>).map(
-        ([k, v]) => [k, addStrictAdditionalProperties(v)]
-      )
-    );
-  }
-  if (result.$defs && typeof result.$defs === 'object') {
-    result.$defs = Object.fromEntries(
-      Object.entries(result.$defs as Record<string, unknown>).map(
-        ([k, v]) => [k, addStrictAdditionalProperties(v)]
-      )
-    );
-  }
-
-  return result;
+  // Unknown model — pass through and let CLI handle it
+  console.warn(`[Claude CLI] Unknown model "${model}", passing as-is`);
+  return model;
 }
 
 /**
@@ -244,9 +204,7 @@ async function executeClaudeCliWithSchema<T>(
   _maxTokens?: number, // Currently unused - Claude CLI doesn't support max-tokens directly
   model?: string
 ): Promise<ClaudeCliResult<T>> {
-  // Convert Zod schema to JSON schema and add strict additionalProperties: false
-  const baseJsonSchema = zodToJsonSchema(schema, { target: 'jsonSchema7' });
-  const jsonSchema = addStrictAdditionalProperties(baseJsonSchema);
+  const jsonSchema = toJSONSchema(schema, { target: 'draft-07' });
 
   return new Promise((resolve, reject) => {
     // Build CLI arguments with stream-json for real metrics
@@ -256,7 +214,7 @@ async function executeClaudeCliWithSchema<T>(
       '--output-format', 'stream-json',
       '--verbose',
       '--dangerously-skip-permissions',
-      '--max-turns', '6',
+      '--max-turns', String(CLI_MAX_TURNS),
       '--json-schema', JSON.stringify(jsonSchema),
       '-p', '-',  // Read prompt from stdin
     ];
@@ -275,7 +233,6 @@ async function executeClaudeCliWithSchema<T>(
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        // Ensure no interactive prompts
         CLAUDE_CODE_NON_INTERACTIVE: '1',
       },
     });
@@ -286,11 +243,19 @@ async function executeClaudeCliWithSchema<T>(
 
     let stdout = '';
     let stderr = '';
+    let timedOut = false;
+
+    // Kill subprocess if it exceeds the timeout
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      console.warn(`[Claude CLI] Process timeout (${CLI_PROCESS_TIMEOUT_MS}ms), killing...`);
+      proc.kill('SIGTERM');
+      setTimeout(() => { if (!proc.killed) proc.kill('SIGKILL'); }, 5000);
+    }, CLI_PROCESS_TIMEOUT_MS);
 
     proc.stdout.on('data', (data: Buffer) => {
       const chunk = data.toString();
       stdout += chunk;
-      // Log streaming output (truncated for readability)
       const preview = chunk.replace(/\n/g, ' ').substring(0, 150);
       console.log('[Claude CLI stdout]', preview + (chunk.length > 150 ? '...' : ''));
     });
@@ -302,6 +267,7 @@ async function executeClaudeCliWithSchema<T>(
     });
 
     proc.on('error', (error) => {
+      clearTimeout(timeoutId);
       console.error('[Claude CLI] Process spawn error:', error);
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         reject(new Error(
@@ -318,6 +284,12 @@ async function executeClaudeCliWithSchema<T>(
     });
 
     proc.on('close', (code) => {
+      clearTimeout(timeoutId);
+
+      if (timedOut) {
+        reject(new Error(`Claude CLI timed out after ${CLI_PROCESS_TIMEOUT_MS}ms`));
+        return;
+      }
       console.log(`[Claude CLI] Process closed with code ${code}`);
       if (code !== 0) {
         console.error('[Claude CLI] Error output:', stderr);
@@ -400,7 +372,6 @@ async function executeClaudeCli(
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        // Ensure no interactive prompts
         CLAUDE_CODE_NON_INTERACTIVE: '1',
       },
     });
@@ -411,6 +382,14 @@ async function executeClaudeCli(
 
     let stdout = '';
     let stderr = '';
+    let timedOut = false;
+
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      console.warn(`[Claude CLI] Process timeout (${CLI_PROCESS_TIMEOUT_MS}ms), killing...`);
+      proc.kill('SIGTERM');
+      setTimeout(() => { if (!proc.killed) proc.kill('SIGKILL'); }, 5000);
+    }, CLI_PROCESS_TIMEOUT_MS);
 
     proc.stdout.on('data', (data: Buffer) => {
       stdout += data.toString();
@@ -421,6 +400,7 @@ async function executeClaudeCli(
     });
 
     proc.on('error', (error) => {
+      clearTimeout(timeoutId);
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         reject(new Error(
           'Claude CLI not found. Install:\n' +
@@ -436,6 +416,12 @@ async function executeClaudeCli(
     });
 
     proc.on('close', (code) => {
+      clearTimeout(timeoutId);
+
+      if (timedOut) {
+        reject(new Error(`Claude CLI timed out after ${CLI_PROCESS_TIMEOUT_MS}ms`));
+        return;
+      }
       console.log(`[Claude CLI] Process closed with code ${code}`);
       if (code !== 0) {
         console.error('[Claude CLI] Error output:', stderr);

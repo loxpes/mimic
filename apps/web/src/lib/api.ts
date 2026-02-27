@@ -634,15 +634,16 @@ export const sessionChainsApi = {
 // ============================================================================
 
 export interface AppSettings {
-  llmProvider: 'anthropic' | 'openai' | 'google';
+  llmProvider: 'anthropic' | 'openai' | 'google' | 'claude-cli';
   llmModel: string;
   hasAnthropicKey: boolean;
   hasOpenaiKey: boolean;
   hasGoogleKey: boolean;
+  hasClaudeCli: boolean;
 }
 
 export interface UpdateSettingsInput {
-  llmProvider?: 'anthropic' | 'openai' | 'google';
+  llmProvider?: 'anthropic' | 'openai' | 'google' | 'claude-cli';
   llmModel?: string;
 }
 

@@ -6,6 +6,19 @@ import { Hono } from 'hono';
 import { getDb } from '@testfarm/db';
 import { appSettings } from '@testfarm/db';
 import { eq } from 'drizzle-orm';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
+
+async function isClaudeCliAvailable(): Promise<boolean> {
+  try {
+    await execFileAsync('claude', ['--version'], { timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const app = new Hono();
 
@@ -36,6 +49,7 @@ app.get('/', async (c) => {
     hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
     hasOpenaiKey: !!process.env.OPENAI_API_KEY,
     hasGoogleKey: !!process.env.GOOGLE_API_KEY,
+    hasClaudeCli: await isClaudeCliAvailable(),
   });
 });
 

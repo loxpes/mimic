@@ -24,6 +24,7 @@ const languages = [
 ];
 
 const providers = [
+  { value: 'claude-cli', label: 'Claude CLI', description: 'Uses Claude Code CLI (no API key needed)' },
   { value: 'anthropic', label: 'Anthropic (Claude)', description: 'Claude Sonnet, Claude Haiku' },
   { value: 'openai', label: 'OpenAI (GPT)', description: 'GPT-4o, GPT-4 Turbo' },
   { value: 'google', label: 'Google (Gemini)', description: 'Gemini 1.5 Pro, Gemini 1.5 Flash' },
@@ -241,6 +242,20 @@ export function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div>
+                <h4 className="font-medium">Claude CLI</h4>
+                <p className="text-sm text-muted-foreground">Claude Code CLI (no API key needed)</p>
+              </div>
+              {settings?.hasClaudeCli ? (
+                <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                  Available
+                </Badge>
+              ) : (
+                <Badge variant="secondary">Not installed</Badge>
+              )}
+            </div>
+
             <div className="flex items-center justify-between p-3 rounded-lg border">
               <div>
                 <h4 className="font-medium">Anthropic</h4>
