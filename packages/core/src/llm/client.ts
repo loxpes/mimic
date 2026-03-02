@@ -541,14 +541,14 @@ export class LLMClient {
         system: systemPrompt,
         prompt: userPrompt,
         temperature: this.config.temperature ?? 0.7,
-        maxTokens: this.config.maxTokens ?? 2048,
+        maxOutputTokens: this.config.maxTokens ?? 2048,
       });
 
       // Report token usage if callback provided
       if (this.onTokenUsage && result.usage) {
         this.onTokenUsage({
-          prompt: result.usage.promptTokens,
-          completion: result.usage.completionTokens,
+          prompt: result.usage.inputTokens ?? 0,
+          completion: result.usage.outputTokens ?? 0,
         });
       }
 
@@ -594,13 +594,13 @@ export class LLMClient {
       system,
       prompt,
       temperature: this.config.temperature ?? 0.7,
-      maxTokens: this.config.maxTokens ?? 2048,
+      maxOutputTokens: this.config.maxTokens ?? 2048,
     });
 
     if (this.onTokenUsage && result.usage) {
       this.onTokenUsage({
-        prompt: result.usage.promptTokens,
-        completion: result.usage.completionTokens,
+        prompt: result.usage.inputTokens ?? 0,
+        completion: result.usage.outputTokens ?? 0,
       });
     }
 
@@ -669,13 +669,13 @@ Rate this experience:`;
         system: systemPrompt,
         prompt: userPrompt,
         temperature: 0.7,
-        maxTokens: 512,
+        maxOutputTokens: 512,
       });
 
       if (this.onTokenUsage && result.usage) {
         this.onTokenUsage({
-          prompt: result.usage.promptTokens,
-          completion: result.usage.completionTokens,
+          prompt: result.usage.inputTokens ?? 0,
+          completion: result.usage.outputTokens ?? 0,
         });
       }
 
