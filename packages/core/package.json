@@ -39,12 +39,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.47",
-    "@ai-sdk/google": "^3.0.31",
-    "@ai-sdk/openai": "^3.0.33",
+    "@ai-sdk/anthropic": "^3.0.58",
+    "@ai-sdk/google": "^3.0.43",
+    "@ai-sdk/openai": "^3.0.41",
     "@testfarm/db": "workspace:*",
     "@testfarm/shared": "workspace:*",
-    "ai": "^6.0.99",
+    "ai": "^6.0.116",
     "drizzle-orm": "^0.45.1",
     "nanoid": "^5.0.0",
     "playwright": "^1.58.2",
