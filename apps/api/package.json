@@ -13,12 +13,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.0",
+    "@hono/node-server": "^1.19.11",
     "@testfarm/core": "workspace:*",
     "@testfarm/db": "workspace:*",
     "@testfarm/shared": "workspace:*",
     "drizzle-orm": "^0.45.1",
-    "hono": "^4.12.2",
+    "hono": "^4.12.8",
     "yaml": "^2.6.0"
   },
   "devDependencies": {
