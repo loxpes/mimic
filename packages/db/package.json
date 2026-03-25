@@ -27,7 +27,7 @@
     "studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
