@@ -25,6 +25,8 @@ export type { AgentConfig, AgentEvents, AgentResult, HybridVisionConfig } from '
 // Export LLM
 export { LLMClient, createLLMClient } from './llm/client.js';
 export type { LLMClientOptions } from './llm/client.js';
+export { validateApiKey } from './llm/validator.js';
+export type { ValidationResult, ValidatableProvider } from './llm/validator.js';
 
 // Export browser
 export { BrowserController, createBrowser } from './browser/controller.js';

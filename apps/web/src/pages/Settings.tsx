@@ -11,9 +11,9 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Settings as SettingsIcon, Globe, Check, Terminal, Key, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Check, Terminal, Key, Loader2, X, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { settingsApi, type AppSettings, type UpdateSettingsInput } from '@/lib/api';
+import { settingsApi, type AppSettings, type UpdateSettingsInput, type ValidateKeyResult } from '@/lib/api';
 
 const languages = [
   { value: 'es', label: 'Espanol', flag: '\u{1F1EA}\u{1F1F8}' },
@@ -86,6 +86,29 @@ export function Settings() {
       llmProvider: provider as AppSettings['llmProvider'],
       llmModel: model,
     });
+  };
+
+  // Validation state per provider
+  const [validationState, setValidationState] = useState<
+    Record<string, { status: 'idle' | 'loading' | 'valid' | 'invalid'; error?: string }>
+  >({});
+
+  const handleValidateKey = async (providerKey: string) => {
+    setValidationState(prev => ({ ...prev, [providerKey]: { status: 'loading' } }));
+    try {
+      const result: ValidateKeyResult = await settingsApi.validateKey(providerKey);
+      setValidationState(prev => ({
+        ...prev,
+        [providerKey]: result.valid
+          ? { status: 'valid' }
+          : { status: 'invalid', error: result.error },
+      }));
+    } catch (e) {
+      setValidationState(prev => ({
+        ...prev,
+        [providerKey]: { status: 'invalid', error: e instanceof Error ? e.message : 'Unknown error' },
+      }));
+    }
   };
 
   const selectedLanguage = languages.find(l => l.value === language);
@@ -242,61 +265,59 @@ export function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg border">
-              <div>
-                <h4 className="font-medium">Claude CLI</h4>
-                <p className="text-sm text-muted-foreground">Claude Code CLI (no API key needed)</p>
-              </div>
-              {settings?.hasClaudeCli ? (
-                <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                  Available
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Not installed</Badge>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg border">
-              <div>
-                <h4 className="font-medium">Anthropic</h4>
-                <p className="text-sm text-muted-foreground">ANTHROPIC_API_KEY</p>
-              </div>
-              {settings?.hasAnthropicKey ? (
-                <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                  Configured
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Not configured</Badge>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg border">
-              <div>
-                <h4 className="font-medium">OpenAI</h4>
-                <p className="text-sm text-muted-foreground">OPENAI_API_KEY</p>
-              </div>
-              {settings?.hasOpenaiKey ? (
-                <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                  Configured
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Not configured</Badge>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg border">
-              <div>
-                <h4 className="font-medium">Google</h4>
-                <p className="text-sm text-muted-foreground">GOOGLE_API_KEY</p>
-              </div>
-              {settings?.hasGoogleKey ? (
-                <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                  Configured
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Not configured</Badge>
-              )}
-            </div>
+            {[
+              { key: 'claude-cli', label: 'Claude CLI', description: 'Claude Code CLI (no API key needed)', hasKey: settings?.hasClaudeCli },
+              { key: 'anthropic', label: 'Anthropic', description: 'ANTHROPIC_API_KEY', hasKey: settings?.hasAnthropicKey },
+              { key: 'openai', label: 'OpenAI', description: 'OPENAI_API_KEY', hasKey: settings?.hasOpenaiKey },
+              { key: 'google', label: 'Google', description: 'GOOGLE_API_KEY', hasKey: settings?.hasGoogleKey },
+            ].map(({ key, label, description, hasKey }) => {
+              const vs = validationState[key];
+              return (
+                <div key={key} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <h4 className="font-medium">{label}</h4>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                    {vs?.status === 'invalid' && vs.error && (
+                      <p className="text-xs text-red-500 mt-1">{vs.error}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {vs?.status === 'valid' && (
+                      <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                        <Check className="h-3 w-3 mr-1" /> Valid
+                      </Badge>
+                    )}
+                    {vs?.status === 'invalid' && (
+                      <Badge variant="destructive">
+                        <X className="h-3 w-3 mr-1" /> Invalid
+                      </Badge>
+                    )}
+                    {(!vs || vs.status === 'idle') && (
+                      hasKey ? (
+                        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                          Configured
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Not configured</Badge>
+                      )
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleValidateKey(key)}
+                      disabled={vs?.status === 'loading' || (!hasKey && key !== 'claude-cli')}
+                    >
+                      {vs?.status === 'loading' ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <ShieldCheck className="h-3 w-3" />
+                      )}
+                      <span className="ml-1">Validate</span>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
