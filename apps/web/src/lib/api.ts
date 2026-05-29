@@ -647,6 +647,11 @@ export interface UpdateSettingsInput {
   llmModel?: string;
 }
 
+export interface ValidateKeyResult {
+  valid: boolean;
+  error?: string;
+}
+
 export const settingsApi = {
   get: () => request<AppSettings>('/settings'),
 
@@ -654,5 +659,11 @@ export const settingsApi = {
     request<{ success: boolean; error?: string }>('/settings', {
       method: 'PATCH',
       body: JSON.stringify(data),
+    }),
+
+  validateKey: (provider: string, apiKey?: string) =>
+    request<ValidateKeyResult>('/settings/validate-key', {
+      method: 'POST',
+      body: JSON.stringify({ provider, apiKey }),
     }),
 };

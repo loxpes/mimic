@@ -22,9 +22,15 @@ export async function getGlobalLLMConfig() {
 
   const globalSettings = await db.select().from(appSettings).where(eq(appSettings.id, 'global')).limit(1);
   if (globalSettings[0]) {
+    const storedModel = globalSettings[0].llmModel?.toLowerCase();
+    const resolvedModel =
+      !storedModel || storedModel === 'default'
+        ? DEFAULT_LLM_CONFIG.model
+        : globalSettings[0].llmModel!;
+
     return {
       provider: globalSettings[0].llmProvider || DEFAULT_LLM_CONFIG.provider,
-      model: globalSettings[0].llmModel || DEFAULT_LLM_CONFIG.model,
+      model: resolvedModel,
       temperature: DEFAULT_LLM_CONFIG.temperature,
       maxTokens: DEFAULT_LLM_CONFIG.maxTokens,
     };

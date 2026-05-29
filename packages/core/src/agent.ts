@@ -281,7 +281,7 @@ ${persona.context}`;
 
     return {
       systemPrompt,
-      traits: persona.tendencies,
+      traits: persona.tendencies ?? [],
       preferences: [],
       credentials,
     };

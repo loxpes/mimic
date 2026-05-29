@@ -1,0 +1,14 @@
+services:
+  mimic:
+    build:
+      context: .
+      dockerfile: Containerfile
+    ports:
+      - "4001:4001"   # API + frontend web (served as static files)
+    volumes:
+      - mimic-data:/app/data
+    env_file: .env
+    restart: unless-stopped
+
+volumes:
+  mimic-data:

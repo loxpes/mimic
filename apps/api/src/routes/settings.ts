@@ -8,6 +8,7 @@ import { appSettings } from '@testfarm/db';
 import { eq } from 'drizzle-orm';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { validateApiKey } from '@testfarm/core';
 
 const execFileAsync = promisify(execFile);
 
@@ -83,6 +84,27 @@ app.patch('/', async (c) => {
   }
 
   return c.json({ success: true });
+});
+
+/**
+ * POST /api/settings/validate-key
+ * Validates a provider API key by making a minimal call to the provider
+ */
+app.post('/validate-key', async (c) => {
+  const body = await c.req.json();
+  const { provider, apiKey } = body;
+
+  if (!provider) {
+    return c.json({ error: 'provider is required' }, 400);
+  }
+
+  try {
+    const result = await validateApiKey(provider, apiKey);
+    return c.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ valid: false, error: message });
+  }
 });
 
 export default app;

@@ -5,3 +5,4 @@
 export * from './client.js';
 export * from './schemas.js';
 export * from './claude-cli.js';
+export * from './validator.js';
