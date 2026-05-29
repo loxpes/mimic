@@ -45,7 +45,7 @@
     "@testfarm/db": "workspace:*",
     "@testfarm/shared": "workspace:*",
     "ai": "^6.0.99",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.2",
     "nanoid": "^5.0.0",
     "playwright": "^1.58.2",
     "yaml": "^2.6.0",
